@@ -127,7 +127,8 @@ mini-apartment-management/
 ├── scripts/                  # setup.sh, setup.ps1
 ├── docker-compose.yml
 ├── .env.example              # biến cho Docker Compose
-├── AGENTS.md                 # quy tắc cho AI/agent
+├── AGENTS.md                 # quy tắc dùng chung cho AI agent (Codex, Claude Code…)
+├── CLAUDE.md                 # import AGENTS.md + hướng dẫn riêng cho Claude Code
 └── README.md
 ```
 
