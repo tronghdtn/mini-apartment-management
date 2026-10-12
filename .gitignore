@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------
+# Mini Apartment Management — .gitignore gốc
+# frontend/.gitignore và backend/.gitignore bổ sung quy tắc riêng.
+# ---------------------------------------------------------------
+
+# Biến môi trường & secrets (chỉ commit file *.example)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+auth.json
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+frontend/dist/
+backend/public/build/
+backend/public/hot
+
+# Dữ liệu Docker (MySQL dùng named volume; phòng khi đổi sang bind mount)
+docker/mysql/data/
+*.sql.gz
+
+# Laravel runtime
+backend/storage/*.key
+backend/database/*.sqlite
+*.log
+
+# Test & cache
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+
+# IDE & hệ điều hành
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
