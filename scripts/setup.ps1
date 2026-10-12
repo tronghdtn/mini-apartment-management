@@ -1,4 +1,4 @@
-# Tạo file .env cho Docker Compose và backend nếu chưa có. Không ghi đè file đã tồn tại.
+﻿# Tạo file .env cho Docker Compose và backend nếu chưa có. Không ghi đè file đã tồn tại.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
