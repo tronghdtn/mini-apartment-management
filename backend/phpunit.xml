@@ -23,9 +23,15 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_URL" value=""/>
+        <!-- Database test riêng: kết nối mysql_test (config/database.php) — database + tài khoản cố định mini_apartment_test.
+             Đặt cả <server> lẫn <env force>: Laravel đọc $_SERVER trước, và trong container app
+             biến DB_DATABASE=mini_apartment có sẵn trong $_SERVER. tests/TestCase.php chặn mọi cấu hình khác. -->
+        <server name="DB_CONNECTION" value="mysql_test"/>
+        <server name="DB_DATABASE" value="mini_apartment_test"/>
+        <server name="DB_URL" value=""/>
+        <env name="DB_CONNECTION" value="mysql_test" force="true"/>
+        <env name="DB_DATABASE" value="mini_apartment_test" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

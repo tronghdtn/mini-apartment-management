@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Business Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Timestamp luôn lưu UTC ("timezone" ở trên). Múi giờ nghiệp vụ dùng để
+    | xác định ngày lịch Việt Nam: kỳ hóa đơn, hạn thanh toán, số ngày trong
+    | tháng, lịch hẹn "hôm nay" của bảo vệ.
+    |
+    */
+
+    'business_timezone' => env('APP_BUSINESS_TIMEZONE', 'Asia/Ho_Chi_Minh'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

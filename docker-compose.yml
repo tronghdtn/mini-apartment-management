@@ -27,6 +27,7 @@ services:
       DB_DATABASE: ${DB_DATABASE:-mini_apartment}
       DB_USERNAME: ${DB_USERNAME:-mini_apartment}
       DB_PASSWORD: ${DB_PASSWORD:?Chưa đặt DB_PASSWORD trong .env}
+      DB_TEST_PASSWORD: ${DB_TEST_PASSWORD:?Chưa đặt DB_TEST_PASSWORD trong .env — chạy scripts/setup.sh}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
     depends_on:
       mysql:
@@ -45,11 +46,15 @@ services:
       MYSQL_USER: ${DB_USERNAME:-mini_apartment}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Chưa đặt DB_PASSWORD trong .env}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Chưa đặt DB_ROOT_PASSWORD trong .env}
+      # Dùng bởi docker/mysql/init để tạo tài khoản test riêng
+      MYSQL_TEST_PASSWORD: ${DB_TEST_PASSWORD:?Chưa đặt DB_TEST_PASSWORD trong .env — chạy scripts/setup.sh}
     ports:
       # Chỉ mở trên localhost để dùng công cụ quản trị DB / chạy artisan từ máy host
       - "127.0.0.1:${DB_FORWARD_PORT:-3307}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # Script khởi tạo (chỉ chạy khi volume mới): tạo database + tài khoản test riêng
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 5s

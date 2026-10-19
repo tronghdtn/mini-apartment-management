@@ -59,9 +59,30 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
+            // Cố định UTC cho phiên MySQL để cột TIMESTAMP không bị đổi múi giờ theo server.
+            'timezone' => '+00:00',
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+        ],
+
+        // Chỉ dành cho PHPUnit: database và tài khoản cố định, không đọc DB_DATABASE/DB_USERNAME/DB_URL.
+        // Tài khoản mini_apartment_test chỉ có quyền trên database mini_apartment_test (docker/mysql/init).
+        'mysql_test' => [
+            'driver' => 'mysql',
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => 'mini_apartment_test',
+            'username' => 'mini_apartment_test',
+            'password' => env('DB_TEST_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'timezone' => '+00:00',
         ],
 
         'mariadb' => [

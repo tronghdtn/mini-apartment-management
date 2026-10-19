@@ -20,6 +20,9 @@ frontend/dist/
 backend/public/build/
 backend/public/hot
 
+# Bản sao lưu cục bộ (dump DB, lưu trữ tài liệu bàn giao) — có thể chứa dữ liệu nhạy cảm
+backups/
+
 # Dữ liệu Docker (MySQL dùng named volume; phòng khi đổi sang bind mount)
 docker/mysql/data/
 *.sql.gz
