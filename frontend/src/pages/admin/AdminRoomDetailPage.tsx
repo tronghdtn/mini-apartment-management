@@ -156,7 +156,7 @@ export const AdminRoomDetailPage: React.FC = () => {
 
       {/* Tab 2: Contracts */}
       {activeTab === 'contracts' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs">
+        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-x-auto shadow-xs">
           {roomContracts.length > 0 ? (
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
@@ -209,7 +209,7 @@ export const AdminRoomDetailPage: React.FC = () => {
 
       {/* Tab 3: Meter Readings */}
       {activeTab === 'readings' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs">
+        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-x-auto shadow-xs">
           {roomReadings.length > 0 ? (
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">

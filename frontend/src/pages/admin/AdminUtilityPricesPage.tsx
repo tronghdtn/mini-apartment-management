@@ -90,6 +90,7 @@ export const AdminUtilityPricesPage: React.FC = () => {
         <div className="p-5 border-b border-slate-100">
           <h3 className="font-bold text-sm text-slate-900">Lịch Sử Thay Đổi Đơn Giá</h3>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
             <tr>
@@ -123,6 +124,7 @@ export const AdminUtilityPricesPage: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Add Price Modal */}

@@ -70,7 +70,7 @@ export const AdminServicesPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-x-auto shadow-xs">
         <table className="w-full text-left text-xs">
           <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
             <tr>

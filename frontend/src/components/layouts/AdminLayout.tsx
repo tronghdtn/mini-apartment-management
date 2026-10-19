@@ -228,9 +228,6 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row antialiased">
-      {/* Floating Demo Role Switcher */}
-      <RoleSwitcher />
-
       {/* Desktop Sidebar */}
       <aside
         className={`hidden lg:block shrink-0 transition-all duration-300 sticky top-0 h-screen z-30 ${
@@ -270,7 +267,7 @@ export const AdminLayout: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 pr-28 sm:pr-36">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Trang thông báo Admin chưa có trong prototype — giữ chuông, không điều hướng */}
             <span
               className="relative p-2 text-slate-500 rounded-xl cursor-not-allowed"
@@ -290,6 +287,9 @@ export const AdminLayout: React.FC = () => {
             >
               <span>Xem trang Public</span>
             </Link>
+
+            {/* Công cụ demo: nằm trong header để không đè lên nút khác */}
+            <RoleSwitcher />
           </div>
         </header>
 

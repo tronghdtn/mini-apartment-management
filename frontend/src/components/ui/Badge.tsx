@@ -34,7 +34,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border ${toneStyles[tone].badge} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${toneStyles[tone].badge} ${sizeStyles[size]} ${className}`}
     >
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${toneStyles[tone].dot}`} />}
       {children}

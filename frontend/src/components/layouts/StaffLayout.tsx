@@ -28,9 +28,6 @@ export const StaffLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col antialiased pb-20 md:pb-6">
-      {/* Floating Demo Role Switcher */}
-      <RoleSwitcher />
-
       {/* Top Bar */}
       <header className="h-16 bg-slate-900 text-white sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2.5">
@@ -67,7 +64,7 @@ export const StaffLayout: React.FC = () => {
         </nav>
 
         {/* Header Right Actions */}
-        <div className="flex items-center gap-2 pr-28 sm:pr-36">
+        <div className="flex items-center gap-2">
           <Link
             to="/staff/notifications"
             className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl"
@@ -78,6 +75,7 @@ export const StaffLayout: React.FC = () => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
             )}
           </Link>
+          <RoleSwitcher />
         </div>
       </header>
 

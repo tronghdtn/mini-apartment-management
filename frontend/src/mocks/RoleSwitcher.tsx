@@ -38,7 +38,7 @@ export const RoleSwitcher: React.FC = () => {
   const currentConfig = rolesConfig.find((r) => r.id === role) || rolesConfig[0]
 
   return (
-    <div className="fixed top-2 right-2 sm:top-3 sm:right-4 z-50 flex items-center">
+    <div className="relative z-40 flex items-center shrink-0">
       {/* Floating Role Pill */}
       <div className="relative">
         <button
@@ -48,7 +48,7 @@ export const RoleSwitcher: React.FC = () => {
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="flex items-center gap-1.5 text-slate-200">
             {currentConfig.icon}
-            <span>Vai trò: <strong className="text-white">{currentConfig.label}</strong></span>
+            <span><span className="hidden sm:inline">Vai trò: </span><strong className="text-white">{currentConfig.label}</strong></span>
           </span>
           <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </button>

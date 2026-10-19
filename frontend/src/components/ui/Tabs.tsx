@@ -26,7 +26,7 @@ export function Tabs<T extends string = string>({
   }
 
   return (
-    <div className={`flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl overflow-x-auto ${className}`}>
+    <div className={`flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full ${className}`}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id
         return (

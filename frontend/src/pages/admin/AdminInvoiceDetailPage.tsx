@@ -215,7 +215,7 @@ export const AdminInvoiceDetailPage: React.FC = () => {
             <span className="text-xs font-normal text-stone-500">Đơn vị tính: Đồng (VND)</span>
           </h3>
 
-          <div className="border border-stone-200 rounded-lg overflow-hidden">
+          <div className="border border-stone-200 rounded-lg overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-semibold text-xs uppercase">
                 <tr>
