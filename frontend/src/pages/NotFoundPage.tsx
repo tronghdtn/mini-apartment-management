@@ -1,20 +1,37 @@
+import React from 'react'
 import { Link } from 'react-router'
-import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { Home, Search, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
-export function NotFoundPage() {
-  useDocumentTitle('Không tìm thấy trang')
-
+export const NotFoundPage: React.FC = () => {
   return (
-    <div className="grid min-h-screen place-items-center px-4 text-center">
+    <div className="max-w-md mx-auto px-4 py-24 text-center space-y-5">
+      <div className="w-16 h-16 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+        <AlertCircle className="w-8 h-8 text-sky-600" />
+      </div>
+
       <div>
-        <p className="text-6xl font-bold text-brand-600">404</p>
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Không tìm thấy trang</h1>
-        <p className="mt-2 text-slate-600">Trang bạn tìm không tồn tại hoặc đã bị di chuyển.</p>
-        <Link
-          to="/"
-          className="mt-6 inline-block rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
-        >
-          Về trang chủ
+        <span className="text-4xl font-extrabold text-slate-900 tracking-tight block">
+          404
+        </span>
+        <h1 className="text-xl font-bold text-slate-800 mt-2">
+          Không Tìm Thấy Trang Yêu Cầu
+        </h1>
+        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+          Đường dẫn bạn truy cập có thể đã bị thay đổi hoặc không tồn tại trên hệ thống MiniApart.
+        </p>
+      </div>
+
+      <div className="flex items-center justify-center gap-3 pt-2">
+        <Link to="/">
+          <Button variant="primary" size="md" icon={<Home className="w-4 h-4" />}>
+            Về Trang chủ
+          </Button>
+        </Link>
+        <Link to="/rooms">
+          <Button variant="outline" size="md" icon={<Search className="w-4 h-4" />}>
+            Tìm phòng trống
+          </Button>
         </Link>
       </div>
     </div>
