@@ -2,12 +2,16 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
+ * Chỉ dùng trong test — không seed vào database dùng chung (AGENTS.md §3).
+ *
  * @extends Factory<User>
  */
 class UserFactory extends Factory
@@ -25,10 +29,13 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'full_name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->unique()->numerify('09########'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role' => UserRole::User,
+            'status' => UserStatus::Active,
             'remember_token' => Str::random(10),
         ];
     }
@@ -41,5 +48,15 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function role(UserRole $role): static
+    {
+        return $this->state(fn (array $attributes) => ['role' => $role]);
+    }
+
+    public function locked(): static
+    {
+        return $this->state(fn (array $attributes) => ['status' => UserStatus::Locked]);
     }
 }
