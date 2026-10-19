@@ -2,15 +2,15 @@
 
 Hệ thống quản lý chung cư mini — bài tập lớn môn **Lập trình mã nguồn mở**.
 
-Một chủ sở hữu quản lý nhiều tòa chung cư mini, mỗi tòa có nhiều phòng. Hệ thống phục vụ **Khách**, **Cư dân** và **Quản trị viên** (vai trò Nhân viên sửa chữa, Bảo vệ có thể bổ sung sau).
+Một chủ sở hữu quản lý nhiều tòa chung cư mini, mỗi tòa có nhiều phòng. Hệ thống phục vụ 5 actor: **Khách**, **Cư dân**, **Quản trị viên**, **Nhân viên sửa chữa**, **Bảo vệ**.
 
-> **Trạng thái:** đã khởi tạo nền tảng kỹ thuật. Chưa triển khai nghiệp vụ; thiết kế CSDL (~20 bảng) đang chờ duyệt.
+> **Trạng thái (18/10/2026):** giao diện chính thức ở `frontend/` (phong cách Antigravity) đã có 27/51 màn hình nhưng **toàn bộ chạy trên dữ liệu giả**; Backend mới có `GET /api/v1/health`, **chưa có API nghiệp vụ và chưa có đăng nhập thật**. Thiết kế CSDL 21 bảng đã duyệt ([docs/09_DATABASE_DESIGN.md](docs/09_DATABASE_DESIGN.md)); migrations Nhóm 1 chạy trên DB dev, Nhóm 1–3 chạy trên DB test ([docs/DATABASE_IMPLEMENTATION_PLAN.md](docs/DATABASE_IMPLEMENTATION_PLAN.md)). Tiến độ thật và giải thích kiến trúc: [docs/PROJECT_STATUS_AND_LEARNING.md](docs/PROJECT_STATUS_AND_LEARNING.md).
 
 ## Công nghệ
 
 | Thành phần | Công nghệ |
 | --- | --- |
-| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, Axios, React Hook Form + Zod, Recharts |
+| Frontend | React 19, TypeScript 6, Vite 8, Tailwind CSS 4, React Router 8, Axios, React Hook Form + Zod, Recharts, lucide-react (icon) |
 | Backend | PHP 8.3, Laravel 13 (REST API), Laravel Sanctum 4 (SPA cookie), Eloquent ORM |
 | Database | MySQL 8.4 (LTS) |
 | Hạ tầng | Docker Compose, Nginx 1.28 (reverse proxy cùng origin) |
@@ -47,7 +47,9 @@ sh scripts/setup.sh            # Git Bash / Linux / macOS
 docker compose up -d --build
 ```
 
-Lần chạy đầu, container `app` tự `composer install`, sinh `APP_KEY` và chạy migrations (tắt bằng `RUN_MIGRATIONS=false` trong `.env`); container `frontend` tự `npm install`.
+Lần chạy đầu, container `app` tự `composer install`, sinh `APP_KEY` và chạy migrations nếu `RUN_MIGRATIONS=true`; container `frontend` tự `npm install`.
+
+> **Quan trọng:** hiện phải giữ `RUN_MIGRATIONS=false` trong `.env`. Nếu bật, `docker compose up` sẽ tự chạy migrations Nhóm 2–3 lên DB dev `mini_apartment` — việc này cần được duyệt riêng (backup + `migrate --pretend` trước).
 
 | Địa chỉ | Mô tả |
 | --- | --- |
@@ -87,10 +89,18 @@ npm run dev
 
 ## Kiểm tra chất lượng
 
+Test backend chạy trên database MySQL riêng **`mini_apartment_test`** bằng **tài khoản MySQL riêng** `mini_apartment_test` (chỉ có quyền trên DB test, mật khẩu `DB_TEST_PASSWORD` do `scripts/setup.sh` sinh) — không bao giờ trên database dev `mini_apartment` (`tests/TestCase.php` từ chối mọi cấu hình khác).
+
 ```bash
+docker compose up -d mysql      # test cần MySQL đang chạy
+sh scripts/setup.sh             # bổ sung DB_TEST_PASSWORD nếu .env cũ chưa có (không ghi đè)
+sh scripts/create-test-db.sh    # tạo DB + tài khoản test trên volume MySQL đã có (idempotent)
+
 cd frontend && npm run build && npm run lint     # tsc + vite build, oxlint
 cd backend  && php artisan test && vendor/bin/pint --test
 ```
+
+PowerShell: `Get-Content docker/mysql/init/01-create-test-database.sh | docker compose exec -T mysql sh`.
 
 ## Cấu trúc thư mục
 
@@ -98,16 +108,17 @@ cd backend  && php artisan test && vendor/bin/pint --test
 mini-apartment-management/
 ├── frontend/                 # React SPA
 │   └── src/
-│       ├── app/              # App, router
+│       ├── main.tsx          # điểm khởi động React
+│       ├── app/              # App (AppProvider + RouterProvider), router.tsx
 │       ├── components/
-│       │   ├── layouts/      # PublicLayout, ResidentLayout, AdminLayout
-│       │   └── ui/           # Component giao diện dùng chung
-│       ├── features/         # Module theo nghiệp vụ (api, types, component riêng)
+│       │   ├── layouts/      # PublicLayout (+Navbar, Footer), AdminLayout; ResidentLayout, StaffLayout (chưa gắn route)
+│       │   └── ui/           # Badge, Button, Modal, Tabs, Toast, Lightbox, StatCard
+│       ├── features/         # Module theo nghiệp vụ: rooms/, auth/, system/ (api.ts, types.ts, schemas.ts, component)
+│       ├── mocks/            # DỮ LIỆU GIẢ tạm thời: data, types, AppContext ("backend giả"), RoleSwitcher (demo)
+│       ├── pages/            # Trang theo khu vực: public/, admin/ (+ NotFoundPage, RouteErrorPage)
 │       ├── hooks/            # Custom hooks dùng chung
-│       ├── lib/              # http (Axios), tiện ích
-│       ├── pages/            # Trang theo khu vực: public/, resident/, admin/
-│       ├── types/            # Kiểu dữ liệu dùng chung
-│       └── assets/
+│       ├── lib/              # http.ts (Axios — client API duy nhất), format.ts (tiền, ngày, giờ VN)
+│       └── types/            # Kiểu dữ liệu API dùng chung
 ├── backend/                  # Laravel REST API
 │   ├── app/
 │   │   ├── Enums/
@@ -121,10 +132,11 @@ mini-apartment-management/
 │   ├── routes/api.php        # prefix /api/v1
 │   └── tests/
 ├── docker/
+│   ├── mysql/init/           # tạo database test khi khởi tạo volume
 │   ├── nginx/default.conf    # reverse proxy
 │   └── php/                  # Dockerfile, php.ini, entrypoint
 ├── docs/                     # Tài liệu phân tích – thiết kế
-├── scripts/                  # setup.sh, setup.ps1
+├── scripts/                  # setup.sh, setup.ps1, create-test-db.sh
 ├── docker-compose.yml
 ├── .env.example              # biến cho Docker Compose
 ├── AGENTS.md                 # quy tắc dùng chung cho AI agent (Codex, Claude Code…)
@@ -132,17 +144,17 @@ mini-apartment-management/
 └── README.md
 ```
 
-## Route giao diện hiện có (placeholder)
+## Route giao diện hiện có (dữ liệu giả)
 
 | Khu vực | Đường dẫn |
 | --- | --- |
-| Công khai | `/`, `/rooms`, `/contact`, `/login` |
-| Cư dân | `/resident`, `/resident/invoices`, `/resident/requests`, `/resident/profile` |
-| Quản trị | `/admin`, `/admin/buildings`, `/admin/rooms`, `/admin/residents` |
-| Khác | Mọi đường dẫn không tồn tại → trang 404 |
+| Công khai | `/`, `/rooms`, `/rooms/:roomId`, `/contact`, `/login`, `/register`, `/account/appointments`, `/account/profile` (+ `/rooms/:roomId/book`, `/book` — trang đặt lịch riêng của Antigravity, ngoài danh mục) |
+| Quản trị | `/admin`, `/admin/buildings`, `/admin/buildings/:buildingId`, `/admin/rooms`, `/admin/rooms/:roomId`, `/admin/amenities`, `/admin/services`, `/admin/utility-prices`, `/admin/users`, `/admin/users/:userId`, `/admin/contracts`, `/admin/contracts/new`, `/admin/contracts/:contractId`, `/admin/contracts/:contractId/terminate`, `/admin/meter-readings`, `/admin/invoices`, `/admin/invoices/:invoiceId` |
+| Cư dân, Nhân viên | Chưa có màn hình (mục menu/vai trò tương ứng hiển thị mờ "Chưa có") |
+| Khác | Đường dẫn không tồn tại → 404; lỗi khi tải route → trang lỗi |
 
-Các khu vực `/resident` và `/admin` **chưa được bảo vệ** — sẽ thêm khi triển khai xác thực.
+Danh mục đầy đủ 51 màn hình và trạng thái từng màn: [docs/SCREEN_INVENTORY.md](docs/SCREEN_INVENTORY.md). Nút "Vai trò" ở header Admin chỉ là công cụ demo; `/admin` **chưa được bảo vệ** — sẽ thêm khi triển khai đăng nhập thật (Sanctum).
 
 ## Bảng CSDL hiện có
 
-Chỉ gồm các bảng mặc định của Laravel: `users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs`, `migrations`. Bảng nghiệp vụ sẽ được tạo sau khi thiết kế CSDL được duyệt.
+Kiểm tra trực tiếp ngày 18/10/2026 (đọc bảng `migrations`): DB dev `mini_apartment` có 13 bảng (bảng framework + Nhóm 1), các bảng nghiệp vụ đều **0 dòng**; DB test `mini_apartment_test` có 24 bảng (Nhóm 1–3). Bảng nghiệp vụ (21 bảng theo `docs/09_DATABASE_DESIGN.md`) được tạo theo từng nhóm đã duyệt. Nhóm 1 (`users` ALTER, `buildings`, `amenities`, `services`, `settings`) đã chạy trên DB dev và DB test; Nhóm 2 (`rooms`, `building_amenities`, `room_amenities`, `contracts`, `contract_occupants`, `contract_services`, `utility_prices`) và Nhóm 3 (`invoices`, `meter_readings`, `invoice_items`, `payments`) **mới chạy trên DB test**. Giữ `RUN_MIGRATIONS=false` để Docker không tự chạy các nhóm này trên DB dev — xem [docs/DATABASE_IMPLEMENTATION_PLAN.md](docs/DATABASE_IMPLEMENTATION_PLAN.md).

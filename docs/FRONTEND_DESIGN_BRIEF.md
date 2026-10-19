@@ -1,0 +1,805 @@
+# FRONTEND DESIGN BRIEF — MINI APARTMENT MANAGEMENT
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Phiên bản | 1.0 — 14/10/2026 |
+| Mục đích | Tài liệu bàn giao để thiết kế **prototype giao diện (UI/UX)** bằng React + TypeScript + Tailwind CSS với **mock data**, không cần Backend |
+| Người đọc | AI thiết kế prototype (Gemini) và chủ dự án |
+| Căn cứ | `docs/DB_DECISIONS_20261014.md` (mục A–I, đến DB-D50) → `docs/09_DATABASE_DESIGN.md` v1.5 → `docs/DATABASE_IMPLEMENTATION_PLAN.md` v6 (§14 đề xuất P1–P12 **chờ duyệt**) → `AGENTS.md`; giao diện nền hiện có trong `frontend/src/` |
+| Hiện trạng (18/10/2026) | Giao diện thực tế là bản **Antigravity** trong `frontend/` (chủ dự án duyệt làm giao diện chính thức). Nhận diện ở §4.1 (Segoe UI, xanh `blue`) và `DashboardShell` ở §4.2, cấu trúc thư mục ở §11.2 **đã được thay** — xem `AGENTS.md` §4. Tài liệu này vẫn là nguồn **yêu cầu màn hình, nội dung và luồng**. Trạng thái từng màn hình: `docs/SCREEN_INVENTORY.md` |
+| Không có trong repo | `PROJECT_CONTEXT.md`, `02_SYSTEM_DISCOVERY.md` v0.10, docs `03`–`08`, danh sách "38 trang" cũ. Tài liệu này **không** dựa vào các nguồn đó (xem §15) |
+
+---
+
+## 0. Cách dùng tài liệu này
+
+**Gửi cho Gemini:** toàn bộ tài liệu. Yêu cầu Gemini đọc §1–§12 trước khi dựng, rồi dựng theo danh sách màn hình ở §5 và các luồng ở §8.
+
+**Nhãn phạm vi dùng xuyên suốt:**
+
+| Nhãn | Ý nghĩa | Prototype làm gì |
+|---|---|---|
+| **[MVP]** | Đã xác nhận trong tài liệu nghiệp vụ/CSDL | Dựng đầy đủ |
+| **[SHOULD]** | Có trong thiết kế nhưng ưu tiên sau MVP | Không dựng, hoặc chỉ dựng nếu được yêu cầu riêng; nếu dựng phải gắn nhãn "Sắp có" |
+| **[FUTURE]** | Ngoài phạm vi hiện tại | Không dựng |
+| **[ĐỀ XUẤT UI]** | Cách trình bày do tài liệu này đề xuất để màn hình dùng được, **chưa được chủ dự án duyệt** | Dựng, nhưng giữ đơn giản để dễ bỏ/sửa |
+| **[CHỜ Pn]** / **[CHỜ Qn]** | Phụ thuộc quyết định chưa chốt (P1–P12 ở kế hoạch §14, Q ở §14 của tài liệu này) | Dựng theo phương án đề xuất, hiển thị một nhãn nhỏ "Chờ duyệt" trong bản prototype |
+
+**Nguyên tắc không được vi phạm khi dựng prototype:**
+1. Không thêm vai trò ngoài 5 vai trò ở §2. Không thêm chức năng ngoài danh sách màn hình ở §5.
+2. Frontend **không tự tính tiền hóa đơn**: mọi số tiền (dòng hóa đơn, tổng, phí bồi thường, đối soát cọc) lấy sẵn từ mock data như thể Backend đã tính.
+3. Giao diện và nội dung hiển thị bằng **tiếng Việt**; tên biến, route, trường dữ liệu bằng **tiếng Anh `snake_case`** giống JSON API.
+
+---
+
+## 1. Tổng quan sản phẩm
+
+- Hệ thống quản lý **chung cư mini**: **một chủ sở hữu** quản lý **nhiều tòa nhà**, mỗi tòa có nhiều phòng. Không phải nền tảng nhiều chủ nhà.
+- Nghiệp vụ chính: giới thiệu phòng trống và đặt lịch xem phòng; lập và kích hoạt hợp đồng; ghi chỉ số điện nước; lập và phát hành hóa đơn tháng; cư dân thanh toán bằng chuyển khoản (VietQR chỉ để hướng dẫn) và gửi ảnh minh chứng; Admin xác nhận; yêu cầu sửa chữa; thanh lý hợp đồng (kiểm tra phòng, bồi thường, đối soát cọc).
+- **Không** có: cổng thanh toán/ngân hàng tự động, email/SMS, tự động lập hóa đơn theo lịch, giá điện bậc thang, ứng dụng di động riêng.
+- Thông báo chỉ **trong ứng dụng** (biểu tượng chuông).
+
+---
+
+## 2. Vai trò người dùng (5 vai trò — đã xác nhận, DB-D02, DB-D10)
+
+| Vai trò | Giá trị `role` | Đăng nhập | Khu vực giao diện | Được làm |
+|---|---|---|---|---|
+| Khách vãng lai | — (không có tài khoản) | Không | Public | Xem phòng trống, xem chi tiết phòng, **đặt lịch xem phòng**, xem liên hệ, đăng ký tài khoản |
+| Khách đã đăng ký | `user` | Có | Public (+ khu tài khoản nhỏ — [ĐỀ XUẤT UI]) | Như khách vãng lai; đặt lịch với thông tin điền sẵn. Là đối tượng Admin chọn làm người thuê khi lập hợp đồng |
+| Cư dân | `resident` | Có | `/resident` | Xem hợp đồng, hóa đơn, công nợ; gửi minh chứng thanh toán; gửi/theo dõi yêu cầu sửa chữa (chỉ khi **đang có hợp đồng hiệu lực**) |
+| Quản trị viên | `admin` | Có | `/admin` | Toàn bộ quản lý: tòa nhà, phòng, tiện nghi, dịch vụ, giá điện nước, người dùng, hợp đồng, chỉ số, hóa đơn, thanh toán, sửa chữa, lịch xem phòng, cài đặt |
+| Nhân viên sửa chữa | `technician` | Có | `/staff` | Chỉ xem và xử lý yêu cầu sửa chữa **được phân công cho mình** |
+| Bảo vệ | `guard` | Có | `/staff` | Chỉ xem lịch xem phòng **đã xác nhận của hôm nay** (giờ Việt Nam); check-in rồi check-out khách |
+
+Quy tắc quan trọng ảnh hưởng giao diện:
+- Tài khoản có `status` `active` hoặc `locked`. Tài khoản bị khóa không đăng nhập được.
+- Kích hoạt hợp đồng tự đổi `user` → `resident`. **Sau thanh lý vẫn giữ `resident`** để xem lịch sử (DB-D36); "đang thuê" suy ra từ việc có hợp đồng `active`. Cư dân không còn hợp đồng active: **chỉ xem**, không tạo yêu cầu sửa chữa, không gửi thanh toán mới cho hợp đồng mới (vẫn được thanh toán hóa đơn cũ còn nợ — xem Q8).
+- Người ở cùng phòng (`contract_occupants`) **không có tài khoản**. Một hợp đồng có một người thuê đại diện; người ở cùng có thể chuyển khoản nhiều lần cho cùng hóa đơn, nhưng ảnh minh chứng được gửi qua tài khoản người đại diện.
+- Route guard ở frontend chỉ để trải nghiệm. Prototype có thể dùng **bộ chuyển vai trò demo** (§11.4).
+
+---
+
+## 3. Quy ước hiển thị dữ liệu
+
+| Loại | Dữ liệu (mock/API) | Hiển thị |
+|---|---|---|
+| Tiền | **Số nguyên VND**, ví dụ `3500000` | `3.500.000 ₫` (định dạng `vi-VN`). Không có phần lẻ. Dòng giảm trừ là số âm: `−1.645.161 ₫`, màu xanh lá hoặc xám |
+| Chỉ số điện nước, tiêu thụ, số lượng, diện tích, hệ số | **Chuỗi** thập phân, ví dụ `"1234.50"`, `"25.00"`, `"1.50"` | `1.234,50 kWh`, `25 m²`, `× 1,5`. **Không** chuyển sang số thực để tính tiền |
+| Thời điểm (timestamp) | ISO-8601 UTC, ví dụ `"2026-10-14T02:30:00Z"` | Đổi sang giờ **Asia/Ho_Chi_Minh**: `14/10/2026 09:30` |
+| Ngày (`DATE`) | `"2026-10-14"` (ngày lịch Việt Nam) | `14/10/2026` — **không** đổi múi giờ |
+| Kỳ (`period`) | Luôn là ngày 01, ví dụ `"2026-10-01"` | `Tháng 10/2026` |
+| Mã nghiệp vụ | Có thể `null` trước khi sinh | Hợp đồng `HD-2026-0012` (sinh khi **kích hoạt**), hóa đơn `INV-202610-0012` (sinh khi **phát hành**), biên nhận `RCP-202610-0012` (sinh khi **xác nhận** thanh toán), sửa chữa `MR-202610-0012`, lịch hẹn `APT-202610-0012`. Khi `null`: hiển thị "Nháp" / "Chưa có mã" |
+
+**Ngày hợp đồng (rất dễ nhầm — DB-D43, DB-D32):**
+- `start_date`: ngày bắt đầu ở, có tính tiền.
+- `end_date`: **ngày cuối cùng được ở** (có tính). Nhãn: "Ngày cuối được ở".
+- Ngày bàn giao dự kiến = `end_date + 1`. Nhãn phụ: "Bàn giao dự kiến: 01/10/2027".
+- `actual_end_date`: **ngày bàn giao thực tế**, **không tính tiền** cho người thuê cũ. Nhãn: "Ngày bàn giao thực tế". Giải thích ngắn trên form: "Tiền phòng tính đến hết ngày dd/mm (ngày trước ngày bàn giao)".
+- Ví dụ hợp đồng 1 năm: `start_date = 01/10/2026`, `end_date = 30/09/2027`, trả đúng hạn khi bàn giao ngày `01/10/2027`.
+- Hợp đồng đã qua `end_date` mà chưa thanh lý **vẫn hiệu lực và vẫn tính tiền**: hiển thị cảnh báo "Quá hạn trả phòng".
+
+---
+
+## 4. Hệ thống thiết kế và layout
+
+### 4.1 Nhận diện (giữ theo code hiện có)
+
+> **Đã thay (18/10/2026):** `frontend/` dùng nhận diện Antigravity — font Plus Jakarta Sans/Space Grotesk, tông `sky`/`teal`, token `brand-*` (dải sky) trong `src/index.css`. Các giá trị dưới đây chỉ còn giá trị tham khảo.
+
+- Màu thương hiệu `brand` (xanh dương): `brand-50 #eff6ff`, `brand-100 #dbeafe`, `brand-500 #3b82f6`, `brand-600 #2563eb` (nút chính), `brand-700 #1d4ed8` (hover). Màu trung tính: `slate`. Nền trang `slate-50`, chữ `slate-800`.
+- Font: `'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif`.
+- Phong cách: sạch, nhiều khoảng trắng, bo góc `rounded-lg`/`rounded-xl`, viền `border-slate-200`, bóng nhẹ. Ưu tiên rõ ràng hơn trang trí: đây là công cụ quản lý.
+- **Mobile-first**, responsive. Bảng dữ liệu chuyển thành danh sách thẻ (card) trên màn hình nhỏ. Khu vực Bảo vệ và Nhân viên sửa chữa thiết kế ưu tiên **điện thoại** (nút lớn, một cột).
+
+### 4.2 Layout
+
+| Layout | Dùng cho | Cấu trúc (đã có trong code) |
+|---|---|---|
+| `PublicLayout` | Khách, `user` | Header: logo, menu ngang (Trang chủ, Phòng trống, Liên hệ), nút "Đăng nhập" (hoặc avatar + menu tài khoản khi đã đăng nhập). Nội dung `max-w-6xl`. Footer |
+| `DashboardShell` → `ResidentLayout`, `AdminLayout` | Cư dân, Admin | Sidebar trái rộng 256px (ẩn trên mobile, mở bằng nút hamburger, có lớp phủ), thanh trên cao 64px. Thêm vào thanh trên: **chuông thông báo** có số chưa đọc + **menu tài khoản** (Hồ sơ, Đăng xuất) |
+| `StaffLayout` (mới, DB-D10) | Nhân viên sửa chữa, Bảo vệ | Dùng lại `DashboardShell`; menu khác nhau theo vai trò. Trên mobile nên có **thanh điều hướng dưới** thay sidebar — [ĐỀ XUẤT UI] |
+
+> **Hiện trạng:** bản Antigravity không có `DashboardShell`; mỗi layout (`AdminLayout`, `ResidentLayout`, `StaffLayout`) tự dựng khung. `PublicLayout` gồm `PublicNavbar` + `PublicFooter`. `ResidentLayout`, `StaffLayout` đã có (thanh điều hướng dưới trên mobile) nhưng chưa gắn route.
+
+### 4.3 Thành phần dùng chung cần có
+
+`Button` (primary/secondary/danger/ghost, trạng thái loading), `Input`, `Select`, `Textarea`, `DatePicker`, `MonthPicker` (chọn kỳ), `MoneyInput` (chỉ nhận số nguyên, hiển thị phân cách nghìn), `DecimalInput` (chỉ số, tối đa 2 chữ số thập phân), `FileUpload` (ảnh jpg/png/webp, ≤ 5 MB, xem trước), `ImageGallery` + `Lightbox`, `DataTable` (sắp xếp, lọc, phân trang, chuyển thành card trên mobile), `StatusBadge`, `Modal`, `Drawer` (trượt từ phải, dùng cho form tạo/sửa), `ConfirmDialog`, `Stepper` (wizard), `Tabs`, `Toast`, `Alert` (info/warning/error/success), `EmptyState`, `Skeleton`, `KpiCard`, `Timeline`, `Pagination`, `MoneySummary` (bảng tổng tiền căn phải).
+
+### 4.4 Bảng nhãn trạng thái và màu
+
+| Đối tượng | Giá trị → Nhãn (màu) |
+|---|---|
+| Phòng | `available` → Còn trống (xanh lá) · `occupied` → Đang thuê (xanh dương) · `maintenance` → Đang bảo trì (vàng) · `inactive` → Ngừng sử dụng (xám). Cờ `is_public` → "Công khai" / "Ẩn" |
+| Tòa nhà, Dịch vụ | `active` → Hoạt động (xanh lá) · `inactive` → Ngừng hoạt động (xám) |
+| Tài khoản | `active` → Hoạt động (xanh lá) · `locked` → Đã khóa (đỏ) |
+| Hợp đồng | `draft` → Nháp (xám) · `active` → Đang hiệu lực (xanh lá) · `terminated` → Đã thanh lý (slate). Nhãn suy ra: "Sắp hết hạn" (vàng, khi còn ≤ `contract.expiring_warning_days` ngày đến `end_date`), "Quá hạn trả phòng" (đỏ, khi đã qua `end_date` mà vẫn active). `expired` là [SHOULD] — **không hiển thị** |
+| Tiền cọc | `unpaid` → Chưa nhận cọc (xám) · `held` → Đang giữ cọc (xanh dương) · `settled` → Đã đối soát (xanh lá). `transferred` là [SHOULD] — không hiển thị |
+| Lý do thanh lý | `on_time` → Trả đúng hạn · `early_termination` → Trả trước hạn · `same_day` → Trả trong ngày nhận phòng. "Trả quá hạn" chưa có mã [CHỜ P3] |
+| Hóa đơn — loại | `monthly` → Hóa đơn tháng · `final` → Hóa đơn tất toán. `adjustment` là [SHOULD] — không hiển thị |
+| Hóa đơn — trạng thái | `draft` → Nháp (xám) · `issued` → Chưa thanh toán (xanh dương) · `partially_paid` → Thanh toán một phần (vàng) · `paid` → Đã thanh toán (xanh lá) · `cancelled` → Đã hủy (xám, gạch ngang). Nhãn suy ra: **"Quá hạn"** (đỏ) khi `due_date` < hôm nay và trạng thái là `issued`/`partially_paid` |
+| Dòng hóa đơn | `rent` → Tiền phòng · `electricity` → Tiền điện · `water` → Tiền nước · `service` → Dịch vụ · `discount` → Giảm trừ · `other` → Khoản khác. Đề xuất mới [CHỜ P7]: `termination_fee` → Phí trả phòng trước hạn · `damage` → Bồi thường tài sản |
+| Thanh toán — trạng thái | `pending` → Chờ xác nhận (vàng) · `confirmed` → Đã xác nhận (xanh lá) · `rejected` → Bị từ chối (đỏ) |
+| Thanh toán — hình thức | `bank_transfer` → Chuyển khoản · `cash` → Tiền mặt · `deposit` → Khấu trừ tiền cọc (ghi chú: không tính doanh thu thực thu) |
+| Chỉ số | `periodic` → Định kỳ · `final` → Chốt khi trả phòng |
+| Dịch vụ — cách tính | `per_room` → Theo phòng · `per_person` → Theo người · `per_unit` → Theo số lượng (ví dụ số xe) · `metered` → Theo chỉ số (chỉ Điện, Nước) |
+| Sửa chữa — trạng thái | `pending` → Chờ xử lý (vàng) · `in_progress` → Đang xử lý (xanh dương) · `resolved` → Đã xử lý (xanh lá) · `rejected` → Từ chối (đỏ) |
+| Sửa chữa — ưu tiên | `low` → Thấp · `normal` → Bình thường · `high` → Cao (cam) · `urgent` → Khẩn cấp (đỏ) |
+| Lịch xem phòng | `pending` → Chờ xác nhận (vàng) · `confirmed` → Đã xác nhận (xanh dương) · `completed` → Đã hoàn tất (xanh lá) · `cancelled` → Đã hủy (xám). Trạng thái bảo vệ (suy ra): Chưa đến / Đã vào (giờ check-in) / Đã ra (giờ check-out) |
+| Vai trò | `user` → Khách đã đăng ký · `resident` → Cư dân · `admin` → Quản trị viên · `technician` → Nhân viên sửa chữa · `guard` → Bảo vệ |
+
+---
+
+## 5. Sitemap và danh sách màn hình
+
+Một "màn hình" = một route riêng. Modal, drawer, wizard bên trong màn hình liệt kê ở §9, không tính là màn hình.
+
+### 5.1 Public — `PublicLayout`
+
+| ID | Màn hình | Route | Nhãn |
+|---|---|---|---|
+| PUB-01 | Trang chủ | `/` | [MVP] |
+| PUB-02 | Danh sách phòng trống | `/rooms` | [MVP] |
+| PUB-03 | Chi tiết phòng + đặt lịch xem | `/rooms/:roomId` | [MVP] |
+| PUB-04 | Liên hệ | `/contact` | [MVP] (chỉ thông tin; form liên hệ là [SHOULD]) |
+| PUB-05 | Đăng nhập | `/login` | [MVP] |
+| PUB-06 | Đăng ký tài khoản | `/register` | [MVP] |
+| ACC-01 | Lịch hẹn của tôi (vai trò `user`) | `/account/appointments` | [ĐỀ XUẤT UI] — Q2 |
+| ACC-02 | Tài khoản của tôi (vai trò `user`) | `/account/profile` | [ĐỀ XUẤT UI] — Q2 |
+
+### 5.2 Cư dân — `ResidentLayout`
+
+| ID | Màn hình | Route | Nhãn |
+|---|---|---|---|
+| RES-01 | Tổng quan | `/resident` | [MVP] |
+| RES-02 | Hợp đồng của tôi (hiện tại + lịch sử) | `/resident/contracts` | [MVP] |
+| RES-03 | Chi tiết hợp đồng | `/resident/contracts/:contractId` | [MVP] |
+| RES-04 | Hóa đơn và công nợ | `/resident/invoices` | [MVP] |
+| RES-05 | Chi tiết hóa đơn + thanh toán | `/resident/invoices/:invoiceId` | [MVP] |
+| RES-06 | Yêu cầu sửa chữa | `/resident/requests` | [MVP] |
+| RES-07 | Gửi yêu cầu sửa chữa | `/resident/requests/new` | [MVP] |
+| RES-08 | Chi tiết yêu cầu sửa chữa | `/resident/requests/:requestId` | [MVP] |
+| RES-09 | Thông báo | `/resident/notifications` | [MVP] |
+| RES-10 | Thông tin cá nhân + đổi mật khẩu | `/resident/profile` | [MVP] |
+
+### 5.3 Quản trị viên — `AdminLayout`
+
+| ID | Màn hình | Route | Nhãn |
+|---|---|---|---|
+| ADM-01 | Dashboard | `/admin` | [MVP]; nội dung chỉ số là [ĐỀ XUẤT UI] |
+| ADM-02 | Tòa nhà | `/admin/buildings` | [MVP] |
+| ADM-03 | Chi tiết tòa nhà | `/admin/buildings/:buildingId` | [MVP] |
+| ADM-04 | Phòng | `/admin/rooms` | [MVP] |
+| ADM-05 | Chi tiết phòng | `/admin/rooms/:roomId` | [MVP] |
+| ADM-06 | Danh mục tiện nghi | `/admin/amenities` | [MVP] |
+| ADM-07 | Danh mục dịch vụ | `/admin/services` | [MVP] |
+| ADM-08 | Giá điện nước | `/admin/utility-prices` | [MVP] |
+| ADM-09 | Người dùng (cư dân, khách đã đăng ký, nhân viên) | `/admin/users` | [MVP] — thay placeholder `/admin/residents` hiện có |
+| ADM-10 | Chi tiết người dùng | `/admin/users/:userId` | [MVP] |
+| ADM-11 | Hợp đồng | `/admin/contracts` | [MVP] |
+| ADM-12 | Lập hợp đồng (wizard) | `/admin/contracts/new` (sửa nháp: `/admin/contracts/:contractId/edit`) | [MVP] |
+| ADM-13 | Chi tiết hợp đồng | `/admin/contracts/:contractId` | [MVP] |
+| ADM-14 | Thanh lý hợp đồng (wizard) | `/admin/contracts/:contractId/terminate` | [MVP]; một số bước [CHỜ P3–P6, P9, P11, P12] |
+| ADM-15 | Ghi chỉ số điện nước | `/admin/meter-readings` | [MVP] |
+| ADM-16 | Hóa đơn | `/admin/invoices` | [MVP] |
+| ADM-17 | Chi tiết hóa đơn | `/admin/invoices/:invoiceId` | [MVP] |
+| ADM-18 | Duyệt thanh toán | `/admin/payments` | [MVP] |
+| ADM-19 | Công nợ | `/admin/debts` | [ĐỀ XUẤT UI] — Q12 (dữ liệu là hóa đơn còn nợ gom theo hợp đồng, không phải đối tượng riêng) |
+| ADM-20 | Yêu cầu sửa chữa | `/admin/maintenance-requests` | [MVP] |
+| ADM-21 | Chi tiết yêu cầu sửa chữa | `/admin/maintenance-requests/:requestId` | [MVP] |
+| ADM-22 | Lịch xem phòng | `/admin/viewing-appointments` | [MVP] |
+| ADM-23 | Cài đặt | `/admin/settings` | [MVP] |
+| ADM-24 | Thông báo | `/admin/notifications` | [MVP] |
+| ADM-25 | Hồ sơ cá nhân + đổi mật khẩu | `/admin/profile` | [MVP] |
+
+### 5.4 Nhân viên — `StaffLayout`
+
+| ID | Màn hình | Route | Vai trò | Nhãn |
+|---|---|---|---|---|
+| STF-01 | Việc được giao | `/staff/maintenance-requests` | `technician` | [MVP] |
+| STF-02 | Chi tiết việc được giao | `/staff/maintenance-requests/:requestId` | `technician` | [MVP] |
+| STF-03 | Lịch xem phòng hôm nay | `/staff/appointments` | `guard` | [MVP] |
+| STF-04 | Thông báo | `/staff/notifications` | cả hai | [MVP] |
+| STF-05 | Hồ sơ cá nhân + đổi mật khẩu | `/staff/profile` | cả hai | [MVP] |
+
+`/staff` chuyển hướng theo vai trò: `technician` → STF-01, `guard` → STF-03.
+
+### 5.5 Hệ thống
+
+| ID | Màn hình | Route | Nhãn |
+|---|---|---|---|
+| SYS-01 | Không có quyền (403) | hiển thị tại route bị chặn | [MVP] |
+| SYS-02 | Không tìm thấy (404) | `*` | [MVP] (đã có) |
+| SYS-03 | Lỗi hệ thống / lỗi route | error boundary | [MVP] (đã có) |
+
+### 5.6 Tổng số màn hình
+
+| Khu vực | Đã xác nhận [MVP] | [ĐỀ XUẤT UI] | Tổng |
+|---|---:|---:|---:|
+| Public | 6 | 2 | 8 |
+| Cư dân | 10 | 0 | 10 |
+| Quản trị viên | 24 | 1 | 25 |
+| Nhân viên (sửa chữa + bảo vệ) | 5 | 0 | 5 |
+| Hệ thống | 3 | 0 | 3 |
+| **Tổng** | **48** | **3** | **51** |
+
+Đếm theo **màn hình (mã ID)**, không theo route: ADM-12 có hai route (lập mới, sửa nháp); SYS-01, SYS-03 không có URL riêng. Mọi tài liệu báo tiến độ dùng mốc 51 / 48 / 3 (xem `docs/SCREEN_INVENTORY.md` §1).
+
+---
+
+## 6. Menu theo vai trò
+
+| Vai trò | Menu (theo thứ tự) |
+|---|---|
+| Khách | Trang chủ · Phòng trống · Liên hệ · [Đăng nhập] · [Đăng ký] |
+| `user` | Trang chủ · Phòng trống · Liên hệ · Menu tài khoản: Lịch hẹn của tôi, Tài khoản, Đăng xuất |
+| Cư dân | Tổng quan · Hợp đồng · Hóa đơn · Yêu cầu sửa chữa · Thông báo · Thông tin cá nhân |
+| Admin | **Tổng quan:** Dashboard · **Bất động sản:** Tòa nhà, Phòng, Tiện nghi · **Cho thuê:** Hợp đồng, Người dùng, Lịch xem phòng · **Tài chính:** Chỉ số điện nước, Hóa đơn, Duyệt thanh toán (badge số chờ duyệt), Công nợ · **Vận hành:** Yêu cầu sửa chữa (badge số chờ xử lý) · **Cấu hình:** Dịch vụ, Giá điện nước, Cài đặt |
+| Nhân viên sửa chữa | Việc được giao · Thông báo · Hồ sơ |
+| Bảo vệ | Lịch hôm nay · Thông báo · Hồ sơ |
+
+Sau đăng nhập, chuyển hướng theo vai trò: `user` → `/`; `resident` → `/resident`; `admin` → `/admin`; `technician`, `guard` → `/staff`.
+
+---
+
+## 7. Mô tả màn hình
+
+Định dạng: **Mục đích** · **Nội dung** · **Hành động** · **Lưu ý**.
+
+### 7.1 Public
+
+**PUB-01 Trang chủ.** Giới thiệu hệ thống chung cư mini. Nội dung: hero với ô lọc nhanh (tòa nhà, khoảng giá); danh sách tòa nhà (tên, địa chỉ, tiện nghi tòa); khối "Phòng còn trống nổi bật" (4–8 thẻ phòng); 3 bước "Xem phòng → Đặt lịch → Ký hợp đồng"; thông tin liên hệ lấy từ cài đặt. Hành động: Xem tất cả phòng, Xem chi tiết.
+
+**PUB-02 Phòng trống.** Chỉ hiển thị phòng `available` **và** `is_public`. Bộ lọc: tòa nhà, khoảng giá, diện tích, số người tối đa, tiện nghi; sắp xếp theo giá/diện tích. Thẻ phòng: ảnh bìa, mã phòng, tòa nhà, tầng, diện tích, giá thuê/tháng, số người tối đa, 3–4 tiện nghi. Trạng thái rỗng: "Hiện chưa có phòng trống phù hợp" + nút xóa bộ lọc.
+
+**PUB-03 Chi tiết phòng.** Thư viện ảnh (ảnh bìa + lightbox); thông tin: mã phòng, tòa nhà, địa chỉ, tầng, diện tích, giá thuê, tiền cọc, số người tối đa, mô tả; **tiện nghi = hợp của tiện nghi tòa nhà và tiện nghi riêng phòng, không trùng lặp** (DB-D01) — có thể chia hai nhóm "Tiện nghi tòa nhà" / "Trong phòng" nhưng một tiện nghi chỉ xuất hiện một lần; liên kết bản đồ nếu tòa có tọa độ ([ĐỀ XUẤT UI]: link mở Google Maps, không nhúng bản đồ). **Form đặt lịch xem phòng** (cột phải trên desktop, cuối trang trên mobile): họ tên, số điện thoại, thời gian mong muốn (ngày + giờ, trong tương lai). Đã đăng nhập → điền sẵn họ tên/SĐT. Có trường ẩn chống spam (honeypot), không hiển thị. Lưu ý: tiện nghi **không** phải khoản thu — không hiển thị giá cạnh tiện nghi. Phòng không còn công khai → trang 404 thân thiện "Phòng này hiện không còn nhận lịch xem".
+- Thành công: thẻ xác nhận có mã lịch `APT-…`, thời gian, "Ban quản lý sẽ liên hệ xác nhận".
+- Lỗi: đã có lịch chờ/đã xác nhận cho cùng SĐT + phòng → "Bạn đã có lịch xem phòng này đang chờ xử lý"; gửi quá nhiều (giới hạn 5 lần/giờ) → "Bạn thao tác quá nhanh, vui lòng thử lại sau".
+
+**PUB-04 Liên hệ.** Tên hệ thống, số điện thoại, email (từ cài đặt), danh sách tòa nhà và địa chỉ. **Không** có form gửi liên hệ (bảng `contact_requests` là [SHOULD]).
+
+**PUB-05 Đăng nhập.** Email + mật khẩu (form đã có schema). Lỗi sai thông tin; tài khoản bị khóa → "Tài khoản đã bị khóa, vui lòng liên hệ ban quản lý"; quá nhiều lần → thông báo thử lại sau. Liên kết "Đăng ký". **Không** có "Quên mật khẩu" (không có email trong MVP — Q4).
+
+**PUB-06 Đăng ký.** Họ tên, email, số điện thoại, mật khẩu, nhập lại mật khẩu. Email và SĐT là duy nhất (lỗi 422 hiển thị đúng trường). Sau đăng ký: đăng nhập với vai trò `user`. Không hỏi CCCD ở bước này.
+
+**ACC-01 Lịch hẹn của tôi** [ĐỀ XUẤT UI]. Danh sách lịch xem phòng đã đặt khi đăng nhập: mã, phòng, thời gian, trạng thái, ghi chú của ban quản lý. Không có hành động sửa (chưa có quy tắc hủy/đổi lịch bởi khách — Q3).
+
+**ACC-02 Tài khoản của tôi** [ĐỀ XUẤT UI]. Họ tên, email, SĐT, đổi mật khẩu.
+
+### 7.2 Cư dân
+
+**RES-01 Tổng quan.**
+- Có hợp đồng active: thẻ "Phòng của tôi" (mã phòng, tòa, địa chỉ, ngày bắt đầu, ngày cuối được ở, cảnh báo sắp hết hạn/quá hạn); thẻ "Cần thanh toán" (tổng còn nợ, số hóa đơn quá hạn, nút "Thanh toán"); "Yêu cầu sửa chữa gần đây" (3 dòng + nút "Gửi yêu cầu"); "Thông báo mới".
+- Không còn hợp đồng active (đã thanh lý): banner "Bạn không còn hợp đồng đang hiệu lực. Bạn vẫn xem được lịch sử hợp đồng và hóa đơn." Ẩn nút "Gửi yêu cầu sửa chữa"; vẫn hiển thị công nợ còn lại nếu có.
+
+**RES-02 Hợp đồng của tôi.** Danh sách: mã hợp đồng, phòng, thời hạn, trạng thái, tiền thuê. Hợp đồng nháp **không** hiển thị cho cư dân ([ĐỀ XUẤT UI]).
+
+**RES-03 Chi tiết hợp đồng.** Chỉ đọc. Thông tin phòng; ngày bắt đầu, ngày cuối được ở, bàn giao dự kiến; tiền thuê/tháng; số người ở; người ở cùng (nếu có); tiền cọc + trạng thái cọc; dịch vụ đăng ký (tên, cách tính, số lượng, đơn giá, hiệu lực từ–đến); chỉ số đầu điện/nước; **điều khoản bồi thường trả trước hạn** và **điều kiện miễn bồi thường** đã ký; khi đã thanh lý: ngày bàn giao thực tế, lý do thanh lý, kết quả kiểm tra phòng, kết quả đối soát cọc (đã khấu trừ, hoàn lại), liên kết hóa đơn tất toán.
+
+**RES-04 Hóa đơn và công nợ.** Thẻ tóm tắt: tổng còn phải trả, số hóa đơn quá hạn, số thanh toán đang chờ xác nhận. Bảng: mã hóa đơn, loại, kỳ, tổng, đã trả, còn lại, hạn, trạng thái (gồm nhãn "Quá hạn"). Lọc: trạng thái, năm. Chỉ hiển thị hóa đơn đã phát hành (không hiển thị nháp). Hóa đơn đã hủy: hiển thị mờ, kèm liên kết "Xem hóa đơn thay thế".
+
+**RES-05 Chi tiết hóa đơn.** Đầu trang: mã, loại, kỳ, ngày phát hành, hạn thanh toán, trạng thái. **Bảng dòng hóa đơn**: mô tả, số lượng, đơn giá, thành tiền; dòng điện nước hiển thị chi tiết "Chỉ số 1.234,50 → 1.334,50 = 100,00 kWh × 3.500 ₫"; dòng chia ngày hiển thị "17/31 ngày"; dòng giảm trừ âm. Tổng: tổng hóa đơn, đã xác nhận, **còn lại**. Khối **Thanh toán chuyển khoản**: ngân hàng, số tài khoản, chủ tài khoản (từ cài đặt), số tiền gợi ý = còn lại, nội dung chuyển khoản gợi ý = mã hóa đơn, ảnh VietQR (prototype: ảnh giữ chỗ), nút sao chép. Nút **"Tôi đã chuyển khoản"** mở modal gửi minh chứng (§9). **Lịch sử thanh toán**: ngày gửi, số tiền, hình thức, trạng thái, số biên nhận (khi đã xác nhận), lý do từ chối (khi bị từ chối). Ghi chú cố định: "Khoản chờ xác nhận chưa được trừ vào công nợ." Ẩn nút thanh toán khi hóa đơn `paid` hoặc `cancelled`.
+
+**RES-06 Yêu cầu sửa chữa.** Danh sách: mã, tiêu đề, ưu tiên, trạng thái, ngày gửi, ngày xử lý xong. Lọc trạng thái. Nút "Gửi yêu cầu" chỉ khi có hợp đồng active.
+
+**RES-07 Gửi yêu cầu sửa chữa.** Phòng (tự điền từ hợp đồng active, chỉ đọc), tiêu đề (≤ 150 ký tự), mô tả, mức ưu tiên (Q9), ảnh (tối đa 5, jpg/png/webp, ≤ 5 MB/ảnh). Thành công: chuyển sang chi tiết với mã `MR-…`.
+
+**RES-08 Chi tiết yêu cầu sửa chữa.** Thông tin đã gửi, ảnh, trạng thái dạng dòng thời gian (Đã gửi → Đã phân công → Đang xử lý → Đã xử lý / Từ chối, mỗi mốc có thời gian), ghi chú của ban quản lý, ghi chú xử lý của nhân viên. Không hiển thị chi phí nội bộ ([ĐỀ XUẤT UI]).
+
+**RES-09 Thông báo** (dùng chung cho mọi khu vực đăng nhập). Danh sách: tiêu đề, nội dung ngắn, thời gian, đã đọc/chưa đọc; bấm vào mở đối tượng liên quan và đánh dấu đã đọc; nút "Đánh dấu tất cả đã đọc". Lọc: tất cả/chưa đọc.
+
+**RES-10 Thông tin cá nhân.** Họ tên, email, số điện thoại (Q10 — trường nào được tự sửa), ngày sinh, giới tính, địa chỉ thường trú; **không hiển thị CCCD** cho cư dân (CCCD chỉ trả về cho Admin — DB-D19). Khối đổi mật khẩu.
+
+### 7.3 Quản trị viên
+
+**ADM-01 Dashboard** [ĐỀ XUẤT UI — nội dung]. KPI: tổng phòng / đang thuê / còn trống / bảo trì, tỷ lệ lấp đầy; **thực thu tháng này** (tổng thanh toán đã xác nhận, **không gồm** khấu trừ cọc); tổng công nợ, công nợ quá hạn; số thanh toán chờ duyệt; số yêu cầu sửa chữa chờ xử lý; lịch xem phòng hôm nay. Biểu đồ (Recharts): cột thực thu 6–12 tháng; tròn/thanh trạng thái phòng theo tòa. Danh sách việc cần làm: hợp đồng sắp hết hạn, hợp đồng quá hạn trả phòng, phòng chưa ghi chỉ số kỳ trước, hóa đơn nháp chưa phát hành. Lọc theo tòa nhà.
+
+**ADM-02 Tòa nhà.** Bảng/thẻ: tên, địa chỉ, số tầng, số phòng theo trạng thái, trạng thái. Nút "Thêm tòa nhà" → drawer: tên (duy nhất), địa chỉ, số tầng (≥ 1), vĩ độ/kinh độ (tùy chọn), mô tả, trạng thái, **tiện nghi tòa nhà** (chọn nhiều). Không có nút xóa tòa còn phòng/hợp đồng; dùng "Ngừng hoạt động".
+
+**ADM-03 Chi tiết tòa nhà.** Thông tin, tiện nghi tòa, **sơ đồ phòng theo tầng** (lưới ô phòng tô màu theo trạng thái; bấm ô mở chi tiết phòng — [ĐỀ XUẤT UI]), thống kê nhanh. Nút "Thêm phòng" (điền sẵn tòa).
+
+**ADM-04 Phòng.** Bảng: mã phòng, tòa, tầng, diện tích, giá thuê, tiền cọc, số người tối đa, trạng thái, công khai, người thuê hiện tại. Lọc: tòa, tầng, trạng thái, công khai. Drawer tạo/sửa: tòa nhà, mã phòng (duy nhất trong tòa), tầng (1..số tầng của tòa), diện tích, giá thuê niêm yết, tiền cọc niêm yết, số người tối đa, trạng thái, công khai trên website, mô tả, **tiện nghi riêng phòng** (chọn nhiều; tiện nghi tòa hiển thị mờ "Kế thừa từ tòa nhà", không chọn lại), ảnh phòng (nhiều ảnh, chọn ảnh bìa, sắp thứ tự). Lưu ý trên form: "Phòng chỉ hiển thị trên website khi Còn trống và Công khai."
+
+**ADM-05 Chi tiết phòng.** Tabs: **Thông tin** (kèm tiện nghi hợp nhất) · **Ảnh** · **Hợp đồng** (hiện tại + lịch sử, nút "Lập hợp đồng" khi phòng trống) · **Chỉ số điện nước** (lịch sử theo dịch vụ: kỳ, loại, ngày ghi, chỉ số trước/sau, tiêu thụ, đơn giá, hợp đồng chịu phí hoặc "Phòng trống", đã vào hóa đơn nào) · **Sửa chữa** · **Lịch xem**.
+
+**ADM-06 Tiện nghi.** Bảng: tên, mô tả, số tòa/phòng đang dùng. Modal tạo/sửa. "Xóa" là lưu trữ (ẩn khỏi danh mục, giữ lịch sử). Ghi chú: "Tiện nghi mô tả cơ sở vật chất, không phát sinh tiền. Khoản thu khai báo ở Dịch vụ."
+
+**ADM-07 Dịch vụ.** Bảng: mã, tên, cách tính, đơn vị, đơn giá, trạng thái. Hai dòng **Điện (`ELECTRICITY`)** và **Nước (`WATER`)** có nhãn "Hệ thống", không sửa mã/cách tính/không xóa, cột giá hiển thị "Theo bảng giá điện nước" (liên kết ADM-08). Modal tạo/sửa: mã (không sửa được khi đã dùng), tên (duy nhất), cách tính (`per_room`/`per_person`/`per_unit` — không cho chọn `metered`), đơn vị, đơn giá, mô tả, trạng thái. Ghi chú: "Đổi giá không ảnh hưởng hợp đồng đã đăng ký (giá được lưu tại thời điểm đăng ký)."
+
+**ADM-08 Giá điện nước.** Hai thẻ Điện / Nước: giá đang áp dụng, áp dụng từ kỳ nào. Bảng lịch sử: áp dụng từ (tháng), đơn giá, đã được dùng hay chưa. Modal "Thêm giá mới": dịch vụ, **tháng áp dụng** (MonthPicker → luôn ngày 01), đơn giá. Lỗi: tháng áp dụng không sau kỳ chỉ số mới nhất → "Đã có chỉ số/hóa đơn cho kỳ này hoặc sau đó, không thể đặt giá mới từ tháng này". Không sửa/xóa giá đã dùng. Trạng thái rỗng khi chưa cấu hình: cảnh báo "Chưa có giá điện/nước — chưa thể ghi chỉ số".
+
+**ADM-09 Người dùng.** Tabs/lọc theo vai trò: Cư dân, Khách đã đăng ký, Nhân viên sửa chữa, Bảo vệ, Quản trị viên. Bảng: họ tên, email, SĐT, vai trò, trạng thái, đang thuê (có/không, phòng). Tìm kiếm theo tên/SĐT/email. Nút "Tạo tài khoản nhân viên" (Q11). Hành động: khóa/mở khóa (xác nhận).
+
+**ADM-10 Chi tiết người dùng.** Hồ sơ đầy đủ **kể cả CCCD** (chỉ Admin), ngày sinh, giới tính, địa chỉ thường trú; vai trò; trạng thái; các hợp đồng; công nợ; yêu cầu sửa chữa; (với technician) việc đang được giao. Sửa hồ sơ trong drawer. Không cho Admin tự đổi `user` ↔ `resident` (vai trò này do hợp đồng quyết định).
+
+**ADM-11 Hợp đồng.** Bảng: mã (hoặc "Nháp"), phòng, người thuê, bắt đầu, ngày cuối được ở, tiền thuê, trạng thái + nhãn suy ra (Sắp hết hạn / Quá hạn trả phòng), trạng thái cọc. Tabs: Nháp · Đang hiệu lực · Sắp hết hạn · Quá hạn trả phòng · Đã thanh lý. Nút "Lập hợp đồng".
+
+**ADM-12 Lập hợp đồng (wizard)** — xem luồng §8.1.
+
+**ADM-13 Chi tiết hợp đồng.** Đầu trang: mã, trạng thái, phòng, người thuê, các nút theo trạng thái — *Nháp:* Sửa, Xóa nháp, **Kích hoạt** · *Đang hiệu lực:* Thay đổi dịch vụ, Lập hóa đơn tháng, **Thanh lý** · *Đã thanh lý:* chỉ xem. Tabs: **Tổng quan** (ngày, tiền thuê, cọc, số người, chỉ số đầu, ghi chú, thông tin chênh lệch chỉ số nếu có: lý do, người xác nhận, thời điểm) · **Điều khoản** (bồi thường trước hạn, điều kiện miễn) · **Dịch vụ** (danh sách dòng đăng ký kèm khoảng hiệu lực; lịch sử các lần thay đổi) · **Người ở cùng** [SHOULD] · **Chỉ số điện nước** · **Hóa đơn và thanh toán** · **Thanh lý** (khi đã thanh lý: ngày bàn giao, lý do, ghi chú, kiểm tra phòng, phí trước hạn/miễn, đối soát cọc). Banner khi active: "Hợp đồng đang hiệu lực: không thể sửa phòng, người thuê, tiền thuê, tiền cọc, ngày và điều khoản bồi thường."
+
+**ADM-14 Thanh lý (wizard)** — xem luồng §8.4.
+
+**ADM-15 Ghi chỉ số điện nước** — xem luồng §8.5.
+
+**ADM-16 Hóa đơn.** Bảng: mã (hoặc "Nháp"), phòng, người thuê, loại, kỳ, tổng, đã trả, còn lại, hạn, trạng thái. Lọc: kỳ, tòa nhà, loại, trạng thái, quá hạn. Nút **"Lập hóa đơn tháng"** (modal, §9). Chọn nhiều hóa đơn nháp → "Phát hành" hàng loạt ([ĐỀ XUẤT UI]).
+
+**ADM-17 Chi tiết hóa đơn.** Như RES-05 nhưng thêm: *Nháp* — xóa dòng / thêm "Khoản khác" (Q13), Xóa nháp, **Phát hành** (xác nhận: "Sau khi phát hành, hóa đơn không thể sửa. Hạn thanh toán: dd/mm/yyyy"); *Đã phát hành* — **Ghi nhận thanh toán** (tiền mặt/chuyển khoản do Admin nhập, xác nhận ngay), **Hủy hóa đơn** (lý do bắt buộc) → sau khi hủy có nút "Lập hóa đơn thay thế"; liên kết qua lại hóa đơn cũ/thay thế. Thông tin minh chứng thanh toán xem trong lightbox.
+
+**ADM-18 Duyệt thanh toán.** Tabs: Chờ xác nhận (mặc định) · Đã xác nhận · Bị từ chối · Tất cả. Danh sách/thẻ: ảnh minh chứng (thumbnail), số tiền, hóa đơn, phòng, người gửi, thời gian gửi, còn lại của hóa đơn. Bố cục [ĐỀ XUẤT UI]: hai cột — danh sách trái, khung xem chi tiết phải (ảnh lớn, thông tin hóa đơn). Hành động: **Xác nhận** (hiển thị số biên nhận `RCP-…` sau khi xong) · **Từ chối** (lý do bắt buộc). Thanh toán `deposit` hiển thị nhãn "Khấu trừ tiền cọc — không tính doanh thu".
+
+**ADM-19 Công nợ** [ĐỀ XUẤT UI]. Gom các hóa đơn còn nợ theo hợp đồng/người thuê: phòng, người thuê, số hóa đơn còn nợ, tổng còn nợ, quá hạn lâu nhất, trạng thái hợp đồng (gồm hợp đồng đã thanh lý còn nợ). Bấm mở danh sách hóa đơn của hợp đồng. Số liệu lấy từ mock (Backend tính).
+
+**ADM-20 Yêu cầu sửa chữa.** Bảng: mã, phòng, người gửi, tiêu đề, ưu tiên, trạng thái, người được giao, ngày gửi. Lọc: trạng thái, ưu tiên, tòa, người được giao, chưa phân công. Tùy chọn hiển thị dạng Kanban theo trạng thái ([ĐỀ XUẤT UI]).
+
+**ADM-21 Chi tiết yêu cầu sửa chữa.** Thông tin + ảnh + dòng thời gian. Hành động Admin: **Phân công / Phân công lại** (chỉ chọn nhân viên sửa chữa đang hoạt động; chỉ khi chưa Đã xử lý/Từ chối), **Từ chối** (ghi chú), **Mở lại** (Đã xử lý → Đang xử lý), sửa ghi chú quản lý, nhập **chi phí tham khảo** (ghi chú: "Không tự cộng vào hóa đơn").
+
+**ADM-22 Lịch xem phòng.** Hai chế độ: bảng và lịch tuần ([ĐỀ XUẤT UI]). Cột: mã, phòng, khách, SĐT, thời gian hẹn, trạng thái, check-in/check-out (giờ, bảo vệ). Hành động: **Xác nhận**, **Hủy**, **Hoàn tất** (sau buổi xem), ghi chú quản lý. Bảo vệ không đổi được trạng thái; chỉ Admin hoàn tất/hủy.
+
+**ADM-23 Cài đặt.** Nhóm **Hệ thống**: tên hệ thống, SĐT liên hệ, email liên hệ · **Ngân hàng** (hiển thị cho VietQR): tên ngân hàng, số tài khoản, chủ tài khoản · **Hóa đơn**: số ngày đến hạn sau phát hành (mặc định 5) · **Hợp đồng**: số ngày cảnh báo sắp hết hạn (mặc định 30). Mỗi nhóm có nút Lưu riêng.
+
+**ADM-24 Thông báo**, **ADM-25 Hồ sơ**: như RES-09, RES-10 (Admin không có hợp đồng).
+
+### 7.4 Nhân viên
+
+**STF-01 Việc được giao (technician).** Chỉ yêu cầu `assigned_to` = mình. Thẻ lớn: mã, phòng + tòa, tiêu đề, ưu tiên (màu), trạng thái, thời gian giao. Tabs: Cần làm (Chờ xử lý) · Đang làm · Đã xong. Sắp xếp: khẩn cấp trước.
+
+**STF-02 Chi tiết việc (technician).** Mô tả, ảnh, phòng, thông tin liên hệ cư dân (Q14), ghi chú quản lý. Nút theo trạng thái: Chờ xử lý → **"Bắt đầu xử lý"**; Đang xử lý → **"Hoàn thành"** (bắt buộc ghi chú xử lý — [ĐỀ XUẤT UI]). Không có nút từ chối, mở lại hay phân công.
+
+**STF-03 Lịch hôm nay (guard).** Ngày hôm nay theo giờ Việt Nam ở đầu trang. Chỉ lịch **đã xác nhận** của hôm nay, sắp theo giờ. Thẻ: giờ hẹn, khách, SĐT, phòng + tòa, trạng thái bảo vệ. Nút **"Check-in"** (một lần) → sau đó **"Check-out"**; ghi chú bảo vệ. Check-out khi chưa check-in: nút bị vô hiệu. Không có nút xác nhận/hủy/hoàn tất. Trạng thái rỗng: "Hôm nay không có lịch xem phòng."
+
+---
+
+## 8. Các luồng giao diện trọng tâm
+
+### 8.1 Tạo hợp đồng (Admin) — wizard ADM-12 [MVP]
+
+Hợp đồng được lưu ở trạng thái **Nháp**; mọi trường sửa được cho đến khi kích hoạt. Thanh tiến trình (Stepper) ở trên; nút "Lưu nháp" có ở mọi bước.
+
+| Bước | Nội dung | Kiểm tra / lưu ý |
+|---|---|---|
+| 1. Phòng | Chọn tòa → chọn phòng. Thẻ phòng hiển thị giá niêm yết, cọc niêm yết, số người tối đa, trạng thái | Phòng `inactive` không chọn được. Phòng đang có hợp đồng active: cảnh báo "Chỉ kích hoạt được sau khi hợp đồng hiện tại được thanh lý" (Q5) |
+| 2. Người thuê đại diện | Tìm theo SĐT/email/tên trong tài khoản `user` hoặc `resident` | Người đang có hợp đồng active: hiển thị nhưng vô hiệu, ghi "Đang có hợp đồng hiệu lực". Tạo tài khoản mới ngay tại đây: Q6 |
+| 3. Thời hạn và tiền | Ngày bắt đầu; **Ngày cuối được ở** (+ dòng phụ "Bàn giao dự kiến: …"); tiền thuê/tháng (điền sẵn giá niêm yết, sửa được); tiền cọc (điền sẵn); số người ở (gồm người đại diện, ≤ tối đa của phòng); ghi chú | Ngày cuối được ở > ngày bắt đầu [CHỜ P1]. Gợi ý nhanh: 6 tháng / 12 tháng |
+| 4. Dịch vụ | Danh sách dịch vụ đang hoạt động: bật/tắt, số lượng (per_person/per_unit là số nguyên dương; per_room = 1), đơn giá (điền sẵn từ danh mục). Hai dòng **Điện** và **Nước** hiển thị khóa: "Tự động thêm khi kích hoạt — tính theo chỉ số" | Có sửa đơn giá theo hợp đồng không: Q7. `per_person` gợi ý bằng số người ở nhưng không tự đồng bộ |
+| 5. Bồi thường trả trước hạn | Xem §8.2 | **Bắt buộc chọn** trước khi kích hoạt; không có lựa chọn mặc định |
+| 6. Điều kiện miễn bồi thường | Xem §8.3 | [CHỜ P5] |
+| 7. Người ở cùng | Họ tên, SĐT, quan hệ — thêm/xóa dòng | [SHOULD] — có thể bỏ qua trong prototype |
+| 8. Xem lại | Tóm tắt mọi bước, liên kết "Sửa" từng phần. Nút **Lưu nháp** và **Lưu và kích hoạt** | |
+
+### 8.1b Kích hoạt hợp đồng (Admin) — modal trên ADM-13 [MVP]
+
+1. **Kiểm tra trước** (danh sách tích xanh/đỏ): phòng không có hợp đồng active khác; người thuê không có hợp đồng active khác; đã chọn điều khoản bồi thường; đủ thông tin bắt buộc.
+2. **Chỉ số đầu**: hai ô Điện, Nước (DecimalInput). Bên cạnh hiển thị **chỉ số chốt gần nhất** của phòng (giá trị, ngày, loại "Chốt khi trả phòng"/"Định kỳ").
+   - Nhỏ hơn chỉ số gần nhất → lỗi đỏ, không cho kích hoạt.
+   - Lớn hơn → hộp cảnh báo vàng: "Chỉ số đầu cao hơn chỉ số chốt gần nhất X kWh. Phần chênh lệch không tính cho hợp đồng nào." + ô **Lý do chênh lệch** (bắt buộc) + ô tích "Tôi xác nhận chênh lệch này". Một ô lý do chung hay tách Điện/Nước: [CHỜ P2] — prototype dùng **hai ô tách riêng** (phương án đề xuất A), mỗi ô chỉ hiện khi dịch vụ đó có chênh lệch.
+3. **Tiền cọc**: trạng thái cọc hiện tại; cách ghi nhận đã nhận cọc — Q15.
+4. **Điều gì sẽ xảy ra** (hộp thông tin): sinh mã hợp đồng `HD-YYYY-NNNN`; phòng → Đang thuê; tài khoản → Cư dân; thêm Điện, Nước vào dịch vụ; **khóa** phòng, người thuê, tiền thuê, cọc, ngày, điều khoản bồi thường.
+5. Nút **Kích hoạt**. Lỗi xung đột (409): "Phòng đã có hợp đồng đang hiệu lực" / "Người thuê đã có hợp đồng đang hiệu lực" → nút "Tải lại".
+6. Thành công: toast + mã hợp đồng; gợi ý "Ghi nhận cọc" / "Xem hợp đồng".
+
+**Thay đổi dịch vụ khi đang hiệu lực** (modal trên ADM-13) [MVP]: chọn dịch vụ, số lượng mới (hoặc ngừng dịch vụ). Hiển thị cố định: "Áp dụng từ 01/MM/YYYY (tháng sau). Hóa đơn đã phát hành không thay đổi." Không đổi Điện/Nước.
+
+### 8.2 Thiết lập điều khoản bồi thường trả phòng trước hạn [MVP; cấu trúc lưu CHỜ P4]
+
+Bước 5 của wizard. Quy tắc đã xác nhận (DB-D47): xác định **khi ký**, có **3 loại**, **không mặc định 1 tháng tiền thuê**, hệ thống **tự tính** khi thanh lý, **không sửa được sau kích hoạt**.
+
+- Nhóm radio (không chọn sẵn):
+  - **Không bồi thường**.
+  - **Số tiền cố định** → MoneyInput "Số tiền bồi thường" (> 0).
+  - **Theo hệ số tiền thuê tháng** → DecimalInput "Hệ số" (> 0, tối đa 2 chữ số thập phân, ví dụ 1,5) + dòng xem trước "≈ 1,5 × 3.500.000 ₫ = 5.250.000 ₫". Trong ứng dụng thật, số xem trước do Backend trả về; trong prototype lấy từ mock.
+- Hộp giải thích: "Phí chỉ áp dụng khi người thuê trả phòng trước ngày cuối được ở. Điều khoản sẽ bị khóa khi kích hoạt hợp đồng."
+- Sau khi kích hoạt: hiển thị chỉ đọc kèm biểu tượng khóa.
+- Có áp dụng cho trường hợp "nhận và trả cùng ngày" không: [CHỜ P9] — hiển thị câu này trong phần giải thích dưới dạng ghi chú "Chờ duyệt".
+
+### 8.3 Điều kiện miễn bồi thường [MVP về nguyên tắc; cấu trúc CHỜ P5]
+
+Bước 6 của wizard. Quy tắc đã xác nhận (DB-D48): chỉ miễn khi đáp ứng điều kiện **đã thỏa thuận và ghi trong hợp đồng**; Admin xác nhận điều kiện áp dụng **cùng căn cứ**.
+
+Prototype dựng theo **phương án B đề xuất** (danh sách có cấu trúc):
+- Danh sách điều kiện: mỗi dòng có mô tả (ví dụ "Người thuê chuyển công tác có quyết định của cơ quan", "Phòng không đủ điều kiện ở do lỗi của chủ nhà"). Nút "Thêm điều kiện", xóa dòng. Cho phép để trống (= hợp đồng không có điều kiện miễn).
+- Tùy chọn [CHỜ P5 phương án C]: nút "Chọn từ mẫu" lấy danh sách mẫu từ cài đặt. Prototype có thể bỏ.
+- Bị ẩn khi chọn "Không bồi thường" ở §8.2.
+- Khóa sau kích hoạt.
+
+Nếu chủ dự án chọn phương án A (một ô văn bản tự do), chỉ cần thay danh sách bằng một Textarea; luồng áp dụng ở §8.4 bước 4 đổi từ "chọn điều kiện" thành "ghi điều kiện đã đáp ứng".
+
+### 8.4 Thanh lý hợp đồng — wizard ADM-14 [MVP; chi tiết lưu CHỜ P3–P6, P9, P11, P12]
+
+Chỉ mở được từ hợp đồng **Đang hiệu lực**. Thứ tự cố định theo kế hoạch §14.5; không cho nhảy bước khi bước trước chưa xong. Thanh bên phải (desktop) hiển thị **tóm tắt tài chính tạm tính** cập nhật theo từng bước (số liệu từ mock).
+
+| Bước | Màn hình | Kiểm tra / thông báo |
+|---|---|---|
+| **1. Ngày bàn giao** | DatePicker "Ngày bàn giao thực tế" (≥ ngày bắt đầu). Hệ thống **tự hiển thị phân loại** (Admin không chọn): Trả trong ngày nhận phòng / Trả đúng hạn / Trả trước hạn. Dòng giải thích: "Tiền phòng và dịch vụ tính đến hết ngày dd/mm/yyyy." Textarea **Ghi chú thanh lý** — bắt buộc với *Trả trước hạn* và *Trả trong ngày nhận phòng* | Ngày bàn giao sau "bàn giao dự kiến" (trả quá hạn): chưa có mã phân loại — hiển thị cảnh báo vàng "Trường hợp trả quá hạn chờ quyết định" [CHỜ P3]. Chủ nhà đơn phương chấm dứt: chưa có cách phân biệt [CHỜ P3] |
+| **2. Chốt chỉ số cuối** | Với Điện và Nước: chỉ số trước (mốc gần nhất), **chỉ số cuối** (nhập), tiêu thụ (hiển thị). Ngày ghi = ngày bàn giao (chỉ đọc). Kỳ tiêu thụ = tháng chứa ngày bàn giao (chỉ đọc) | Chặn và liệt kê kỳ còn thiếu nếu chưa ghi đủ chỉ số các kỳ trước (liên kết ADM-15). Chỉ số cuối < chỉ số trước → lỗi. Đã có chỉ số sau ngày bàn giao → lỗi. Đã chốt trước đó: hiển thị kết quả, cho đi tiếp |
+| **3. Kiểm tra phòng** (bắt buộc) | Radio: **Không có hư hỏng bất thường** / **Có hư hỏng thuộc trách nhiệm người thuê**. Ghi chú chung + ảnh tình trạng phòng [CHỜ P6, P8]. Nếu có hư hỏng: bảng hạng mục — **Hạng mục**, **Lý do**, **Căn cứ** (báo giá / hóa đơn sửa chữa / định mức…), **Số tiền**, **Ảnh minh chứng** (≥ 1 ảnh [CHỜ P11]); thêm/xóa dòng | Không cho đi tiếp khi chưa chọn kết quả. "Không hư hỏng" → bồi thường tài sản = 0. Ghi chú cố định: "Khoản bồi thường tài sản tách riêng với phí trả trước hạn. Tiền cọc được đối soát riêng ở bước cuối." Áp dụng cho mọi loại thanh lý [CHỜ P12] |
+| **4. Phí trả trước hạn** | Chỉ hiện khi phân loại là *Trả trước hạn* (và *Trả trong ngày* tùy [CHỜ P9]); các trường hợp khác hiển thị "Không áp dụng". Hiển thị **điều khoản đã ký** (chỉ đọc) và **phí hệ thống tính** (không sửa được). Khối **Miễn bồi thường**: nếu hợp đồng có điều kiện miễn → ô tích "Áp dụng miễn bồi thường", chọn **một** điều kiện trong danh sách đã ký, **Căn cứ** (bắt buộc), tệp/ảnh minh chứng, ô xác nhận của Admin; nếu không có điều kiện → "Hợp đồng không có điều kiện miễn bồi thường" | Miễn toàn bộ hay một phần: [CHỜ P5]; prototype chỉ có miễn toàn bộ |
+| **5. Hóa đơn tất toán** | Bản xem trước hóa đơn `final` dạng nháp: tiền phòng/dịch vụ còn thiếu, tiền điện nước kỳ cuối, **dòng giảm trừ âm** cho các ngày từ ngày bàn giao đến cuối tháng đã thu trong hóa đơn tháng, **Phí trả phòng trước hạn**, các dòng **Bồi thường tài sản**. Tổng (≥ 0). **Không** có dòng tiền cọc. Nút **Lưu nháp** → **Phát hành hóa đơn tất toán** (xác nhận) | Nếu giảm trừ vượt các khoản phải thu: tổng = 0 và hộp vàng "Phần dư X ₫ hoàn trả ngoài hệ thống — vui lòng ghi vào ghi chú thanh lý" (liên kết sửa ghi chú bước 1) |
+| **6. Thanh toán và đối soát cọc** | Danh sách hóa đơn còn nợ của hợp đồng (gồm hóa đơn tất toán) theo hạn tăng dần. **Đối soát cọc** (xem trước từ mock): cọc đang giữ → khấu trừ lần lượt vào hóa đơn còn nợ theo hạn sớm nhất → **cọc hoàn lại cho người thuê** / **còn nợ sau khấu trừ** | **Chặn** nếu còn thanh toán *Chờ xác nhận*: hộp đỏ "Còn N thanh toán chờ xác nhận — cần xử lý trước khi thanh lý" + liên kết ADM-18. Cọc chưa nhận: "Không có cọc để khấu trừ" |
+| **7. Xác nhận** | Tóm tắt toàn bộ. ConfirmDialog: "Thanh lý hợp đồng HD-…? Thao tác không thể hoàn tác." | Thành công: hợp đồng → Đã thanh lý; phòng → Còn trống; cọc → Đã đối soát; tạo thanh toán "Khấu trừ tiền cọc" (nếu có). Gợi ý: "Lập hợp đồng mới cho phòng này" |
+
+**Ví dụ số liệu dùng cho mock (lấy từ checklist DB-30, DB-38):**
+- Tháng 10/2026 (31 ngày), tiền phòng 3.100.000 ₫, Internet 100.000 ₫. A bàn giao ngày 15/10: A tính 14/31 ngày → tiền phòng 1.400.000 ₫, Internet 45.161 ₫. Nếu A đã có hóa đơn tháng 10 đủ tháng → hóa đơn tất toán có giảm trừ 17/31: tiền phòng −1.700.000 ₫, Internet −54.839 ₫. B nhận phòng 15/10 tính 17/31.
+- Phí trước hạn: cố định 2.000.000 ₫; hoặc hệ số 1,5 × 3.500.000 ₫ = 5.250.000 ₫.
+
+**Bàn giao cùng ngày** (DB-D24): thứ tự bắt buộc *chốt chỉ số cuối hợp đồng cũ → thanh lý hợp đồng cũ → kích hoạt hợp đồng mới*. Giao diện thể hiện bằng nút "Lập hợp đồng mới cho phòng này" sau khi thanh lý, và hộp "Chỉ số chốt gần nhất" trong modal kích hoạt.
+
+### 8.5 Điện nước [MVP]
+
+**Ghi chỉ số định kỳ — ADM-15.**
+1. Thanh công cụ: chọn **Tòa nhà**, chọn **Kỳ tiêu thụ** (MonthPicker — Admin **phải chọn**; giao diện chỉ gợi ý "Tháng trước" khi ngày hiện tại ≤ 5, không tự chọn), **Ngày ghi** (mặc định hôm nay).
+2. Lưới nhập (một dòng mỗi phòng): Phòng · Người thuê hoặc "Phòng trống" · **Điện:** chỉ số trước, chỉ số mới (ô nhập), tiêu thụ · **Nước:** tương tự · Trạng thái dòng (Chưa ghi / Đã ghi / Đã vào hóa đơn — khóa).
+3. Phòng trống vẫn ghi (không tính tiền cho ai).
+4. **Lưu tất cả** — **tất cả hoặc không**: nếu một dòng lỗi thì không dòng nào được lưu; tô đỏ dòng lỗi kèm thông báo; cuộn tới lỗi đầu tiên.
+5. Lỗi cần thể hiện: chỉ số mới < chỉ số trước; thiếu kỳ trước ("Cần ghi chỉ số kỳ 09/2026 trước"); khoảng tiêu thụ cắt qua hai hợp đồng mà không có mốc chốt ("Không xác định được hợp đồng chịu phí — cần chốt chỉ số khi trả phòng"); ngày ghi trùng ngày bàn giao; chưa có giá điện/nước cho kỳ.
+6. Chỉ số đã nằm trong hóa đơn đã phát hành: khóa, không sửa.
+
+**Giá điện nước — ADM-08** (§7.3). **Lịch sử chỉ số** — tab trong ADM-05 và ADM-13.
+
+### 8.6 Hóa đơn, công nợ và thanh toán [MVP]
+
+**Công thức (chỉ để hiển thị giải thích, không tính ở frontend):** Hóa đơn tháng T = tiền phòng tháng T + dịch vụ định kỳ tháng T + **điện nước tiêu thụ tháng T−1** + điều chỉnh hợp lệ. Tháng đầu/cuối: tiền phòng và dịch vụ chia theo ngày. Hóa đơn đầu tiên không có điện nước.
+
+**Lập hóa đơn tháng (Admin) — modal trên ADM-16 hoặc ADM-13:**
+1. Chọn kỳ T (MonthPicker); phạm vi: một hợp đồng, hoặc các hợp đồng của một tòa ([ĐỀ XUẤT UI] lập hàng loạt).
+2. Kết quả theo từng hợp đồng: **Đã tạo nháp** · **Đã có hóa đơn kỳ này** (409) · **Thiếu chỉ số** (liệt kê dịch vụ/kỳ thiếu, liên kết ADM-15) · **Đang có hóa đơn tất toán**.
+3. Xem lại nháp (ADM-17) → **Phát hành**. Sau khi phát hành: cư dân nhận thông báo; hóa đơn bất biến.
+
+**Hủy và lập lại (Admin) — ADM-17:**
+- Chưa có thanh toán → modal hủy (lý do bắt buộc) → nút "Lập hóa đơn thay thế" (liên kết hai chiều).
+- Còn thanh toán chờ xác nhận → chặn: "Cần xử lý các thanh toán đang chờ trước khi hủy."
+- Đã có thanh toán được xác nhận → chặn: "Hóa đơn đã có thanh toán — cần quy trình điều chỉnh." (điều chỉnh là [SHOULD]).
+
+**Cư dân thanh toán — RES-05:**
+1. Xem thông tin chuyển khoản + VietQR (chỉ hướng dẫn).
+2. "Tôi đã chuyển khoản" → modal: số tiền (mặc định = còn lại, cho phép nhỏ hơn — trả nhiều lần), **đúng 1 ảnh** minh chứng (jpg/png/webp ≤ 5 MB). Số tiền > còn lại → lỗi.
+3. Thanh toán xuất hiện "Chờ xác nhận"; **công nợ chưa giảm**.
+4. Admin xác nhận → hóa đơn chuyển "Thanh toán một phần" hoặc "Đã thanh toán", sinh biên nhận; hoặc từ chối kèm lý do → cư dân thấy lý do, có thể gửi lại.
+
+**Admin ghi nhận trực tiếp** (tiền mặt hoặc chuyển khoản đã kiểm tra): modal số tiền, hình thức, ngày nhận ([ĐỀ XUẤT UI]), ghi chú → xác nhận ngay.
+
+**Công nợ:** cư dân xem ở RES-04; Admin ở ADM-19 [ĐỀ XUẤT UI] và KPI Dashboard. Khấu trừ cọc khi thanh lý tạo thanh toán "Khấu trừ tiền cọc", **không tính vào thực thu**.
+
+### 8.7 Yêu cầu sửa chữa [MVP]
+
+```
+Cư dân (có hợp đồng active) gửi ──► Chờ xử lý
+Admin phân công nhân viên ──► (vẫn Chờ xử lý, có người được giao)
+Nhân viên "Bắt đầu xử lý" ──► Đang xử lý
+Nhân viên "Hoàn thành" + ghi chú ──► Đã xử lý
+Admin "Từ chối" (từ Chờ xử lý / Đang xử lý) ──► Từ chối
+Admin "Mở lại" (từ Đã xử lý) ──► Đang xử lý
+```
+- Màn hình: RES-06/07/08, ADM-20/21, STF-01/02.
+- Nhân viên chỉ thấy việc của mình; truy cập việc khác → trang 403.
+- Ảnh là riêng tư (chỉ người liên quan xem).
+- Thông báo khi: có yêu cầu mới (Admin), được phân công (nhân viên), đổi trạng thái (cư dân) — [ĐỀ XUẤT UI], danh sách sự kiện chính thức chưa có trong repo (Q16).
+- Lịch sử chi tiết từng lần đổi trạng thái (`maintenance_status_logs`) là [SHOULD]; MVP chỉ có mốc thời gian phân công / bắt đầu / hoàn thành.
+
+### 8.8 Lịch hẹn xem phòng [MVP]
+
+```
+Khách đặt lịch (PUB-03) ──► Chờ xác nhận
+Admin xác nhận / hủy ──► Đã xác nhận / Đã hủy
+Ngày hẹn: Bảo vệ check-in ──► check-out (STF-03; không đổi trạng thái)
+Admin hoàn tất sau buổi xem ──► Đã hoàn tất
+```
+- Chỉ đặt cho phòng còn trống và công khai.
+- Một SĐT chỉ có một lịch đang chờ/đã xác nhận cho cùng phòng.
+- Bảo vệ chỉ thấy lịch **đã xác nhận** có ngày hẹn là **hôm nay theo giờ Việt Nam**.
+- Đổi giờ hẹn: không có trong tài liệu (Q3) — prototype không dựng.
+
+---
+
+## 9. Modal, drawer, wizard và form quan trọng
+
+| Thành phần | Dạng | Ở màn hình | Nhãn |
+|---|---|---|---|
+| Form đặt lịch xem phòng | Form trong trang | PUB-03 | [MVP] |
+| Đăng nhập / Đăng ký | Trang | PUB-05/06 | [MVP] |
+| Tạo/sửa tòa nhà | Drawer | ADM-02/03 | [MVP] |
+| Tạo/sửa phòng + ảnh + tiện nghi | Drawer | ADM-04/05 | [MVP] |
+| Tạo/sửa tiện nghi | Modal | ADM-06 | [MVP] |
+| Tạo/sửa dịch vụ | Modal | ADM-07 | [MVP] |
+| Thêm giá điện nước | Modal | ADM-08 | [MVP] |
+| Tạo tài khoản nhân viên | Modal | ADM-09 | [MVP] (Q11) |
+| Sửa hồ sơ người dùng | Drawer | ADM-10 | [MVP] |
+| Khóa / mở khóa tài khoản | ConfirmDialog | ADM-09/10 | [MVP] |
+| Lập hợp đồng | Wizard 8 bước | ADM-12 | [MVP] |
+| Kích hoạt hợp đồng (chỉ số đầu, chênh lệch) | Modal lớn | ADM-13 | [MVP] |
+| Thay đổi dịch vụ hợp đồng | Modal | ADM-13 | [MVP] |
+| Ghi nhận đã nhận cọc | Modal | ADM-13 | [ĐỀ XUẤT UI] (Q15) |
+| Quản lý người ở cùng | Drawer | ADM-13 | [SHOULD] |
+| Thanh lý hợp đồng | Wizard 7 bước | ADM-14 | [MVP] |
+| Lập hóa đơn tháng | Modal + bảng kết quả | ADM-16/13 | [MVP] |
+| Phát hành hóa đơn | ConfirmDialog | ADM-17 | [MVP] |
+| Hủy hóa đơn (lý do) | Modal | ADM-17 | [MVP] |
+| Ghi nhận thanh toán trực tiếp | Modal | ADM-17 | [MVP] |
+| Gửi minh chứng chuyển khoản | Modal | RES-05 | [MVP] |
+| Xác nhận / từ chối thanh toán | Panel + modal lý do | ADM-18 | [MVP] |
+| Xem ảnh minh chứng | Lightbox | ADM-18, ADM-17, RES-05 | [MVP] |
+| Phân công / từ chối / mở lại sửa chữa | Modal | ADM-21 | [MVP] |
+| Bắt đầu / hoàn thành việc | Nút + modal ghi chú | STF-02 | [MVP] |
+| Xác nhận / hủy / hoàn tất lịch xem | Modal | ADM-22 | [MVP] |
+| Check-in / check-out + ghi chú | Bottom sheet (mobile) | STF-03 | [MVP] |
+| Đổi mật khẩu | Form | RES-10, ADM-25, STF-05, ACC-02 | [MVP] |
+| Thả xuống thông báo | Dropdown từ chuông | Header mọi khu đăng nhập | [MVP] |
+
+---
+
+## 10. Trạng thái giao diện chung
+
+| Trạng thái | Cách thể hiện |
+|---|---|
+| **Loading** | Skeleton theo hình dạng nội dung (bảng, thẻ, chi tiết). Nút đang gửi: spinner + vô hiệu hóa, giữ nguyên nhãn. Không dùng spinner toàn trang trừ lần tải đầu |
+| **Empty** | Minh họa nhỏ + câu giải thích + hành động chính. Ví dụ: "Chưa có tòa nhà nào" + "Thêm tòa nhà"; "Bạn chưa có hóa đơn nào"; "Không có kết quả phù hợp" + "Xóa bộ lọc" |
+| **Success** | Toast góc trên phải (mobile: dưới cùng), tự ẩn sau 4 giây. Thao tác quan trọng (kích hoạt, phát hành, thanh lý, xác nhận thanh toán): toast kèm mã sinh ra (HD-, INV-, RCP-) |
+| **422 — dữ liệu không hợp lệ** | Lỗi dưới từng trường (chữ đỏ, viền đỏ) + Alert tóm tắt ở đầu form. Với lưới chỉ số: tô đỏ dòng lỗi |
+| **409 — xung đột trạng thái** | Alert vàng/đỏ ở đầu nội dung với thông điệp tiếng Việt cụ thể + nút "Tải lại dữ liệu" |
+| **401 — chưa đăng nhập / hết phiên** | Chuyển về `/login`, sau đăng nhập quay lại trang cũ |
+| **403 — không có quyền** | Trang SYS-01: "Bạn không có quyền truy cập nội dung này" + nút về trang chủ khu vực |
+| **404** | Trang SYS-02 thân thiện |
+| **5xx / mất mạng** | Alert chung "Đã có lỗi xảy ra, vui lòng thử lại" + nút "Thử lại". Không hiển thị chi tiết kỹ thuật |
+| **Quá nhiều yêu cầu** | "Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút" (đăng nhập, đặt lịch) |
+| **Chỉ đọc** | Trường bị khóa có biểu tượng ổ khóa + tooltip lý do (ví dụ hợp đồng đã kích hoạt, hóa đơn đã phát hành) |
+| **Hành động nguy hiểm** | ConfirmDialog nêu rõ hậu quả, nút màu đỏ (hủy hóa đơn, thanh lý, khóa tài khoản, xóa nháp) |
+
+---
+
+## 11. Yêu cầu dựng prototype (dành cho Gemini)
+
+### 11.1 Công nghệ
+
+- React 19 + TypeScript + Vite + **Tailwind CSS 4** (dùng `@theme` với các màu `brand-*` ở §4.1).
+- React Router (khai báo route tập trung trong `src/app/router.tsx`), React Hook Form + Zod cho form, Recharts cho biểu đồ.
+- **Không thêm thư viện khác** (UI kit, icon pack, date library, state management). Icon dùng SVG inline. Nếu thực sự cần thêm, liệt kê riêng để chủ dự án duyệt.
+- Không gọi API thật. Mock data đặt trong `src/mocks/`, truy cập qua các hàm bất đồng bộ giả lập độ trễ 300–800 ms để thấy trạng thái loading.
+
+### 11.2 Cấu trúc thư mục (để dễ chuyển sang dự án thật)
+
+> **Hiện trạng:** cấu trúc thực tế của `frontend/` mô tả ở `AGENTS.md` §4 (dữ liệu giả gom vào `src/mocks/`, chưa có `mockApi.ts` theo feature).
+
+```
+src/
+  app/            App.tsx, router.tsx
+  components/
+    layouts/      PublicLayout, DashboardShell, ResidentLayout, AdminLayout, StaffLayout
+    ui/           Button, Input, Modal, Drawer, DataTable, StatusBadge, ...
+  features/<feature>/   types.ts, schemas.ts (Zod), mockApi.ts, các component riêng
+                        (buildings, rooms, contracts, meter-readings, invoices, payments,
+                         maintenance-requests, viewing-appointments, users, notifications, settings, auth)
+  pages/public|resident|admin|staff/   <Tên>Page.tsx — chỉ ghép component
+  mocks/          dữ liệu mẫu
+  lib/            format.ts (tiền, ngày, giờ VN, decimal)
+```
+- Component/page: `PascalCase.tsx`, **named export** trùng tên file; page có hậu tố `Page`, layout có hậu tố `Layout`.
+- Feature không import lẫn nhau; phần dùng chung đưa vào `components/ui`, `lib`, `types`.
+- Kiểu dữ liệu giữ `snake_case` như JSON API.
+
+### 11.3 Mô hình dữ liệu mock (rút gọn, chỉ trường cần cho giao diện)
+
+```ts
+type Money = number        // số nguyên VND, có thể âm chỉ ở dòng discount
+type Decimal = string      // "1234.50" — không parseFloat để tính tiền
+type IsoDate = string      // "2026-10-14" (ngày lịch VN)
+type IsoDateTime = string  // "2026-10-14T02:30:00Z" (UTC)
+
+interface User { id: number; full_name: string; email: string; phone: string;
+  role: 'user'|'resident'|'admin'|'technician'|'guard'; status: 'active'|'locked';
+  id_number?: string | null /* chỉ có trong dữ liệu dành cho Admin */;
+  date_of_birth?: IsoDate | null; gender?: string | null; permanent_address?: string | null;
+  has_active_contract?: boolean }
+
+interface Amenity { id: number; name: string; description?: string | null }
+interface Building { id: number; name: string; address: string; total_floors: number;
+  latitude?: Decimal | null; longitude?: Decimal | null; description?: string | null;
+  status: 'active'|'inactive'; amenities: Amenity[] }
+interface Room { id: number; building_id: number; code: string; floor_number: number;
+  area: Decimal; base_price: Money; deposit_amount: Money; max_occupants: number;
+  status: 'available'|'occupied'|'maintenance'|'inactive'; is_public: boolean;
+  description?: string | null; amenities: Amenity[] /* riêng phòng */;
+  photos: { id: number; url: string; is_cover: boolean; sort_order: number }[] }
+
+interface Service { id: number; code: string; name: string;
+  billing_type: 'per_room'|'per_person'|'per_unit'|'metered'; unit?: string | null;
+  price: Money | null; status: 'active'|'inactive'; is_system: boolean }
+interface UtilityPrice { id: number; service_id: number; unit_price: Money;
+  effective_from: IsoDate /* luôn ngày 01 */; is_used: boolean }
+
+interface Contract { id: number; contract_number: string | null; room_id: number; user_id: number;
+  status: 'draft'|'active'|'terminated'; start_date: IsoDate; end_date: IsoDate /* ngày cuối được ở */;
+  actual_end_date: IsoDate | null /* ngày bàn giao */; activated_at: IsoDateTime | null;
+  monthly_rent: Money; occupant_count: number;
+  initial_electricity_reading: Decimal | null; initial_water_reading: Decimal | null;
+  deposit_amount: Money; deposit_status: 'unpaid'|'held'|'settled';
+  deposit_deducted_amount: Money; deposit_refund_amount: Money;
+  closure_reason: 'on_time'|'early_termination'|'same_day'|null; closure_note: string | null;
+  note: string | null;
+  // Chờ P2, P4, P5, P6 — tên trường là đề xuất, có thể đổi:
+  early_termination_fee_type: 'none'|'fixed'|'rent_multiple'|null;
+  early_termination_fee_amount: Money | null; early_termination_fee_multiplier: Decimal | null;
+  waiver_conditions: { code: string; description: string }[];
+  inspection_result: 'no_damage'|'damaged'|null;
+  services: ContractServiceLine[]; occupants: { full_name: string; phone?: string; relationship?: string }[] }
+interface ContractServiceLine { id: number; service_id: number; quantity: Decimal;
+  unit_price: Money | null /* null với Điện, Nước */; start_date: IsoDate; end_date: IsoDate | null }
+
+interface MeterReading { id: number; room_id: number; contract_id: number | null; service_id: number;
+  invoice_id: number | null; kind: 'periodic'|'final'; period: IsoDate /* tháng tiêu thụ */;
+  reading_date: IsoDate; previous_reading: Decimal; current_reading: Decimal; consumption: Decimal;
+  unit_price: Money; amount: Money }
+
+interface Invoice { id: number; invoice_number: string | null; contract_id: number;
+  type: 'monthly'|'final'; period: IsoDate;
+  status: 'draft'|'issued'|'partially_paid'|'paid'|'cancelled';
+  issued_at: IsoDateTime | null; due_date: IsoDate | null; total_amount: Money; paid_amount: Money;
+  related_invoice_id: number | null; cancel_reason: string | null; items: InvoiceItem[] }
+interface InvoiceItem { id: number; item_type: 'rent'|'electricity'|'water'|'service'|'discount'|'other'
+  /* chờ P7: |'termination_fee'|'damage' */; description: string; quantity: Decimal;
+  unit_price: Money; amount: Money; meta?: Record<string, unknown> }
+interface Payment { id: number; invoice_id: number; amount: Money;
+  method: 'cash'|'bank_transfer'|'deposit'; status: 'pending'|'confirmed'|'rejected';
+  receipt_number: string | null; submitted_by: number | null; reviewed_by: number | null;
+  reviewed_at: IsoDateTime | null; reject_reason: string | null; proof_url?: string; created_at: IsoDateTime }
+
+interface MaintenanceRequest { id: number; code: string; contract_id: number; room_id: number; user_id: number;
+  assigned_to: number | null; title: string; description: string;
+  priority: 'low'|'normal'|'high'|'urgent'; status: 'pending'|'in_progress'|'resolved'|'rejected';
+  admin_note: string | null; handler_note: string | null; cost: Money | null;
+  assigned_at: IsoDateTime | null; started_at: IsoDateTime | null; resolved_at: IsoDateTime | null;
+  photos: string[]; created_at: IsoDateTime }
+interface ViewingAppointment { id: number; code: string; room_id: number; user_id: number | null;
+  guest_name: string; guest_phone: string; preferred_at: IsoDateTime;
+  status: 'pending'|'confirmed'|'completed'|'cancelled'; admin_note: string | null;
+  checked_in_at: IsoDateTime | null; checked_out_at: IsoDateTime | null; guard_note: string | null }
+interface AppNotification { id: string; title: string; body: string; link?: string;
+  read_at: IsoDateTime | null; created_at: IsoDateTime }
+```
+
+Trường `is_system`, `is_used`, `has_active_contract`, `proof_url`, `photos`, `title/body/link` của thông báo là trường tiện cho giao diện, có thể khác khi có API thật.
+
+### 11.4 Bộ dữ liệu mẫu tối thiểu
+
+"Hôm nay" của prototype: **14/10/2026**. Tên người, SĐT, CCCD đều là dữ liệu giả.
+
+- 2 tòa nhà (một tòa 5 tầng có Thang máy/Camera/Bãi xe; một tòa 3 tầng), khoảng 15 phòng đủ 4 trạng thái, một số phòng công khai có ảnh.
+- Tiện nghi: Thang máy, Camera an ninh, Bãi để xe (cấp tòa); Điều hòa, Nóng lạnh, Ban công, Tủ lạnh (cấp phòng).
+- Dịch vụ: Điện (kWh), Nước (m³) là hệ thống; Internet 100.000 ₫/phòng; Vệ sinh 30.000 ₫/người; Gửi xe máy 100.000 ₫/xe. Giá mock: điện 3.500 ₫/kWh, nước 15.000 ₫/m³ từ 01/2026.
+- Người dùng: 1 admin; 2 technician (1 bị khóa); 1 guard; ~8 resident (1 đã thanh lý, chỉ còn lịch sử); 3 user.
+- Hợp đồng: 1 nháp; nhiều đang hiệu lực (1 sắp hết hạn, 1 **quá hạn trả phòng** vẫn active); 3 đã thanh lý — trả đúng hạn, trả trước hạn (có phí hệ số 1,5 và 1 hạng mục hư hỏng), trả trong ngày nhận phòng. Đủ 3 loại điều khoản bồi thường; 1 hợp đồng có 2 điều kiện miễn và đã áp dụng miễn.
+- Chỉ số: đủ kỳ 08–09/2026 cho phòng có người; 1 phòng trống có chỉ số; kỳ 10/2026 ghi một phần (để thấy "Chưa ghi").
+- Hóa đơn: đủ 5 trạng thái + 1 quá hạn + 1 cặp hủy/lập lại + 1 hóa đơn tất toán có dòng giảm trừ âm, phí trước hạn, bồi thường tài sản.
+- Thanh toán: chờ xác nhận (có ảnh), đã xác nhận (có `RCP-`), bị từ chối (có lý do), tiền mặt, khấu trừ cọc.
+- Sửa chữa: đủ 4 trạng thái, có cái chưa phân công, có cái khẩn cấp.
+- Lịch xem: hôm nay 3 lịch đã xác nhận (1 chưa đến, 1 đã vào, 1 đã ra), các ngày khác đủ trạng thái.
+
+### 11.5 Công cụ demo (chỉ có trong prototype)
+
+- Trang đăng nhập có danh sách **tài khoản demo theo vai trò** (bấm để vào) — không đưa vào sản phẩm thật.
+- Một nút nổi "Demo" cho phép: chuyển vai trò; giả lập trạng thái **loading / rỗng / lỗi 409 / lỗi 422 / lỗi mạng** trên trang hiện tại.
+
+### 11.6 Tiêu chí hoàn thành prototype
+
+- Đủ màn hình ở §5 (bỏ qua [SHOULD]/[FUTURE]); điều hướng theo menu §6 hoạt động.
+- Hai wizard (lập hợp đồng, thanh lý) đi hết được bằng mock, có trạng thái lỗi ở các bước được nêu trong §8.
+- Mỗi màn hình danh sách có trạng thái loading, rỗng, lỗi.
+- Hiển thị đúng quy ước §3 (tiền, decimal, ngày, giờ VN, mã null).
+- Kiểm tra ở bề rộng 375 px, 768 px, 1280 px; không cuộn ngang trang (bảng cuộn ngang trong khung riêng hoặc đổi sang thẻ).
+- Có `aria-label` cho nút chỉ có icon; độ tương phản chữ đạt mức AA; điều hướng được bằng bàn phím trong modal/drawer (bẫy focus, Esc để đóng).
+
+---
+
+## 12. SHOULD và FUTURE — không dựng trong prototype
+
+| Chức năng | Nhãn | Ghi chú |
+|---|---|---|
+| Gia hạn hợp đồng (tạo hợp đồng mới nối tiếp, trạng thái `expired`, cọc `transferred`) | [SHOULD] | Không hiển thị nút |
+| Hóa đơn điều chỉnh (`adjustment`) sau khi đã có thanh toán | [SHOULD] | Chỉ hiện thông điệp "cần quy trình điều chỉnh" |
+| Giao diện quản lý chi tiết người ở cùng | [SHOULD] | Wizard bước 7 có thể bỏ |
+| Form liên hệ gửi ban quản lý (`contact_requests`) | [SHOULD] | PUB-04 chỉ hiển thị thông tin |
+| Nhật ký hoạt động (`activity_logs`), lịch sử trạng thái sửa chữa | [SHOULD] | |
+| Giá điện nước riêng theo hợp đồng | [SHOULD] | |
+| Tải lên bản scan hợp đồng, ảnh giấy tờ tùy thân | [FUTURE] | |
+| Cổng thanh toán, đối soát ngân hàng tự động | [FUTURE] | |
+| Email/SMS, xác thực email, quên mật khẩu qua email | [FUTURE] | |
+| Tự động lập hóa đơn theo lịch | [FUTURE] | |
+| Giá điện bậc thang, IoT đồng hồ | [FUTURE] | |
+| Credit note / hoàn tiền tự động | [FUTURE] | Hoàn tiền ghi chú ngoài hệ thống |
+| In/xuất PDF hóa đơn, xuất Excel | Chưa có trong tài liệu | Không dựng; hỏi lại nếu cần |
+
+---
+
+## 13. Đề xuất UI chưa được duyệt
+
+Các điểm sau do tài liệu này đề xuất để giao diện dùng được; chủ dự án có thể bỏ hoặc sửa:
+
+1. Khu tài khoản cho vai trò `user`: ACC-01 Lịch hẹn của tôi, ACC-02 Tài khoản.
+2. Trang ADM-19 Công nợ (gom hóa đơn còn nợ theo hợp đồng).
+3. Nội dung Dashboard Admin (KPI, biểu đồ, danh sách việc cần làm).
+4. Đổi placeholder `/admin/residents` thành `/admin/users` (quản lý cả nhân viên); thêm khu `/staff`.
+5. Sơ đồ phòng theo tầng ở chi tiết tòa nhà; chế độ Kanban cho sửa chữa; chế độ lịch tuần cho lịch xem phòng.
+6. Lập hóa đơn tháng **hàng loạt** theo tòa và phát hành hàng loạt.
+7. Bố cục hai cột cho màn hình duyệt thanh toán.
+8. Thanh điều hướng dưới trên mobile cho khu nhân viên; bottom sheet check-in/out.
+9. Bắt buộc ghi chú xử lý khi nhân viên bấm "Hoàn thành".
+10. Ẩn hợp đồng nháp và hóa đơn nháp khỏi cư dân; ẩn chi phí sửa chữa khỏi cư dân.
+11. Danh sách sự kiện thông báo (§8.7) và nội dung thông báo.
+12. Liên kết Google Maps thay vì nhúng bản đồ.
+13. Ô "ngày nhận" khi Admin ghi nhận thanh toán trực tiếp (bảng `payments` không có cột ngày nhận riêng — có thể chỉ dùng thời điểm ghi nhận).
+
+---
+
+## 14. Mâu thuẫn và câu hỏi cần chủ dự án quyết định
+
+### 14.1 Quyết định đang chờ trong kế hoạch CSDL (§14 — P1–P12) ảnh hưởng trực tiếp giao diện
+
+| Mã | Câu hỏi | Ảnh hưởng UI | Prototype đang dùng |
+|---|---|---|---|
+| P1 | Hợp đồng tối thiểu 2 ngày (`end_date > start_date`) hay cho phép 1 ngày? | Validation bước 3 wizard | `>` (đề xuất) |
+| P2 | Lý do chênh lệch chỉ số: một ô chung hay tách Điện/Nước, có lưu lượng chênh? | Modal kích hoạt | Tách 2 ô (phương án A) |
+| P3 | Trả **quá hạn** chưa có mã phân loại; chủ nhà đơn phương chấm dứt bị tính là "trả trước hạn" và tự tính phí cho người thuê | Bước 1 thanh lý | Cảnh báo "chờ quyết định" |
+| P4 | Cách lưu điều khoản bồi thường | Bước 5 wizard | 3 radio + số tiền/hệ số |
+| P5 | Cấu trúc điều kiện miễn: văn bản tự do (A), danh sách có cấu trúc (B), mẫu từ cài đặt (C)? Miễn toàn bộ hay một phần? | Bước 6 wizard, bước 4 thanh lý | B, miễn toàn bộ |
+| P6 | Cách lưu kết quả kiểm tra phòng; có giữ nhiều lần kiểm tra không | Bước 3 thanh lý | Một lần kiểm tra, ghi đè |
+| P7 | Loại dòng hóa đơn mới `termination_fee`, `damage` | Hiển thị hóa đơn tất toán | Dùng hai loại mới |
+| P8 | Ảnh kiểm tra/hư hỏng/căn cứ miễn gắn vào hợp đồng | Upload ở thanh lý | Có upload |
+| P9 | Nhận và trả cùng ngày có tính phí trả trước hạn không? | Bước 4 thanh lý | Hiển thị "Chờ duyệt" |
+| P11 | Bồi thường tài sản: Admin nhập kèm căn cứ + ≥ 1 ảnh; không cần người thuê ký xác nhận trong hệ thống? | Bước 3 thanh lý | Như đề xuất |
+| P12 | Kiểm tra phòng bắt buộc với **mọi** loại thanh lý? | Bước 3 thanh lý | Có |
+
+### 14.2 Câu hỏi phạm vi giao diện (không có câu trả lời trong tài liệu hiện có)
+
+| Mã | Câu hỏi |
+|---|---|
+| Q1 | Danh sách 38 trang và các tài liệu `02`–`08`, `PROJECT_CONTEXT.md` không có trong repo. Có cần đối chiếu từng trang không? Nếu có, vui lòng bổ sung tài liệu (§15). |
+| Q2 | Vai trò `user` sau khi đăng nhập có khu vực riêng không (ACC-01, ACC-02), hay chỉ quay về trang công khai? |
+| Q3 | Khách/`user` có tự hủy hoặc đổi giờ lịch xem không? Admin có đổi giờ lịch không? Có giới hạn khung giờ nhận lịch không? |
+| Q4 | Có cần "Quên mật khẩu" trong MVP không (không có email)? Nếu không, Admin có chức năng đặt lại mật khẩu cho người dùng không? |
+| Q5 | Có cho lập hợp đồng **nháp** cho phòng đang có người thuê (chuẩn bị cho người kế tiếp) không? |
+| Q6 | Khi lập hợp đồng, Admin có được **tạo tài khoản** cho người thuê chưa đăng ký không, hay người thuê bắt buộc tự đăng ký trước? |
+| Q7 | Đơn giá dịch vụ trong hợp đồng có được sửa riêng (thương lượng) hay luôn lấy theo danh mục? |
+| Q8 | Cư dân đã thanh lý còn nợ có được gửi minh chứng thanh toán cho hóa đơn cũ không? (Tài liệu chỉ nói "chặn thao tác cần hợp đồng active"; prototype đang **cho phép** thanh toán nợ cũ.) |
+| Q9 | Mức ưu tiên sửa chữa do cư dân chọn hay chỉ Admin đặt? |
+| Q10 | Cư dân được tự sửa trường nào trong hồ sơ (email/SĐT là duy nhất và dùng để đăng nhập)? Ai nhập CCCD, ngày sinh, địa chỉ thường trú — Admin khi lập hợp đồng? |
+| Q11 | Ai tạo tài khoản Nhân viên sửa chữa, Bảo vệ, Admin khác? Admin có được đổi vai trò giữa `technician`/`guard`/`admin` không? |
+| Q12 | Có cần trang Công nợ riêng (ADM-19) hay chỉ cần bộ lọc trong Hóa đơn? |
+| Q13 | Admin có được thêm dòng "Khoản khác" (`other`) thủ công vào hóa đơn nháp không? |
+| Q14 | Nhân viên sửa chữa có được thấy tên và SĐT cư dân không (dữ liệu cá nhân)? |
+| Q15 | Tiền cọc được ghi nhận "đã nhận" khi nào và bởi thao tác nào (trước/sau kích hoạt)? Có bắt buộc nhận cọc trước khi kích hoạt không? |
+| Q16 | Danh sách sự kiện gửi thông báo chính thức (BR-NTF trong tài liệu `02` không có trong repo). |
+| Q17 | Admin có được tự chuyển phòng sang "Đang bảo trì"/"Ngừng sử dụng" khi đang có hợp đồng active không? |
+
+### 14.3 Mâu thuẫn tài liệu đã phát hiện (đã xử lý theo quyết định mới nhất)
+
+| Mâu thuẫn | Xử lý trong tài liệu này |
+|---|---|
+| Ý nghĩa `end_date`: DB-D39 ("ngày bàn giao dự kiến, không tính") ↔ DB-D43 ("ngày cuối được ở, có tính") | Theo **DB-D43** (mới hơn, ghi rõ thay DB-D39) |
+| Tài liệu cũ ghi 3 actor / 20 bảng | Theo **DB-D01, DB-D02**: 5 actor, 21 bảng |
+| BR-SVC-04 cũ: dịch vụ tính trọn tháng | Theo **DB-D09**: dịch vụ định kỳ chia theo ngày ở tháng đầu/cuối |
+| DB-D31 ghi lý do chênh chỉ số vào `contracts.note` | Theo **DB-D40, DB-D44**: trường riêng (cấu trúc chờ P2) |
+| `09` §5.3 bước 3: "`contract_id` tự suy từ room + reading_date" | Theo **DB-D15**: xác định theo **khoảng tiêu thụ**, không suy đoán; lỗi khi không xác định được |
+| `README.md` gốc còn ghi "kế hoạch migrations đang chờ duyệt" | Không ảnh hưởng UI; trạng thái thật ở `DATABASE_IMPLEMENTATION_PLAN.md` |
+| Placeholder frontend: menu Admin có "Cư dân" (`/admin/residents`), chưa có khu nhân viên | Đề xuất `/admin/users` + `/staff` (§13) |
+
+---
+
+## 15. Đối chiếu với con số 38 trang trong tài liệu cũ
+
+- Danh sách 38 trang **không có trong repo** (không có trong `docs/`, `README.md`, `AGENTS.md`, `CLAUDE.md`, mã frontend hay bản lưu `backups/handoff/`). Vì vậy **không thể đối chiếu từng trang**; mục này chỉ nêu các thay đổi chắc chắn có do quyết định ngày 14/10/2026.
+- Danh sách hiện tại: **51 màn hình = 48 [MVP] + 3 [ĐỀ XUẤT UI]** (§5.6). Modal, drawer, wizard không tính là màn hình.
+
+Các nguyên nhân làm số màn hình khác 38:
+
+| Thay đổi | Căn cứ | Ảnh hưởng số màn hình |
+|---|---|---|
+| Thêm 2 vai trò Nhân viên sửa chữa, Bảo vệ và khu `/staff` | DB-D02, DB-D10 | +5 (STF-01..05) |
+| Tiện nghi tách khỏi dịch vụ, có tiện nghi cấp tòa | DB-D01, DB-D03 | Danh mục tiện nghi (ADM-06) là màn hình riêng, tách khỏi Dịch vụ (ADM-07) |
+| Điện nước là dịch vụ hệ thống + bảng giá theo kỳ | DB-D04, DB-D05, DB-D26, DB-D33 | Giá điện nước (ADM-08) tách riêng |
+| Thanh lý gồm chốt chỉ số, kiểm tra phòng, phí trước hạn, miễn trừ, hóa đơn tất toán, đối soát cọc | DB-D45..DB-D49 | Wizard thanh lý là màn hình riêng (ADM-14) |
+| Điều khoản bồi thường và điều kiện miễn khi ký | DB-D47, DB-D48 | Lập hợp đồng thành wizard riêng (ADM-12) |
+| Cư dân xem lịch sử hợp đồng sau thanh lý | DB-D36 | Thêm RES-02, RES-03 |
+| Một hóa đơn nhiều thanh toán, Admin duyệt minh chứng | DB-D06 | Duyệt thanh toán (ADM-18) là màn hình riêng |
+| Tách màn hình chi tiết (tòa, phòng, người dùng, hóa đơn, sửa chữa) khỏi danh sách | Cách tổ chức của tài liệu này | Tăng số route; nếu gộp chi tiết vào drawer thì giảm |
+| Đề xuất mới chưa duyệt | §13 | +3 (ACC-01, ACC-02, ADM-19) |
+
+Nếu cần đối chiếu chính xác, hãy bổ sung danh sách 38 trang (hoặc `02_SYSTEM_DISCOVERY.md`) vào repo; khi đó có thể lập bảng ánh xạ cũ → mới, đánh dấu trang bị gộp, tách, thêm hoặc bỏ.
