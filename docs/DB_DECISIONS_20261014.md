@@ -1,0 +1,129 @@
+# DB DECISIONS — 14/10/2026 — Supersedes for Phase 2
+
+**Trạng thái:** Đã được người dùng chọn / ủy quyền lựa chọn hợp lý trong hội thoại 13–14/10/2026. Đây là nguồn thay thế ưu tiên cho **các quy tắc xung đột** trong `02_SYSTEM_DISCOVERY.md` v0.10, `PROJECT_CONTEXT.md` và `03`–`08` cũ; các quy tắc không xung đột tiếp tục có hiệu lực. Không tuyên bố tài liệu gốc đã được sửa trong repo.
+
+## A. Quyết định và tác động
+
+| ID | Quyết định 14/10 | Nguồn cần chỉnh | Tác động |
+|---|---|---|---|
+| DB-D01 | **21 bảng** gồm 20 bảng cũ + `building_amenities` (PK ghép `building_id`, `amenity_id`). `room_amenities` chỉ cho tiện nghi riêng phòng; tiện nghi tòa không nhân bản xuống phòng. | `02` B.2.1, B.2.2; `PROJECT_CONTEXT` bảng; ERD; docs mô hình | Sửa 20→21, thêm N–N buildings/amenities; union amenities khi xem phòng |
+| DB-D02 | **5 actor** là phạm vi triển khai: Khách, Cư dân, Admin, Nhân viên sửa chữa, Bảo vệ. `users.role` dùng `user/resident/admin/technician/guard`. | `02` A.2, A.4, A.8; `03`–`08`, layout/router/Policies | Thay nhãn `SNAPSHOT` DL-33 bằng `CONFIRMED` trong phần phạm vi vận hành, bổ sung test role |
+| DB-D03 | **`amenities` khác `services`**: tiện nghi mô tả thuộc tính, dịch vụ là khoản thu. Một khái niệm có thể ở cả hai khi mục đích khác; không có FK/direct charge. | B.2, room detail, Service logic | Tránh thu phí chỉ do phòng có thang máy/bãi xe |
+| DB-D04 | `ELECTRICITY`/`WATER` là hai `services` hệ thống có `billing_type=metered` và `unit=kWh/m3`, seed cố định. Tự gán vào `contract_services` khi contract active (đúng 1 lần/loại). | `02` BR-SVC, BR-MTR, B.2; seeders | `services.code`, `unit`, `price NULL metered`; `contract_services.unit_price NULL metered` |
+| DB-D05 | `utility_prices.type` và `meter_readings.type` thay bằng FK `service_id` → `services.id`. `meter_readings` vẫn có `room_id`, `contract_id NULL` cho phòng trống và `invoice_id NULL` khi chưa tính. | `02` BR-PRC-01, BR-MTR-01..13, B.2; API DTO, ERD, tests | Unique tương ứng `(service_id,effective_from)` và `(room_id,service_id,period,kind)` |
+| DB-D06 | Một contract có **một người thuê đại diện**, nhiều `contract_occupants`, một hóa đơn tháng chung chưa hủy, **nhiều payments**. Không cần co-occupant có account trong MVP. | BR-CTR/INV/PAY, UI, Policies | Người đại diện chịu nghĩa vụ còn nợ; người ở chung tự góp tiền hoặc chuyển khoản nhiều lần |
+| DB-D07 | Tiền nguyên đồng VND: `BIGINT UNSIGNED` cho số không âm; **`BIGINT` có dấu** cho `invoice_items.amount`. Lượng có thập phân dùng `DECIMAL`. Tính bằng decimal chính xác, **HALF_UP đến đồng trên từng dòng**. | `02` B.2.3, `AGENTS.md`, `CLAUDE.md`, models/API/type/tests | Thay quy ước `DECIMAL(15,2)` cho tiền; tránh float, cho discount âm |
+| DB-D08 | Timestamp lưu UTC, qua API ISO 8601 UTC, hiển thị Asia/Ho_Chi_Minh. `DATE` là ngày lịch Việt Nam, period ngày 1. | `02` B.2.3, `AGENTS.md`, Docker/MySQL config, FE | Không nhầm cuối ngày/cuối tháng khi convert |
+| DB-D09 | **Dịch vụ cố định `per_room`, `per_person`, `per_unit` phân bổ theo số ngày sử dụng** ở tháng đầu/cuối hợp đồng (hoặc phần kỳ dịch vụ thực tế có hiệu lực). Phí trọn tháng nếu dùng trọn tháng; điện nước tính theo đồng hồ. | **Thay BR-SVC-04**, sửa BR-INV-03, BR-INV-12, BR-CTR-06, UF/UC liên quan | Phân bổ `(unit_price × quantity × days_used / days_in_month)`; hoàn credit dịch vụ khi thanh lý mà tháng đã issued |
+| DB-D10 | Giữ 5 actor trong **21 bảng**, không thêm bảng nhân viên/bảo vệ. `maintenance_requests.assigned_to`, `assigned_at`, `handler_note`; lịch có `checked_in/out_at/by`, `guard_note`. | DL-33, BR-MNT-08/09, BR-APT-09, BR-NTF-03, ERD | StaffLayout route/Policy theo role, test 403 |
+
+## B. Quy tắc ghi đè chính xác (dành cho tài liệu 02/08)
+
+**BR-SVC-04 (thay toàn văn):** Dịch vụ định kỳ `per_room`, `per_person`, `per_unit` tính trọn tiền nếu sử dụng đủ tháng; nếu hợp đồng/dịch vụ chỉ có hiệu lực một phần tháng, tiền = `ROUND_HALF_UP(unit_price × quantity × số ngày hiệu lực giao nhau với kỳ / số ngày của tháng)`. `contract_services.start_date/end_date` lưu lịch sử hiệu lực, end_date inclusive. Điện/nước `metered` tính hoàn toàn từ `meter_readings`, không áp dụng chia ngày và không phát sinh phí cố định từ `contract_services`. Mỗi item snapshot lượng/giá/số ngày tính tiền; cấm thu lặp dòng.
+
+**BR-INV-03 (bổ sung):** Hóa đơn tháng T = tiền phòng T + **dịch vụ định kỳ T với quy tắc pro-rata mới** + điện nước của T−1 + khoản điều chỉnh hợp lệ; hóa đơn đầu tiên chưa có điện nước kỳ trước không tạo chỉ số giả.
+
+**BR-INV-12 (bổ sung):** Khi thanh lý giữa tháng và hóa đơn tháng đã issued đủ tiền, không sửa hóa đơn cũ; hóa đơn `final` cộng các khoản chưa lập và `discount` cho cả **tiền thuê lẫn dịch vụ định kỳ** những ngày không còn hiệu lực đã thu trong hóa đơn tháng đó; tính theo khoản đã lập/snapshot để tránh bù trùng. Tổng final >= 0; phần credit vượt số dương xử lý hoàn trả **ngoài hệ thống** theo `contracts.closure_note` trong MVP, không sinh hóa đơn âm/credit note.
+
+**BR-PRC-01:** Thay mọi `type=electricity/water` ở `utility_prices` bằng `service_id` FK tới `services` có `billing_type=metered`, giá hiệu lực gần nhất tới đầu kỳ tiêu thụ.
+
+**BR-MTR-01 / B.2:** Unique mới `(room_id,service_id,period,kind)` thay `(room_id,type,period,kind)`. Kế thừa giới hạn MVP tối đa một `final` một phòng/loại dịch vụ/tháng; khóa theo phòng và dịch vụ. Mọi nhắc tới `meter_readings.type` cần chuyển thành tra cứu `services.code` / `service_id`.
+
+**BR-CTR-05:** Thêm bước `contract_services` tạo Điện và Nước mặc định trong transaction kích hoạt, có xử lý idempotent/unique-in-period.
+
+**DL-33:** Không còn chỉ là snapshot tùy chọn; **5 actor chính thức triển khai** theo quyết định người dùng mới, các trường phụ thuộc giữ nguyên nghiệp vụ giới hạn quyền ở BR-MNT-08/09, BR-APT-09.
+
+**B.2 Database Direction:** 21 bảng gồm 20 bảng cũ và `building_amenities`; giữ `amenities`, `room_amenities`, `services`. ERD khái niệm/quan hệ, BFD, UC, API và ảnh sơ đồ Word cũ **cần cập nhật nguồn vẽ**, không dùng để lập migrations nếu mâu thuẫn.
+
+**B.2.3:** `money DECIMAL(15,2)` → `BIGINT UNSIGNED` đối với giá/trị không âm, `BIGINT SIGNED` đối với các dòng giảm trừ; quantity/readings `DECIMAL(10,2)`; timestamps UTC, dates VN local; HALF_UP từng dòng.
+
+## C. Những quy tắc nguồn cũ vẫn giữ (không xóa do update)
+
+- Một phòng / một người đại diện tối đa một hợp đồng active; hợp đồng active không cho đổi người thuê/phòng/giá/cọc/ngày; contract renewal tạo hợp đồng mới khi làm SHOULD.
+- Invoice issued bất biến; cancellation không có pending/confirmed payments; thay thế invoice cancelled qua related_invoice_id; adjustment SHOULD; không tổng âm.
+- Hóa đơn kỳ T tiền T + utility T−1; lưu readings của phòng trống với contract_id NULL, không thu cho resident; chốt giữa tháng kind final.
+- Giữ cơ chế tính cọc riêng trên contracts; khấu trừ chỉ khi terminate vào payments.method=deposit, **không tính doanh thu thực thu**, phần còn nợ giữ nguyên.
+- VietQR chỉ hướng dẫn thanh toán; cư dân gửi một ảnh minh chứng, Admin kiểm tra ngân hàng và xác nhận thủ công, không tích hợp cổng thanh toán.
+- Trường hợp chưa có migration `users`/`sessions`, ưu tiên migration framework sẵn có của repo, **không tạo trùng**.
+
+## D. Lưu ý chuyển đổi tài liệu & code
+
+1. Đây là **đổi định hướng schema khi chưa tạo migrations nghiệp vụ**; nếu thực tế đã có DB/dữ liệu, không tự dùng `migrate:fresh` hoặc mất dữ liệu: phải rà soát migration & backup.
+2. Sync `AGENTS.md`, `CLAUDE.md`, docs `02`–`08`, `PROJECT_CONTEXT`, ERD nguồn. Không tự bịa số FR/BR sau khi thêm actor hoặc cập nhật quy tắc; nếu cập nhật bảng đếm FR/UC/BR phải đếm lại từ nội dung tài liệu.
+3. Riêng phần co-occupants: `contract_occupants` là người ở cùng, **không** thay thế mô hình hai hợp đồng nối tiếp A/B khi đổi phòng giữa tháng.
+4. Đặc tả thiết kế này không là bằng chứng tính đúng đắn thực tế. Phải chạy MySQL migrations + feature tests trước khi báo đã triển khai.
+
+## E. Quyết định bổ sung — chốt câu hỏi mở Q1–Q12 (14/10/2026)
+
+**Trạng thái:** Chủ dự án chốt sau khi rà soát `DATABASE_IMPLEMENTATION_PLAN.md` §8. Các mục dưới đây **bổ sung/làm rõ** A–D, không xóa quyết định cũ; nơi nào mâu thuẫn thì mục E được ưu tiên.
+
+| ID | Câu hỏi | Quyết định | Tác động |
+|---|---|---|---|
+| DB-D11 (Q1) | DB cho test | Test chạy trên **MySQL 8.4**, database riêng `mini_apartment_test`, tách biệt hoàn toàn database dev `mini_apartment` | `phpunit.xml`, `tests/TestCase.php` (guard `_test`), `docker/mysql/init`, `AGENTS.md` §8 |
+| DB-D12 (Q2) | `users.email_verified_at` | **Giữ**, nullable. MVP chưa triển khai xác thực email | `09` §3.1; migration ALTER `users` không xóa cột |
+| DB-D13 (Q3) | Mã nghiệp vụ | ID tự tăng, đệm **tối thiểu 4 chữ số**, **không reset** theo tháng (ví dụ `MR-202610-0012`, `INV-202611-12345`). Cột mã **cho phép NULL** trước khi sinh, cập nhật trong **cùng transaction**, UNIQUE. **Hóa đơn chỉ sinh mã khi phát hành**, **biên nhận khi xác nhận thanh toán**, hợp đồng khi kích hoạt | `contract_number`, `invoice_number`, `receipt_number`, `maintenance_requests.code`, `viewing_appointments.code` đều NULL được |
+| DB-D14 (Q4) | Tên generated column `invoices` | Chính xác `live_monthly_contract_id`, `live_monthly_period`, `live_final_contract_id` (unique `uq_live_monthly`, `uq_live_final`) | Sửa `09` §6 mục 2 (trước ghi `active_monthly_*`) |
+| DB-D15 (Q5) | `meter_readings.period` | `period` là **tháng tiêu thụ** (ngày 01); `reading_date` là **ngày thực tế ghi chỉ số**, có thể thuộc tháng sau. Admin **chọn** kỳ khi nhập định kỳ; giao diện có thể gợi ý nhưng **không tự gán** tháng trước chỉ vì ngày ghi ≤ 5. Chỉ số `final` phải đối chiếu thời điểm bàn giao thực tế, hợp đồng chịu phí và chuỗi chỉ số; **không đủ căn cứ thì chặn và báo lỗi, không suy đoán** | Thay câu "`contract_id` tự xác định từ hợp đồng hiệu lực tại `reading_date`" trong `09` §3.13; thêm test DB-21..DB-23 |
+| DB-D16 (Q6) | `services.name` | UNIQUE **toàn bảng** (không phân biệt active/inactive) | `09` §3.10 |
+| DB-D17 (Q7) | `notifications.data` | Kiểu **JSON** (sửa từ `text` của stub Laravel) | Migration notifications |
+| DB-D18 (Q8) | Giá điện nước mẫu | **Không seed** vào seeder hệ thống; giá do Admin cấu hình | `09` §3.12, §8 bước 5 |
+| DB-D19 (Q9) | `users.id_number` (CCCD) | Ẩn khỏi serialization mặc định (`$hidden`); chỉ Resource dành cho Admin, khi có quyền, mới trả về | Model `User`, Resource |
+| DB-D20 (Q10) | CHECK constraint | **Chưa thêm** CHECK thủ công trong MVP; bắt buộc validate ở FormRequest/Service, cùng FK, UNIQUE, UNSIGNED của MySQL | `09` §3 (ghi chú đầu mục) |
+| DB-D21 (Q11) | Sửa bảng `users` | Tạo **migration ALTER mới**; không sửa migration framework đã chạy | Kế hoạch M01 |
+| DB-D22 (Q12) | Thư mục bàn giao | Chỉ xóa thư mục handoff dư thừa **sau khi** xác nhận mọi file chính thức đã đồng bộ; **không xóa tài liệu nguồn** | Quy trình dọn repo |
+
+## F. Quyết định bổ sung — duyệt Nhóm 1, chốt E1–E5 (14/10/2026)
+
+**Trạng thái:** Chủ dự án chốt khi duyệt Nhóm 1 migrations. Bổ sung A–E; mâu thuẫn thì mục F được ưu tiên. Cách áp dụng chi tiết và các điểm **còn mở** nằm ở `DATABASE_IMPLEMENTATION_PLAN.md` §5–§6.
+
+| ID | Chủ đề | Quyết định | Tác động |
+|---|---|---|---|
+| DB-D23 | Queue | `QUEUE_CONNECTION=sync` cho MVP; **không** bổ sung queue worker | `backend/.env(.example)`, `config/queue.php` mặc định `sync` |
+| DB-D24 (E1) | Bàn giao cùng ngày | **Được phép**, theo thứ tự: chốt đồng hồ hợp đồng cũ (`final`) → thanh lý hợp đồng cũ → kích hoạt hợp đồng mới. **Không suy luận thứ tự hai lần bàn giao chỉ bằng cột DATE**; phải kiểm tra chính xác hợp đồng chịu phí và tránh tính trùng | Thứ tự xác định bằng quy trình + timestamp (`meter_readings.created_at`, `contracts.closed_at`, `contracts.activated_at`), không bằng `reading_date` |
+| DB-D25 (E2) | Tiêu thụ qua nhiều tháng | Phải có **mốc chỉ số thực tế** đủ để chia theo từng kỳ; **không** tự phân bổ theo ngày, **không** tạo dữ liệu giả. Chỉ số `final` thuộc **kỳ tiêu thụ cuối cùng**, sau khi các kỳ trước đã được chốt | Chuỗi chỉ số trong một hợp đồng phải liên tục theo kỳ; thiếu kỳ → chặn |
+| DB-D26 (E3) | Giá điện nước | `utility_prices.effective_from` là **ngày đầu tháng**. Một kỳ tiêu thụ dùng **một** mức giá snapshot theo giá hiệu lực đầu kỳ. **Không** áp dụng thay giá giữa tháng trong MVP | Validate `effective_from` ngày 01; `meter_readings.unit_price` = giá có `effective_from ≤ period` mới nhất |
+| DB-D27 (E4) | Hóa đơn đã phát hành cần sửa | **Không** sửa hóa đơn đã phát hành. Chưa có payment pending/confirmed → cho phép **hủy và lập lại** (`related_invoice_id`). Có pending → xử lý pending trước. Có confirmed → báo cần **quy trình điều chỉnh**; không tự sửa, không bỏ sót khoản tiền | 409 kèm thông điệp phân biệt hai trường hợp |
+| DB-D28 (E5) | Ngày đo `final` | `reading_date` của `final` **bằng ngày trả phòng thực tế** (`contracts.actual_end_date`). Được nhập muộn nếu ngày đo đúng và chuỗi chỉ số **chưa phát sinh dữ liệu phụ thuộc** | Chặn nếu đã có chỉ số sau ngày trả phòng của cùng phòng/dịch vụ |
+| DB-D29 | Thứ tự khóa | Một thứ tự `lockForUpdate()` thống nhất cho mọi Service (sửa mâu thuẫn `terminate` khóa contracts → rooms); bổ sung test concurrency khi triển khai | `DATABASE_IMPLEMENTATION_PLAN.md` §6 |
+| DB-D30 | Bảo vệ DB test | Giữ hai lớp chặn; thêm **tài khoản MySQL riêng** `mini_apartment_test` chỉ có quyền trên database `mini_apartment_test`; kiểm tra **chính xác** tên kết nối/DB/tài khoản thay vì hậu tố `_test` | `config/database.php` (`mysql_test`), `phpunit.xml`, `tests/TestCase.php`, `docker/mysql/init`, `DB_TEST_PASSWORD` |
+
+## G. Quyết định bổ sung — chốt O1–O6, duyệt Nhóm 2 (14/10/2026)
+
+**Trạng thái:** Chủ dự án chốt khi duyệt Nhóm 2. Bổ sung A–F; mâu thuẫn thì mục G được ưu tiên. Quy tắc kiểm tra chi tiết: `DATABASE_IMPLEMENTATION_PLAN.md` §5.
+
+| ID | Chủ đề | Quyết định | Tác động / cách áp dụng |
+|---|---|---|---|
+| DB-D31 (O1) | Chỉ số đầu người mới > `final` người cũ | **Cho phép** nếu Admin **xác nhận** chênh lệch. Phần chênh **không tính cho cả hai hợp đồng**; hệ thống phải **cảnh báo** và **ghi nhận lý do trong dữ liệu hiện có** | *(Cách lưu đã thay bằng cột riêng — xem DB-D40.)* Ban đầu: lý do ghi vào `contracts.note` của hợp đồng mới. Thiếu xác nhận → 422 kèm cảnh báo. Chỉ số đầu **nhỏ hơn** `final` → luôn 422 |
+| DB-D32 (O2) | Ngày bàn giao | `contracts.actual_end_date` **là ngày bàn giao** và là **mốc loại trừ** khi tính ngày thuê: hợp đồng cũ tính tiền **đến hết D−1**; khi bàn giao cùng ngày D, ngày D **chỉ thuộc hợp đồng mới**. Áp dụng **nhất quán cho tiền phòng và dịch vụ định kỳ**, kể cả khi hóa đơn tháng đã phát hành | Ngày tính tiền của hợp đồng = `[start_date, actual_end_date)` (bao gồm `start_date`, loại trừ `actual_end_date`). Khi thanh lý, `contract_services.end_date` (inclusive) = `actual_end_date − 1`. Hóa đơn tháng đã phát hành đủ tháng → `final` có dòng `discount` cho các ngày từ `actual_end_date` đến cuối tháng. Chỉ số `final` vẫn đo ngày `actual_end_date` (DB-D28) |
+| DB-D33 (O3) | Thêm giá điện/nước | **Không** thêm giá có hiệu lực làm thay đổi kỳ **đã có bản ghi chỉ số hoặc hóa đơn**. Giá mới phải hiệu lực từ **đầu một tháng hợp lệ** | `effective_from` = ngày 01 **và** lớn hơn mọi `meter_readings.period` của dịch vụ đó (hóa đơn điện nước luôn lấy từ reading). Không sửa/xóa dòng giá đã được dùng |
+| DB-D34 (O4) | Thiếu chỉ số khi lập hóa đơn tháng | **Chặn** lập hóa đơn tháng T và báo lỗi rõ nếu thiếu chỉ số kỳ tiêu thụ bắt buộc. **Chỉ miễn** khi hợp đồng **thực sự không có ngày tính tiền nào** trong kỳ T−1 — không dựa vào việc đây là hóa đơn đầu tiên | Bắt buộc: mọi dịch vụ metered của hợp đồng có ngày tính tiền trong T−1 (theo DB-D32) phải có reading `period = T−1` thuộc hợp đồng. Thiếu → 422 liệt kê dịch vụ/kỳ thiếu |
+| DB-D35 (O5) | Độ trễ ghi chỉ số | **Không giới hạn cứng** số ngày trễ trong MVP. Nhưng **chặn** mọi trường hợp phá chuỗi chỉ số, sai hợp đồng chịu phí hoặc làm thay đổi hóa đơn đã phát hành chưa qua quy trình | Áp dụng R1–R11 (kế hoạch §5.2); không có kiểm tra "N ngày" |
+| DB-D36 (O6) | Vai trò sau thanh lý | **Giữ** `resident` để truy cập lịch sử hợp đồng, hóa đơn, công nợ. "Đang thuê" **suy ra từ hợp đồng active**; thao tác cần hợp đồng active vẫn bị chặn | `User::hasActiveContract()`; Policy kiểm tra hợp đồng active, không chỉ `role` |
+| DB-D37 | Ghi/chốt chỉ số cùng ngày | **Không** suy luận thứ tự từ DATE; bảo đảm quy trình tuần tự hoặc **từ chối** nếu không đủ dữ liệu để xác định | R7 (chặn `periodic` trùng ngày bàn giao), thứ tự quy trình `final` → thanh lý → kích hoạt |
+| DB-D38 | Duyệt Nhóm 2 | Phương án A: Models + relationships + casts. **12 bảng / 10 Model** (Nhóm 1: 5 bảng, Nhóm 2: 7 bảng; 2 pivot `building_amenities`, `room_amenities` dùng `belongsToMany`, không Model). `ContractStatus::Expired`, `DepositStatus::Transferred` **khai báo sẵn** cho gia hạn (SHOULD), **chưa mở chuyển trạng thái** trong MVP | 10 Model: `User`, `Building`, `Amenity`, `Service`, `Setting`, `Room`, `Contract`, `ContractOccupant`, `ContractService`, `UtilityPrice` |
+
+## H. Quyết định bổ sung — chốt O7–O9, duyệt Nhóm 3 (14/10/2026)
+
+**Trạng thái:** Chủ dự án chốt khi duyệt Nhóm 3. Bổ sung A–G; mâu thuẫn thì mục H được ưu tiên.
+
+| ID | Chủ đề | Quyết định | Tác động / cách áp dụng |
+|---|---|---|---|
+| DB-D39 (O7) — **BỊ THAY bởi DB-D43** (phần ý nghĩa `end_date`) | `contracts.end_date` | ~~`end_date` là ngày bàn giao dự kiến~~ — xem DB-D43. Nguyên văn cũ: `end_date` là **ngày bàn giao dự kiến**, **không** tính vào số ngày thuê. `actual_end_date` là ngày bàn giao thực tế, **cùng quy ước nửa mở** `[start_date, actual_end_date)`. Hợp đồng còn `active` dù đã quá `end_date` thì **tiếp tục tính tiền** các kỳ phát sinh, không tự dừng ở ngày kết thúc dự kiến | Hợp đồng 1 năm từ 01/10/2026 có `end_date = 2027-10-01`. `end_date > start_date` giữ nguyên. Không có job tự kết thúc hợp đồng |
+| DB-D40 (O8) | Ghi nhận chênh lệch chỉ số | Thêm vào `contracts`: `meter_gap_reason TEXT NULL`, `meter_gap_confirmed_by BIGINT UNSIGNED NULL` FK → `users.id`. Khi chỉ số đầu hợp đồng mới **cao hơn chỉ số chốt gần nhất**, bắt buộc lý do + Admin xác nhận; **`activated_at`** là mốc thời gian kích hoạt/xác nhận. **Không** cho sửa thông tin xác nhận qua form cập nhật hợp đồng active thông thường. **Không tạo bảng mới** | Sửa M09 (chưa chạy trên DB dev) — FK `RESTRICT`. Hai cột không nằm trong `#[Fillable]`. Một lý do chung cho cả điện và nước. Thay cách ghi vào `contracts.note` ở DB-D31 |
+| DB-D41 (O9) | Thanh lý ngay ngày bắt đầu | **Cho phép** Admin thanh lý với `actual_end_date = start_date`, **bắt buộc có lý do**. Tiền phòng và phí dịch vụ định kỳ theo ngày = 0; điện nước tính theo chỉ số thực tế nếu có; tiền cọc đối soát bình thường. **Không** tạo trạng thái hợp đồng mới | Dùng trạng thái `terminated` hiện có. Cột lưu "lý do" cần xác nhận — xem kế hoạch §5.4 (O10) |
+| DB-D42 | Duyệt Nhóm 3 | M13 `invoices`, M14 `meter_readings`, M15 `invoice_items`, M16 `payments`; 6 Enum; 4 Model → **14 Model / 16 bảng**. Chỉ chạy trên `mini_apartment_test` | `InvoiceType::Adjustment` khai báo sẵn (SHOULD), chưa mở luồng |
+
+## I. Quyết định bổ sung — hợp đồng, thanh lý, bồi thường, kiểm tra tài sản (14/10/2026)
+
+**Trạng thái:** Các dòng dưới đây là **CONFIRMED** bởi chủ dự án. Mâu thuẫn với A–H thì mục I được ưu tiên. Những chỗ **chưa chốt** (cấu trúc lưu, mã bổ sung, câu hỏi phạm vi) **không** nằm ở đây mà ở `DATABASE_IMPLEMENTATION_PLAN.md` §14 (đề xuất P1–P12, chờ duyệt).
+
+| ID | Chủ đề | Quyết định (CONFIRMED) | Tác động |
+|---|---|---|---|
+| DB-D43 (O7, thay DB-D39) | Ngày kết thúc | `contracts.end_date` là **ngày cuối cùng cư dân được ở, tính cả ngày đó** (inclusive). `actual_end_date` là **ngày bàn giao thực tế**, không tính vào ngày ở của người thuê cũ. Trả phòng **đúng hạn**: `actual_end_date = end_date + 1 ngày`. Hợp đồng quá hạn mà vẫn `active` → **tiếp tục tính tiền sử dụng thực tế** (giữ phần này của DB-D39) | Ngày tính tiền vẫn `[start_date, actual_end_date)` (DB-D32 không đổi). Hợp đồng 1 năm từ 01/10/2026 có `end_date = 2027-09-30`. Phải rà validation `end_date` và dữ liệu test (kế hoạch §14.2) |
+| DB-D44 (O8) | Chênh lệch điện nước | **Giữ phương án B**: lưu lý do chênh lệch + Admin xác nhận | Cấu trúc hiện tại (1 lý do chung) **chưa phân biệt** điện/nước → đề xuất sửa schema P2 |
+| DB-D45 (O9) | Nhận và trả cùng ngày | Cho phép Admin thanh lý; **số ngày tính tiền phòng = 0**; **bắt buộc** ghi lý do, **chốt chỉ số thực tế** và **đối soát cọc** theo quy trình | `actual_end_date = start_date`; `closure_reason = same_day` + `closure_note` bắt buộc (DB-D46) |
+| DB-D46 (O10) | Lý do thanh lý | `closure_reason` lưu **mã phân loại**, `closure_note` lưu giải thích chi tiết. `on_time` (đúng hạn, ghi chú **không** bắt buộc); `early_termination` (trước hạn, ghi chú **bắt buộc**); `same_day` (trả trong ngày nhận phòng, ghi chú **bắt buộc**). Phân loại phải **nhất quán với ngày bàn giao thực tế** | Không đổi schema (`VARCHAR(50)` + Enum mới). Nhất quán: `same_day` ⇔ `actual_end_date = start_date`; `on_time` ⇔ `actual_end_date = end_date + 1`; `early_termination` ⇔ `start_date < actual_end_date ≤ end_date`. **Trả quá hạn** (`actual_end_date > end_date + 1`) **chưa có mã** → P3 |
+| DB-D47 | Bồi thường trả trước hạn | Điều khoản xác định **ngay khi ký hợp đồng**, hỗ trợ 3 loại: **không bồi thường**; **số tiền cố định**; **hệ số × tiền thuê tháng** đã snapshot vào hợp đồng. **Không** mặc định một tháng tiền thuê. **Hệ thống tự tính** khi thanh lý; Admin **không** được tùy tiện đổi điều khoản đã ký | Cần cột điều khoản trên `contracts` (P4) và loại dòng hóa đơn riêng (P7). Điều khoản bất biến sau kích hoạt |
+| DB-D48 | Miễn bồi thường | Chỉ được miễn khi **đáp ứng điều kiện đã thỏa thuận và ghi trong hợp đồng**; Admin xác nhận điều kiện được áp dụng **cùng căn cứ phù hợp** | Cách nhập/lưu nhiều điều kiện **chưa chốt** → P5 |
+| DB-D49 | Kiểm tra tài sản trước thanh lý | **Bắt buộc** kiểm tra và xác nhận tình trạng phòng. Không hư hỏng bất thường → phí bồi thường tài sản = 0. Có hư hỏng thuộc trách nhiệm người thuê → ghi **hạng mục, lý do, số tiền có căn cứ, ảnh minh chứng**. Khoản này **tách biệt** với phí trả trước hạn. Các khoản phải thu hợp lệ đưa vào **hóa đơn tất toán** (`final`); **tiền cọc đối soát riêng** | Cách lưu kết quả kiểm tra/minh chứng → P6 |
+| DB-D50 | Nhóm 4 | Đồng ý **về mặt kế hoạch** 4 bảng `maintenance_requests`, `viewing_appointments`, `attachments`, `notifications`; **chấp thuận O11**: thêm index `(notifiable_type, notifiable_id, read_at)` | Chưa triển khai; collection/morph alias của `attachments` phụ thuộc P6, P8 |
