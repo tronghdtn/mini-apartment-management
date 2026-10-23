@@ -1,154 +1,48 @@
-import React from 'react'
-import { useParams, Link } from 'react-router'
-import { MapPin, Plus, ChevronRight } from 'lucide-react'
-import { buildings, rooms } from '@/mocks/data'
-import { formatVND } from '@/lib/format'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router'
+import { isAxiosError } from 'axios'
+import { ChevronRight, MapPin, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import { apiErrorMessage } from '@/lib/apiErrors'
+import { getBuilding } from '@/features/buildings/api'
+import { BuildingForm } from '@/features/buildings/BuildingForm'
+import { AmenityAssignmentPanel } from '@/features/amenity-assignment/AmenityAssignmentPanel'
+import type { Building } from '@/features/buildings/types'
 
-export const AdminBuildingDetailPage: React.FC = () => {
+export function AdminBuildingDetailPage() {
   const { buildingId } = useParams<{ buildingId: string }>()
-  const building = buildings.find((b) => b.id.toString() === buildingId) || buildings[0]
-
-  const buildingRooms = rooms.filter((r) => r.buildingId === building.id)
-
-  // Group rooms by floor (highest floor on top)
-  const floorMap: Record<number, typeof buildingRooms> = {}
-  for (let f = building.floors; f >= 1; f--) {
-    floorMap[f] = buildingRooms.filter((r) => r.floor === f)
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Link to="/admin" className="hover:text-slate-900">Dashboard</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link to="/admin/buildings" className="hover:text-slate-900">Tòa nhà</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="font-bold text-slate-900">{building.name}</span>
-      </div>
-
-      {/* Building Header Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Badge tone="emerald" dot>Đang hoạt động</Badge>
-            <span className="text-xs text-slate-400 font-medium">Mã cơ sở: #{building.id}</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{building.name}</h1>
-          <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
-            <MapPin className="w-4 h-4 text-sky-600 shrink-0" />
-            <span>{building.address}</span>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link to={`/admin/rooms?buildingId=${building.id}`}>
-            <Button variant="outline" size="sm">
-              Danh sách phòng ({buildingRooms.length})
-            </Button>
-          </Link>
-          <Link to="/admin/contracts/new">
-            <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />}>
-              Lập hợp đồng mới
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Sơ đồ phòng theo tầng (Floor Matrix) */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Sơ Đồ Phòng Theo Tầng (Floor Matrix)</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Bấm vào từng ô phòng để xem chi tiết hoặc hợp đồng đang hiệu lực.
-            </p>
-          </div>
-
-          {/* Status Legends */}
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-emerald-500" />
-              <span>Còn trống</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-sky-600" />
-              <span>Đang thuê</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-amber-500" />
-              <span>Bảo trì</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Floors Grid List */}
-        <div className="space-y-4">
-          {Object.entries(floorMap).map(([floorNum, roomsOnFloor]) => (
-            <div
-              key={floorNum}
-              className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center gap-4"
-            >
-              <div className="w-20 shrink-0 text-center sm:text-left">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Tầng</span>
-                <span className="text-lg font-extrabold text-slate-900">{floorNum}</span>
-              </div>
-
-              <div className="flex-1 flex flex-wrap gap-3">
-                {roomsOnFloor.length > 0 ? (
-                  roomsOnFloor.map((rm) => {
-                    const statusColor =
-                      rm.status === 'available'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-                        : rm.status === 'occupied'
-                        ? 'bg-sky-50 text-sky-800 border-sky-300 hover:bg-sky-100'
-                        : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-
-                    return (
-                      <Link
-                        key={rm.id}
-                        to={`/admin/rooms/${rm.id}`}
-                        className={`p-3 rounded-xl border transition shadow-2xs min-w-[140px] flex flex-col justify-between ${statusColor}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-extrabold text-sm">{rm.code}</span>
-                          <span className="text-[10px] font-bold">
-                            {rm.status === 'available' ? 'Trống' : rm.status === 'occupied' ? 'Đang thuê' : 'Bảo trì'}
-                          </span>
-                        </div>
-                        <div className="mt-2 text-[11px] font-medium opacity-80">
-                          {formatVND(rm.price)}/th
-                        </div>
-                        <div className="text-[10px] opacity-70">
-                          {rm.area} m² • {rm.capacity} người
-                        </div>
-                      </Link>
-                    )
-                  })
-                ) : (
-                  <span className="text-xs text-slate-400 italic py-2">
-                    Tầng này chưa có phòng nào được khai báo
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Building Amenities & Info */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 space-y-4 shadow-xs">
-        <h3 className="font-bold text-base text-slate-900">Tiện Nghi Hạ Tầng Tòa Nhà</h3>
-        <div className="flex flex-wrap gap-2">
-          {building.buildingAmenities.map((amenity, idx) => (
-            <span key={idx} className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium">
-              {amenity}
-            </span>
-          ))}
-        </div>
-      </div>
+  const [building, setBuilding] = useState<Building | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [resolvedId, setResolvedId] = useState<string>()
+  const [error, setError] = useState('')
+  const [notFound, setNotFound] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    getBuilding(buildingId ?? '', controller.signal)
+      .then(data => { if (!controller.signal.aborted) { setBuilding(data); setNotFound(false); setError(''); setResolvedId(buildingId) } })
+      .catch(failure => { if (!controller.signal.aborted) { setBuilding(null); setResolvedId(buildingId); setNotFound(isAxiosError(failure) && failure.response?.status === 404); setError(apiErrorMessage(failure)) } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [buildingId, revision])
+  const close = () => { if (!saving) setEditing(false) }
+  if (loading || resolvedId !== buildingId) return <p role="status" className="text-sm text-slate-500 py-6">Đang tải thông tin tòa nhà…</p>
+  if (error || !building) return <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4"><h1 className="text-xl font-bold text-slate-900">{notFound ? 'Không tìm thấy tòa nhà' : 'Chưa tải được tòa nhà'}</h1><p role="alert" className="text-sm text-rose-700">{notFound ? 'Tòa nhà không tồn tại hoặc không còn khả dụng.' : error}</p><div className="flex flex-wrap items-center gap-3">{!notFound && <Button variant="outline" onClick={() => { setLoading(true); setError(''); setRevision(value => value + 1) }}>Thử lại</Button>}<Link to="/admin/buildings" className="text-sm text-sky-700 underline">Về danh sách tòa nhà</Link><a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a></div></div>
+  return <div className="space-y-6">
+    <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/buildings" className="hover:text-slate-900">Tòa nhà</Link><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="font-bold text-slate-900 break-words">{building.name}</span></nav>
+    {success && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
+    <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="min-w-0"><div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone={building.status === 'active' ? 'emerald' : 'slate'} dot>{building.status === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}</Badge><span className="text-xs text-slate-400">Mã cơ sở: #{building.id}</span></div><h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 break-words">{building.name}</h1><p className="text-xs sm:text-sm text-slate-500 flex items-start gap-1.5 mt-1"><MapPin className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" /><span className="break-words">{building.address}</span></p></div>
+      <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
     </div>
-  )
+    <section className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-5"><h2 className="font-bold text-base text-slate-900">Thông tin tòa nhà</h2><dl className="grid sm:grid-cols-2 gap-5 text-sm"><div><dt className="text-slate-500 text-xs">Số tầng</dt><dd className="mt-1 font-semibold text-slate-900">{building.total_floors}</dd></div><div><dt className="text-slate-500 text-xs">Tọa độ (vĩ độ, kinh độ)</dt><dd className="mt-1 text-slate-900 break-words">{building.latitude ?? 'Chưa có vĩ độ'}, {building.longitude ?? 'chưa có kinh độ'}</dd></div><div className="sm:col-span-2"><dt className="text-slate-500 text-xs">Mô tả</dt><dd className="mt-1 text-slate-900 whitespace-pre-wrap break-words">{building.description || 'Chưa có mô tả.'}</dd></div></dl></section>
+    <AmenityAssignmentPanel key={building.id} targetType="buildings" targetId={building.id} archivedVisibility="show" />
+    <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800">Sơ đồ phòng theo tầng chưa được tích hợp.</section>
+    <Modal isOpen={editing} onClose={close} title="Sửa thông tin tòa nhà" maxWidth="lg"><BuildingForm key={building.id} building={building} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setBuilding(updated); setEditing(false); setSuccess('Đã lưu thông tin tòa nhà.') }} /></Modal>
+  </div>
 }

@@ -1,148 +1,108 @@
-import React, { useState } from 'react'
-import { useParams, Link } from 'react-router'
-import { ChevronRight, Lock, Unlock } from 'lucide-react'
-import { users, contracts, invoices } from '@/mocks/data'
-import { formatVND } from '@/lib/format'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router'
+import { isAxiosError } from 'axios'
+import { ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { useApp } from '@/mocks/AppContext'
+import { Modal } from '@/components/ui/Modal'
+import { useAuth } from '@/features/auth/useAuth'
+import { apiErrorMessage } from '@/lib/apiErrors'
+import { formatDate, formatDateTime } from '@/lib/format'
+import { getUser } from '@/features/user-management/api'
+import { ActiveContractInfo } from '@/features/user-management/ActiveContractInfo'
+import { UserStatusAction } from '@/features/user-management/UserStatusAction'
+import { UserNameForm } from '@/features/user-management/UserNameForm'
+import { managedUserGenderLabel, managedUserRoleLabels } from '@/features/user-management/types'
+import type { UserDetail } from '@/features/user-management/types'
 
-export const AdminUserDetailPage: React.FC = () => {
+export function AdminUserDetailPage() {
+  const auth = useAuth()
   const { userId } = useParams<{ userId: string }>()
-  const { showToast } = useApp()
+  const [user, setUser] = useState<UserDetail | null>(null)
+  const [resolvedId, setResolvedId] = useState<string>()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [notFound, setNotFound] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const [success, setSuccess] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const savingName = useRef(false)
+  const closeName = () => { if (!savingName.current) setEditingName(false) }
 
-  const user = users.find((u) => u.id.toString() === userId) || users[1]
-  const userContracts = contracts.filter((c) => c.residentId === user.id)
-  const userInvoices = invoices.filter((i) => i.residentId === user.id)
+  useEffect(() => {
+    const controller = new AbortController()
+    getUser(userId ?? '', controller.signal)
+      .then(data => { if (!controller.signal.aborted) { setUser(data); setNotFound(false); setError(''); setResolvedId(userId) } })
+      .catch(failure => { if (!controller.signal.aborted) { setUser(null); setResolvedId(userId); setNotFound(isAxiosError(failure) && failure.response?.status === 404); setError(apiErrorMessage(failure)) } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [userId, revision])
 
-  const [status, setStatus] = useState(user.status)
-
-  const handleToggleStatus = () => {
-    const next = status === 'active' ? 'locked' : 'active'
-    setStatus(next)
-    showToast(`Đã ${next === 'locked' ? 'khóa' : 'mở khóa'} tài khoản ${user.name}!`, undefined, 'info')
-  }
-
+  if (loading || resolvedId !== userId) return <p role="status" className="text-sm text-slate-500 py-6">Đang tải hồ sơ tài khoản…</p>
+  if (error || !user) return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4">
+      <h1 className="text-xl font-bold text-slate-900">{notFound ? 'Không tìm thấy tài khoản' : 'Chưa tải được hồ sơ tài khoản'}</h1>
+      <p role="alert" className="text-sm text-rose-700">{notFound ? 'Tài khoản không tồn tại hoặc không còn khả dụng.' : error}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        {!notFound && <Button variant="outline" onClick={() => { setLoading(true); setError(''); setRevision(value => value + 1) }}>Thử lại</Button>}
+        <Link to="/admin/users" className="text-sm text-sky-700 underline">Về danh sách tài khoản</Link>
+        <a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a>
+      </div>
+    </div>
+  )
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Link to="/admin" className="hover:text-slate-900">Dashboard</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link to="/admin/users" className="hover:text-slate-900">Người dùng</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="font-bold text-slate-900">{user.name}</span>
-      </div>
-
-      {/* User Header */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xl">
-            {user.name.charAt(0)}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">{user.name}</h1>
-              {status === 'active' ? <Badge tone="emerald" dot>Hoạt động</Badge> : <Badge tone="rose" dot>Đã khóa</Badge>}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              {user.email} • {user.phone}
-            </p>
+      {success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
+      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/users" className="hover:text-slate-900">Người dùng</Link><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="font-bold text-slate-900 break-words">{user.full_name}</span></nav>
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-14 h-14 shrink-0 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xl">{Array.from(user.full_name)[0]}</div>
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-bold text-slate-900 break-words">{user.full_name}</h1><Badge tone={user.status === 'active' ? 'emerald' : 'rose'} dot>{user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</Badge></div>
+            <p className="text-xs text-slate-500 break-words">{user.email ?? 'Chưa có email'} · {user.phone}</p>
+            <Badge tone={user.role === 'admin' ? 'purple' : user.role === 'resident' ? 'emerald' : 'sky'}>{managedUserRoleLabels[user.role]}</Badge>
+            <div className="mt-3"><UserStatusAction user={user} onChanged={updated => {
+              setSuccess(updated.status === 'locked' ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.')
+              setLoading(true)
+              setRevision(value => value + 1)
+            }} /></div>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          {user.role !== 'admin' && (
-            <Button
-              variant={status === 'active' ? 'outline' : 'primary'}
-              size="sm"
-              icon={status === 'active' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-              onClick={handleToggleStatus}
-            >
-              {status === 'active' ? 'Khóa tài khoản' : 'Mở khóa'}
-            </Button>
-          )}
-        </div>
       </div>
-
-      {/* Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Info Column */}
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-          <h3 className="font-bold text-base text-slate-900">Hồ Sơ Cá Nhân</h3>
-          <dl className="space-y-3 text-xs">
-            <div>
-              <dt className="text-slate-400">Vai trò trong hệ thống</dt>
-              <dd className="font-semibold text-slate-800 uppercase mt-0.5">{user.role}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400">Số Căn cước công dân (CCCD)</dt>
-              <dd className="font-mono font-bold text-slate-900 mt-0.5">{user.idNumber || 'Chưa cập nhật'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400">Phòng thuê hiện tại</dt>
-              <dd className="font-semibold text-sky-700 mt-0.5">{user.roomCode || 'Không có hợp đồng active'}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-400">Ngày tham gia hệ thống</dt>
-              <dd className="text-slate-700 mt-0.5">{user.createdAt}</dd>
-            </div>
+        <section className="md:col-span-2 bg-white rounded-3xl border border-slate-200/90 p-6 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-bold text-base text-slate-900">Hồ Sơ Cá Nhân</h2><Button type="button" size="sm" variant="outline" onClick={() => { setSuccess(''); setEditingName(true) }}>Sửa họ tên</Button></div>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+            <div><dt className="text-xs text-slate-500">Họ và tên</dt><dd className="font-semibold text-slate-800 mt-1 break-words">{user.full_name}</dd></div>
+            <div><dt className="text-xs text-slate-500">Vai trò trong hệ thống</dt><dd className="font-semibold text-slate-800 mt-1">{managedUserRoleLabels[user.role]}</dd></div>
+            <div><dt className="text-xs text-slate-500">Số điện thoại</dt><dd className="text-slate-800 mt-1">{user.phone}</dd></div>
+            <div><dt className="text-xs text-slate-500">Email</dt><dd className="text-slate-800 mt-1 break-words">{user.email ?? 'Chưa có email'}</dd></div>
+            <div><dt className="text-xs text-slate-500">Số Căn cước công dân (CCCD)</dt><dd className="font-mono text-slate-800 mt-1 break-words">{user.id_number ?? 'Chưa cập nhật'}</dd></div>
+            <div><dt className="text-xs text-slate-500">Ngày sinh</dt><dd className="text-slate-800 mt-1">{user.date_of_birth === null ? 'Chưa cập nhật' : formatDate(user.date_of_birth)}</dd></div>
+            <div><dt className="text-xs text-slate-500">Giới tính</dt><dd className="text-slate-800 mt-1">{managedUserGenderLabel(user.gender)}</dd></div>
+            <div><dt className="text-xs text-slate-500">Ngày tham gia (giờ Việt Nam)</dt><dd className="text-slate-800 mt-1">{user.created_at === null ? 'Chưa có thông tin' : formatDateTime(user.created_at)}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Địa chỉ thường trú</dt><dd className="text-slate-800 mt-1 whitespace-pre-wrap break-words">{user.permanent_address ?? 'Chưa cập nhật'}</dd></div>
           </dl>
-        </div>
-
-        {/* Contracts & Debts Column (2 cols) */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-            <h3 className="font-bold text-base text-slate-900">Hợp Đồng Liên Quan ({userContracts.length})</h3>
-            {userContracts.length > 0 ? (
-              <div className="space-y-2">
-                {userContracts.map((c) => (
-                  <div key={c.id} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-mono font-bold text-slate-900">{c.code || 'Bản nháp'}</span>
-                      <p className="text-slate-500">Phòng {c.roomCode} • {formatVND(c.monthlyRent)}/tháng</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge tone={c.status === 'active' ? 'emerald' : 'slate'}>
-                        {c.status === 'active' ? 'Đang hiệu lực' : 'Đã thanh lý'}
-                      </Badge>
-                      <Link to={`/admin/contracts/${c.id}`}>
-                        <Button variant="outline" size="sm" className="text-[11px] py-1">Xem</Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 py-3">Người dùng này chưa có hợp đồng thuê nào.</p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-            <h3 className="font-bold text-base text-slate-900">Hóa Đơn Cần Thanh Toán ({userInvoices.length})</h3>
-            {userInvoices.length > 0 ? (
-              <div className="space-y-2">
-                {userInvoices.map((inv) => (
-                  <div key={inv.id} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-mono font-bold text-slate-900">{inv.code}</span>
-                      <p className="text-slate-500">Kỳ {inv.period} • Hạn trả: {inv.dueDate}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sky-700">{formatVND(inv.totalAmount)}</span>
-                      <Badge tone={inv.status === 'paid' ? 'emerald' : inv.status === 'partially_paid' ? 'amber' : 'rose'}>
-                        {inv.status === 'paid' ? 'Đã trả' : inv.status === 'partially_paid' ? 'Trả một phần' : 'Chưa trả'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 py-3">Không có công nợ hóa đơn.</p>
-            )}
-          </div>
-        </div>
+        </section>
+        <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
+          <h2 className="font-bold text-base text-slate-900">Tình trạng thuê hiện tại</h2>
+          <ActiveContractInfo user={user} />
+          <p className="text-xs text-slate-500">Vai trò cư dân được giữ để xem lịch sử sau thanh lý. Đang thuê được xác định từ hợp đồng đang hiệu lực.</p>
+        </section>
       </div>
+      <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
+        <p>Chỉ cho cập nhật họ tên. SĐT, email, mật khẩu, vai trò và dữ liệu pháp lý chưa mở chỉnh sửa tại đây.</p>
+        <p>Lịch sử hợp đồng, hóa đơn, công nợ và sửa chữa của tài khoản chưa được tích hợp.</p>
+      </section>
+      <Modal isOpen={editingName} onClose={closeName} title="Sửa họ tên">
+        <UserNameForm user={user} onCancel={closeName} onBusyChange={busy => { savingName.current = busy }} onSaved={updated => {
+          setEditingName(false)
+          setSuccess('Đã cập nhật họ tên.')
+          setLoading(true)
+          setRevision(value => value + 1)
+          if (updated.id === auth.user?.id) void auth.refresh()
+        }} />
+      </Modal>
     </div>
   )
 }

@@ -1,82 +1,27 @@
-import React, { useState } from 'react'
+import { Link } from 'react-router'
 import { User, Phone, Mail } from 'lucide-react'
-import { useApp } from '@/mocks/AppContext'
-import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/features/auth/useAuth'
+import { roleLabels } from '@/features/auth/types'
 
-export const GuestProfilePage: React.FC = () => {
-  const { currentUser, showToast } = useApp()
-
-  const [name, setName] = useState(currentUser.name || 'Hoàng Mai Lan')
-  const [phone, setPhone] = useState(currentUser.phone || '0901000007')
-  const [email, setEmail] = useState(currentUser.email || 'mailan@gmail.com')
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault()
-    showToast('Đã lưu thông tin tài khoản!', undefined, 'success')
-  }
-
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12 space-y-6">
-      <div className="pb-6 border-b border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-900">Tài Khoản Của Tôi</h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Thông tin cá nhân liên hệ để ban quản lý tòa nhà kết nối khi bạn đặt lịch xem phòng.
-        </p>
-      </div>
-
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8">
-        <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-sky-600" />
-              <span>Họ và tên</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-sky-600" />
-                <span>Số điện thoại</span>
-              </label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-sky-600" />
-                <span>Email</span>
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <Button type="submit" variant="primary" size="md">
-              Cập nhật thông tin
-            </Button>
-          </div>
-        </form>
-      </div>
+export function GuestProfilePage() {
+  const { user } = useAuth()
+  if (!user) return null
+  const fields = [
+    { label: 'Họ và tên', value: user.full_name, Icon: User },
+    { label: 'Số điện thoại', value: user.phone, Icon: Phone },
+    { label: 'Email', value: user.email ?? 'Chưa cung cấp email', Icon: Mail },
+  ]
+  return <div className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
+    <h1 className="text-2xl font-bold text-slate-900 mb-2">Tài khoản của tôi</h1>
+    <p className="text-sm text-slate-500 mb-6">Thông tin tài khoản hiện đang đăng nhập.</p>
+    {['resident', 'technician', 'guard'].includes(user.role) && <p role="status" className="rounded-2xl bg-sky-50 border border-sky-100 text-sky-900 p-4 mb-6">Khu vực dành cho {roleLabels[user.role].toLowerCase()} chưa hoàn thiện. Bạn có thể xem thông tin tài khoản tại đây.</p>}
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8">
+      <dl className="space-y-5">
+        {fields.map(({ label, value, Icon }) => <div key={label}><dt className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase"><Icon className="w-4 h-4 text-sky-600" />{label}</dt><dd className="mt-2 text-sm text-slate-900 break-words">{value}</dd></div>)}
+        <div><dt className="text-xs font-bold text-slate-600 uppercase">Vai trò</dt><dd className="mt-2 text-sm">{roleLabels[user.role]}</dd></div>
+      </dl>
+      <p className="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500">Hiện chỉ hỗ trợ xem thông tin. Cập nhật hồ sơ và đổi mật khẩu chưa được triển khai.</p>
     </div>
-  )
+    <Link to="/" className="inline-block mt-6 text-sm font-semibold text-sky-700 hover:underline">Về trang chủ</Link>
+  </div>
 }

@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import {
   Building2,
   PhoneCall,
   Menu,
   X,
-  LogIn,
   Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { AccountActions } from '@/features/auth/AccountActions'
 export const PublicNavbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,7 +58,7 @@ export const PublicNavbar: React.FC = () => {
                 <span className="font-extrabold text-xl tracking-tight text-slate-900 group-hover:text-sky-600 transition-colors">
                   Mini<span className="text-sky-600">Apart</span>
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 -mt-1">
+                <span className="hidden sm:block text-[10px] uppercase font-bold tracking-widest text-slate-400 -mt-1">
                   Chung cư mini tiện nghi
                 </span>
               </div>
@@ -104,26 +103,12 @@ export const PublicNavbar: React.FC = () => {
                 </Button>
               </Link>
 
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<LogIn className="w-3.5 h-3.5" />}
-                onClick={() => navigate('/login')}
-              >
-                Đăng nhập
-              </Button>
+              <AccountActions />
             </div>
 
             {/* Mobile Hamburger Button */}
             <div className="flex sm:hidden items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/login')}
-                className="px-2.5 py-1 text-xs"
-              >
-                Đăng nhập
-              </Button>
+              <AccountActions compact />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100"
@@ -154,6 +139,7 @@ export const PublicNavbar: React.FC = () => {
               ))}
 
               <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+                <AccountActions />
                 <Link to="/rooms" className="w-full">
                   <Button variant="primary" size="md" className="w-full" icon={<Search className="w-4 h-4" />}>
                     Tìm phòng còn trống

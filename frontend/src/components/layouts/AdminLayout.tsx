@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router'
+import React, { useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import {
   LayoutDashboard,
   Building2,
@@ -22,7 +22,8 @@ import {
   Menu,
 } from 'lucide-react'
 import { useApp } from '@/mocks/AppContext'
-import { RoleSwitcher } from '@/mocks/RoleSwitcher'
+import { useAuth } from '@/features/auth/useAuth'
+import { AccountActions } from '@/features/auth/AccountActions'
 
 interface AdminNavItem {
   to: string
@@ -40,17 +41,10 @@ const NOT_BUILT_TITLE = 'Màn hình chưa có trong prototype'
 export const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { payments, maintenanceRequests, unreadCount, currentUser, role, setRole } = useApp()
-
-  // Mở thẳng /admin bằng URL: đồng bộ vai trò demo một lần khi vào khu vực Admin
-  // (ref chặn StrictMode gọi effect hai lần, tránh toast trùng)
-  const roleSynced = useRef(false)
-  useEffect(() => {
-    if (roleSynced.current) return
-    roleSynced.current = true
-    if (role !== 'admin') setRole('admin')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const { payments, maintenanceRequests } = useApp()
+  const { user } = useAuth()
+  const { pathname } = useLocation()
+  const realCatalog = pathname === '/admin/users' || pathname.startsWith('/admin/users/') || pathname === '/admin/services' || pathname === '/admin/utility-prices' || pathname === '/admin/rooms' || pathname.startsWith('/admin/rooms/') || pathname === '/admin/amenities' || pathname === '/admin/buildings' || pathname.startsWith('/admin/buildings/')
 
   const pendingPaymentsCount = payments.filter((p) => p.status === 'pending').length
   const pendingMaintenanceCount = maintenanceRequests.filter((m) => m.status === 'pending').length
@@ -214,10 +208,10 @@ export const AdminLayout: React.FC = () => {
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <span className="text-xs font-semibold text-white block truncate">
-                {currentUser.name}
+                {user?.full_name}
               </span>
               <span className="text-[11px] text-slate-400 block truncate">
-                Chủ tòa nhà (Admin)
+                Quản trị viên
               </span>
             </div>
           )}
@@ -274,9 +268,7 @@ export const AdminLayout: React.FC = () => {
               title={`Thông báo hệ thống — ${NOT_BUILT_TITLE}`}
             >
               <Bell className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
-              )}
+
             </span>
 
             <Link
@@ -289,12 +281,13 @@ export const AdminLayout: React.FC = () => {
             </Link>
 
             {/* Công cụ demo: nằm trong header để không đè lên nút khác */}
-            <RoleSwitcher />
+            <AccountActions />
           </div>
         </header>
 
         {/* Page Outlet */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+          <p role="note" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{realCatalog ? 'Trang này sử dụng API thật; nếu dữ liệu chưa sẵn sàng, hệ thống sẽ báo rõ. Các khu vực nghiệp vụ khác vẫn dùng dữ liệu minh họa khi chưa tích hợp.' : 'Bạn đang đăng nhập bằng tài khoản thật. Các màn hình nghiệp vụ bên dưới vẫn dùng dữ liệu minh họa trong bộ nhớ; thao tác tại đây chưa lưu vào hệ thống.'}</p>
           <Outlet />
         </main>
       </div>

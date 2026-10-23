@@ -1,3 +1,4 @@
+import { RequireAuth } from '@/features/auth/RequireAuth'
 import { createBrowserRouter } from 'react-router'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
@@ -46,12 +47,16 @@ export const router = createBrowserRouter([
       { path: 'contact', element: <ContactPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
-      { path: 'account/appointments', element: <GuestAppointmentsPage /> },
-      { path: 'account/profile', element: <GuestProfilePage /> },
+      { element: <RequireAuth />, children: [
+        { path: 'account/appointments', element: <GuestAppointmentsPage /> },
+        { path: 'account/profile', element: <GuestProfilePage /> },
+      ] },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
   {
+    element: <RequireAuth roles={['admin']} />,
+    children: [{
     path: '/admin',
     element: <AdminLayout />,
     errorElement: <RouteErrorPage />,
@@ -75,5 +80,6 @@ export const router = createBrowserRouter([
       { path: 'invoices/:invoiceId', element: <AdminInvoiceDetailPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
+    }],
   },
 ])

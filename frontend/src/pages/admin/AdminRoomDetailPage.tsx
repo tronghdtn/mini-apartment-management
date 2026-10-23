@@ -1,301 +1,82 @@
-import React, { useState } from 'react'
-import { useParams, Link } from 'react-router'
-import {
-  CheckCircle2,
-  ChevronRight,
-  Plus,
-  Eye,
-  EyeOff,
-} from 'lucide-react'
-import { rooms, contracts, meterReadings, maintenanceRequests, viewingAppointments } from '@/mocks/data'
-import { formatVND, formatDate } from '@/lib/format'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router'
+import { isAxiosError } from 'axios'
+import { ChevronRight, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { Tabs } from '@/components/ui/Tabs'
-import { useApp } from '@/mocks/AppContext'
+import { Modal } from '@/components/ui/Modal'
+import { apiErrorMessage } from '@/lib/apiErrors'
+import { formatVND } from '@/lib/format'
+import { getRoom } from '@/features/room-management/api'
+import { RoomForm } from '@/features/room-management/RoomForm'
+import { AmenityAssignmentPanel } from '@/features/amenity-assignment/AmenityAssignmentPanel'
+import { roomStatusLabels } from '@/features/room-management/types'
+import type { Room } from '@/features/room-management/types'
 
-export const AdminRoomDetailPage: React.FC = () => {
+export function AdminRoomDetailPage() {
   const { roomId } = useParams<{ roomId: string }>()
-  const { toggleRoomPublic } = useApp()
+  const [room, setRoom] = useState<Room | null>(null)
+  const [resolvedId, setResolvedId] = useState<string>()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [notFound, setNotFound] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
 
-  const room = rooms.find((r) => r.id.toString() === roomId) || rooms[0]
-  const roomContracts = contracts.filter((c) => c.roomId === room.id)
-  const roomReadings = meterReadings.filter((m) => m.roomId === room.id)
-  const roomMaintenance = maintenanceRequests.filter((req) => req.roomId === room.id)
-  const roomAppointments = viewingAppointments.filter((a) => a.roomId === room.id)
+  useEffect(() => {
+    const controller = new AbortController()
+    getRoom(roomId ?? '', controller.signal)
+      .then(data => { if (!controller.signal.aborted) { setRoom(data); setNotFound(false); setError(''); setResolvedId(roomId) } })
+      .catch(failure => { if (!controller.signal.aborted) { setRoom(null); setResolvedId(roomId); setNotFound(isAxiosError(failure) && failure.response?.status === 404); setError(apiErrorMessage(failure)) } })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false) })
+    return () => controller.abort()
+  }, [roomId, revision])
 
-  const [activeTab, setActiveTab] = useState<'info' | 'contracts' | 'readings' | 'maintenance' | 'appointments'>('info')
-
+  const close = () => { if (!saving) setEditing(false) }
+  if (loading || resolvedId !== roomId) return <p role="status" className="text-sm text-slate-500 py-6">Đang tải thông tin phòng…</p>
+  if (error || !room) return (
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4">
+      <h1 className="text-xl font-bold text-slate-900">{notFound ? 'Không tìm thấy phòng' : 'Chưa tải được phòng'}</h1>
+      <p role="alert" className="text-sm text-rose-700">{notFound ? 'Phòng không tồn tại hoặc không còn khả dụng.' : error}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        {!notFound && <Button variant="outline" onClick={() => { setLoading(true); setError(''); setRevision(value => value + 1) }}>Thử lại</Button>}
+        <Link to="/admin/rooms" className="text-sm text-sky-700 underline">Về danh sách phòng</Link>
+        <a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a>
+      </div>
+    </div>
+  )
   return (
     <div className="space-y-6">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-slate-500">
-        <Link to="/admin" className="hover:text-slate-900">Dashboard</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link to="/admin/rooms" className="hover:text-slate-900">Phòng</Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="font-bold text-slate-900">{room.code}</span>
-      </div>
-
-      {/* Header Card */}
+      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/rooms" className="hover:text-slate-900">Phòng</Link><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="font-bold text-slate-900">{room.code}</span></nav>
+      {success && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-sky-50 text-sky-700 border border-sky-100">
-              {room.code}
-            </span>
-            {room.status === 'available' && <Badge tone="emerald" dot>Còn trống</Badge>}
-            {room.status === 'occupied' && <Badge tone="sky" dot>Đang thuê</Badge>}
-            {room.status === 'maintenance' && <Badge tone="amber" dot>Bảo trì</Badge>}
-            <button
-              onClick={() => toggleRoomPublic(room.id)}
-              className="px-2.5 py-0.5 rounded-full text-xs font-medium border border-slate-200 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
-            >
-              {room.is_public ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
-              <span>{room.is_public ? 'Công khai' : 'Ẩn web'}</span>
-            </button>
-          </div>
-          <h1 className="text-2xl font-extrabold text-slate-900">{room.title}</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            {room.buildingName} • Tầng {room.floor} • {room.buildingAddress}
-          </p>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone={room.status === 'available' ? 'emerald' : room.status === 'occupied' ? 'sky' : room.status === 'maintenance' ? 'amber' : 'slate'} dot>{roomStatusLabels[room.status]}</Badge><Badge tone={room.is_public ? 'emerald' : 'slate'}>{room.is_public ? 'Đánh dấu công khai' : 'Không công khai'}</Badge></div>
+          <h1 className="text-2xl font-extrabold text-slate-900 break-words">Phòng {room.code}</h1>
+          <p className="text-xs text-slate-500 mt-1">{room.building.name} · Tầng {room.floor_number}</p>
         </div>
-
-        <div className="flex items-center gap-3">
-          {room.status === 'available' && (
-            <Link to={`/admin/contracts/new?roomId=${room.id}`}>
-              <Button variant="primary" size="sm" icon={<Plus className="w-4 h-4" />}>
-                Lập hợp đồng thuê
-              </Button>
-            </Link>
-          )}
-          <Link to={`/rooms/${room.id}`} target="_blank">
-            <Button variant="outline" size="sm">
-              Xem trang Public
-            </Button>
-          </Link>
-        </div>
+        <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
       </div>
-
-      {/* Navigation Tabs */}
-      <Tabs
-        tabs={[
-          { id: 'info', label: 'Thông tin phòng' },
-          { id: 'contracts', label: `Hợp đồng (${roomContracts.length})` },
-          { id: 'readings', label: `Chỉ số điện nước (${roomReadings.length})` },
-          { id: 'maintenance', label: `Sửa chữa (${roomMaintenance.length})` },
-          { id: 'appointments', label: `Lịch xem (${roomAppointments.length})` },
-        ]}
-        activeTab={activeTab}
-        onChange={(t) => setActiveTab(t as any)}
-      />
-
-      {/* Tab 1: Info Overview */}
-      {activeTab === 'info' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-              <h3 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-2 border-y border-slate-100 text-xs">
-                <div>
-                  <span className="text-slate-400 block">Giá niêm yết</span>
-                  <span className="font-bold text-sky-700 text-sm mt-0.5 block">{formatVND(room.price)}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Tiền cọc</span>
-                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{formatVND(room.deposit)}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Diện tích</span>
-                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{room.area} m²</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Sức chứa tối đa</span>
-                  <span className="font-bold text-slate-800 text-sm mt-0.5 block">{room.capacity} người</span>
-                </div>
-              </div>
-
-              <div>
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">
-                  Mô tả căn hộ
-                </span>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {room.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-              <h3 className="font-bold text-base text-slate-900">Tiện Nghi Riêng Trong Phòng</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {room.roomAmenities.map((a, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                    <span>{a}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Images preview */}
-          <div className="space-y-4">
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 space-y-3">
-              <h3 className="font-bold text-sm text-slate-900">Hình Ảnh Phòng</h3>
-              <div className="space-y-2">
-                {room.images.map((img, idx) => (
-                  <div key={idx} className="h-32 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Contracts */}
-      {activeTab === 'contracts' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-x-auto shadow-xs">
-          {roomContracts.length > 0 ? (
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
-                <tr>
-                  <th className="px-5 py-3.5">Mã HĐ</th>
-                  <th className="px-5 py-3.5">Người thuê đại diện</th>
-                  <th className="px-5 py-3.5">Thời hạn</th>
-                  <th className="px-5 py-3.5">Tiền thuê</th>
-                  <th className="px-5 py-3.5">Trạng thái</th>
-                  <th className="px-5 py-3.5 text-right">Chi tiết</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {roomContracts.map((c) => (
-                  <tr key={c.id}>
-                    <td className="px-5 py-4 font-mono font-bold text-slate-900">
-                      {c.code || 'Nháp'}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="font-bold text-slate-800 block">{c.residentName}</span>
-                      <span className="text-[11px] text-slate-400">{c.residentPhone}</span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {formatDate(c.startDate)} → {formatDate(c.endDate)}
-                    </td>
-                    <td className="px-5 py-4 font-bold text-sky-700">
-                      {formatVND(c.monthlyRent)}/th
-                    </td>
-                    <td className="px-5 py-4">
-                      {c.status === 'active' && <Badge tone="emerald" dot>Đang hiệu lực</Badge>}
-                      {c.status === 'draft' && <Badge tone="slate">Nháp</Badge>}
-                      {c.status === 'terminated' && <Badge tone="slate">Đã thanh lý</Badge>}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Link to={`/admin/contracts/${c.id}`}>
-                        <Button variant="outline" size="sm" className="text-xs py-1">
-                          Xem HĐ
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="p-8 text-center text-xs text-slate-400">Chưa có hợp đồng nào cho phòng này.</p>
-          )}
-        </div>
-      )}
-
-      {/* Tab 3: Meter Readings */}
-      {activeTab === 'readings' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 overflow-x-auto shadow-xs">
-          {roomReadings.length > 0 ? (
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase">
-                <tr>
-                  <th className="px-5 py-3.5">Kỳ tiêu thụ</th>
-                  <th className="px-5 py-3.5">Dịch vụ</th>
-                  <th className="px-5 py-3.5">Chỉ số cũ</th>
-                  <th className="px-5 py-3.5">Chỉ số mới</th>
-                  <th className="px-5 py-3.5">Tiêu thụ</th>
-                  <th className="px-5 py-3.5">Loại chốt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {roomReadings.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-5 py-4 font-bold text-slate-900">{r.period}</td>
-                    <td className="px-5 py-4 font-medium">{r.serviceName}</td>
-                    <td className="px-5 py-4 font-mono">{r.oldReading.toFixed(2)}</td>
-                    <td className="px-5 py-4 font-mono font-bold text-sky-700">{r.newReading.toFixed(2)}</td>
-                    <td className="px-5 py-4 font-bold text-emerald-700">
-                      {r.consumption.toFixed(2)} {r.serviceCode === 'ELECTRICITY' ? 'kWh' : 'm³'}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Badge tone={r.kind === 'final' ? 'amber' : 'slate'}>
-                        {r.kind === 'final' ? 'Chốt trả phòng' : 'Định kỳ'}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="p-8 text-center text-xs text-slate-400">Chưa có bản ghi chỉ số nào cho phòng này.</p>
-          )}
-        </div>
-      )}
-
-      {/* Tab 4: Maintenance */}
-      {activeTab === 'maintenance' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-3">
-          {roomMaintenance.length > 0 ? (
-            roomMaintenance.map((m) => (
-              <div key={m.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs">{m.code}</span>
-                    <Badge tone={m.status === 'resolved' ? 'emerald' : m.status === 'in_progress' ? 'sky' : 'amber'}>
-                      {m.status === 'resolved' ? 'Đã xử lý' : m.status === 'in_progress' ? 'Đang làm' : 'Chờ xử lý'}
-                    </Badge>
-                  </div>
-                  <h4 className="font-bold text-sm text-slate-900 mt-1">{m.title}</h4>
-                  <p className="text-xs text-slate-500 mt-0.5">{m.description}</p>
-                </div>
-                {/* Màn hình chi tiết yêu cầu sửa chữa chưa có trong prototype */}
-                <Button variant="outline" size="sm" className="text-xs py-1" disabled title="Màn hình chưa có trong prototype">
-                  Xem sự cố
-                </Button>
-              </div>
-            ))
-          ) : (
-            <p className="py-8 text-center text-xs text-slate-400">Không có yêu cầu sửa chữa nào.</p>
-          )}
-        </div>
-      )}
-
-      {/* Tab 5: Appointments */}
-      {activeTab === 'appointments' && (
-        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-3">
-          {roomAppointments.length > 0 ? (
-            roomAppointments.map((a) => (
-              <div key={a.id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div>
-                  <span className="font-mono font-bold text-xs">{a.code}</span>
-                  <h4 className="font-bold text-sm text-slate-900 mt-0.5">{a.guestName} ({a.guestPhone})</h4>
-                  <p className="text-xs text-slate-500">Khung giờ: {a.timeSlot}, ngày {formatDate(a.date)}</p>
-                </div>
-                <Badge tone={a.status === 'confirmed' ? 'emerald' : 'amber'}>
-                  {a.status === 'confirmed' ? 'Đã xác nhận' : 'Chờ duyệt'}
-                </Badge>
-              </div>
-            ))
-          ) : (
-            <p className="py-8 text-center text-xs text-slate-400">Chưa có lịch hẹn xem cho phòng này.</p>
-          )}
-        </div>
-      )}
+      <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-5">
+        <h2 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h2>
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-5 text-sm">
+          <div><dt className="text-xs text-slate-500">Giá thuê niêm yết</dt><dd className="font-bold text-sky-700 mt-1 break-words">{formatVND(room.base_price)}</dd></div>
+          <div><dt className="text-xs text-slate-500">Tiền cọc niêm yết</dt><dd className="font-bold text-slate-800 mt-1 break-words">{formatVND(room.deposit_amount)}</dd></div>
+          <div><dt className="text-xs text-slate-500">Diện tích</dt><dd className="font-bold text-slate-800 mt-1">{room.area} m²</dd></div>
+          <div><dt className="text-xs text-slate-500">Sức chứa tối đa</dt><dd className="font-bold text-slate-800 mt-1">{room.max_occupants} người</dd></div>
+          <div className="col-span-2 lg:col-span-4"><dt className="text-xs text-slate-500">Mô tả</dt><dd className="mt-1 text-slate-700 whitespace-pre-wrap break-words">{room.description || 'Chưa có mô tả.'}</dd></div>
+        </dl>
+      </section>
+      <AmenityAssignmentPanel key={room.id} targetType="rooms" targetId={room.id} archivedVisibility="show" />
+      <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
+        <p>Hợp đồng, chỉ số điện nước, sửa chữa, lịch xem và ảnh phòng chưa được tích hợp.</p>
+        <p>Trang phòng công khai vẫn dùng dữ liệu minh họa. Giá niêm yết tại đây không sửa các hợp đồng đã ký.</p>
+      </section>
+      <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
+        <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
+      </Modal>
     </div>
   )
 }
