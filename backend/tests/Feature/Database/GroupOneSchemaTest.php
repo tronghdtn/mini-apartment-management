@@ -27,7 +27,7 @@ class GroupOneSchemaTest extends TestCase
             'users' => ['users', [
                 'id' => ['bigint unsigned', 'NO', null],
                 'full_name' => ['varchar(120)', 'NO', null],
-                'email' => ['varchar(191)', 'NO', null],
+                'email' => ['varchar(191)', 'YES', null], // DB-D51: email tùy chọn.
                 'phone' => ['varchar(20)', 'NO', null],
                 'email_verified_at' => ['timestamp', 'YES', null],
                 'password' => ['varchar(255)', 'NO', null],
@@ -157,6 +157,23 @@ class GroupOneSchemaTest extends TestCase
         // Nhiều tài khoản chưa khai CCCD (NULL) vẫn hợp lệ
         $this->insertUser(['email' => 'e@example.com', 'phone' => '0900000005']);
         $this->assertSame(2, DB::table('users')->whereNull('id_number')->count());
+    }
+
+    public function test_users_allow_multiple_null_emails_and_still_require_unique_phones(): void
+    {
+        $this->insertUser(['email' => 'optional@example.com', 'phone' => '0900000011']);
+        $this->insertUser(['email' => null, 'phone' => '0900000012']);
+        $this->insertUser(['phone' => '0900000013']); // Không truyền email cũng lưu NULL.
+
+        $this->assertSame('optional@example.com', DB::table('users')->where('phone', '0900000011')->value('email'));
+        $this->assertNull(DB::table('users')->where('phone', '0900000012')->first()->email);
+        $this->assertNull(DB::table('users')->where('phone', '0900000013')->first()->email);
+        $this->assertSame(2, DB::table('users')->whereNull('email')->count());
+
+        $this->assertDuplicateRejected(fn () => $this->insertUser(['email' => 'optional@example.com', 'phone' => '0900000014']));
+        $this->assertDuplicateRejected(fn () => $this->insertUser(['email' => null, 'phone' => '0900000012']));
+        $this->assertDuplicateRejected(fn () => $this->insertUser(['email' => 'different@example.com', 'phone' => '0900000013']));
+        $this->assertSame(3, DB::table('users')->count());
     }
 
     public function test_catalog_unique_constraints(): void
