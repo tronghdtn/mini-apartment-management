@@ -73,6 +73,7 @@ export const router = createBrowserRouter([
       { path: 'users/:userId', element: <AdminUserDetailPage /> },
       { path: 'contracts', element: <AdminContractsPage /> },
       { path: 'contracts/new', element: <AdminContractNewPage /> },
+      { path: 'contracts/:contractId/edit', element: <AdminContractNewPage /> },
       { path: 'contracts/:contractId', element: <AdminContractDetailPage /> },
       { path: 'contracts/:contractId/terminate', element: <AdminContractTerminatePage /> },
       { path: 'meter-readings', element: <AdminMeterReadingsPage /> },

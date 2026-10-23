@@ -22,8 +22,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * gia hạn do Service vòng đời hợp đồng gán tường minh trong transaction. Generated column
  * `active_room_id`, `active_tenant_id` không bao giờ được ghi.
  *
- * `end_date` (dự kiến) và `actual_end_date` (thực tế) đều là NGÀY BÀN GIAO, mốc LOẠI TRỪ (DB-D32, DB-D39):
- * ngày tính tiền = [start_date, actual_end_date). Quá `end_date` mà vẫn active thì tiếp tục tính tiền.
+ * `end_date` là ngày cuối được ở, tính cả ngày đó (DB-D43); bàn giao đúng hạn vào end_date + 1.
+ * `actual_end_date` là ngày bàn giao thực tế, mốc LOẠI TRỪ (DB-D32): ngày tính tiền =
+ * [start_date, actual_end_date). Quá `end_date` mà vẫn active thì tiếp tục tính tiền.
  * `actual_end_date = start_date` (thanh lý ngay ngày đầu, DB-D41) cho 0 ngày tính tiền.
  *
  * `meter_gap_reason`, `meter_gap_confirmed_by` (DB-D40) chỉ ghi trong transaction kích hoạt khi chỉ số đầu

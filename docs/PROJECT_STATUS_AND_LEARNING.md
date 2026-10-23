@@ -1,10 +1,10 @@
 # PROJECT STATUS & LEARNING — Mini Apartment Management
 
-> **Hiện trạng 24/10/2026 — USR-C/D:** Admin khóa/mở khóa khôngAdmin + sửa duy nhất họ tên đã tích hợp DBtest theoDB-D57/58. Backend867/6970, frontend52/build/lint/Pint183file PASS; browser13status(CKr0QSXf)+12họ tên/hồi quy(CldKYjey) PASS/0runtimeexception. Dev20bảng/16migration/1khách/0Admin/chưaseed; snapshot12phần khớp, RUN_MIGRATIONS=false/Nhóm3pending. Chưa sửa định danh/pháp lý hoặc quản trị bằngAdmin dev; không schema/migrate/ghi/xóa dev/commit/push. Plan§12.10–11, bản đồ§11.19–20; nhóm trước là lịch sử.
+> **Hiện trạng 24/10/2026 — LEASE-A/CTR:** Hợp đồng nháp list/detail/create/edit/softdelete đã tích hợp DBtest, chưa kích hoạt/thu cọc/thanh lý. Backend963/7930/Pint192file, frontend58/build/lintPASS; browser12/12 +liveAPI12/12 PASS/0runtimeexception trênDTAoQ2di. Bốn localcheckpoint đã lưu theo duyệt mới, không push. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; có1Admin mới xuất hiện trong lượt, chờ chủ dự án xác nhận và tựđăngnhập để test quảntrịdev. Agent không tạoAdmin/ghi nghiệp vụdev; hash tài khoản khách cũ không đổi. Plan§12.12–13, bản đồ§11.21; kết quảUSR/CAT/Auth trước là lịch sử.
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Cập nhật | 23/10/2026 — CAT/ROOM cơ bản; Auth và T1 giữ đúng mốc lịch sử |
+| Cập nhật | 24/10/2026 — LEASE-A/CTR nháp; các mốc trước giữ đúng lịch sử |
 | Người đọc | Chủ dự án (sinh viên) và AI agent làm tiếp |
 | Mục đích | Nói **thật** dự án đang ở đâu, kế hoạch làm tiếp, và giải thích kiến trúc để chủ dự án tự trình bày được |
 | Nhãn bằng chứng | **[KIỂM CHỨNG 18/10]**, **[KIỂM CHỨNG 19/10]** = đã chạy lệnh/kiểm tra trong ngày đó · **[THEO TÀI LIỆU]** = ghi trong `docs/`, chưa chạy lại · **[ĐỀ XUẤT]** = kế hoạch, chưa làm, chưa được duyệt |
@@ -17,11 +17,11 @@ Tài liệu này **không** thay các quyết định trong `DB_DECISIONS_202610
 
 | Phần | Hiện trạng mới nhất | Mức xác minh |
 |---|---|---|
-| Backend | Health/Auth/Artisan/CAT/ROOM/Settings, USR đọc/cấp/status/họ tên | Mới:867/6970 + Pint183 file PASS; §11.19–20 |
-| DB dev | Nhóm1+emailnullable+Nhóm2 riêng;20bảng/16migrations; users1/khôngAdmin; Nhóm3chưachạy | Nhóm2 backup/restore/pretend/apply PASS, bảng cũ nguyên vẹn; snapshot sau tests không đổi thêm; §11.15 |
-| Frontend | Auth +9 trang CAT/ROOM/USR thật, Antigravity; phần chưa nối có nhãn | Mới:52 test/build/lint, browserstatus13 +họ tên12 PASS; các nhóm trước là lịch sử |
-| Kiểm thử | Mới:867/6970 Backend,52frontend, browserstatus13/họ tên12 PASS trên DB test riêng | §11.19–20/Plan§12.10–11; chưa quản trị bằng Admin dev |
-| Git | T1 đã commit; thay đổi Auth, CAT/ROOM và tài liệu chưa commit/push | `git status`, HEAD `f485050`; ghi chép “chưa có remote” ở lịch sử không dùng làm hiện trạng |
+| Backend | Health/Auth/Artisan/CAT/ROOM/Settings/USR và CRUDnháp Hợp đồng | Mới:963/7930 + Pint192 file PASS; §11.21 |
+| DB dev | Nhóm1+emailnullable+Nhóm2;20bảng/16migrations,1khách+1Admin; Nhóm3chưachạy | Không DDL nghiệp vụ; Admin xuất hiện trong lượt đang chờ xác nhậnnguồn, cache/session thay đổi; hash toàn bộ tài khoản cũ khớp; Plan§12.13 |
+| Frontend | Auth/CAT/ROOM/USR +ADM11/12/13 nháp thật, Antigravity; phần chưa nối có nhãn | Mới:58test/build/lint, browserCTR12/12 PASS; các nhóm trước là lịch sử |
+| Kiểm thử | Mới:963/7930 Backend,58frontend, browserCTR12/12 +liveAPI12/12 trên DB test riêng | Plan§12.13; chưa quản trị bằng phiên Admin dev |
+| Git |4localcheckpoint ff5888a/9151d49/7756eaf/f67fd9c; LEASEcheckpoint riêng sau nghiệm thu | Không push; .claude/public-ui-concept/ui-antigravity-full giữ ngoài commit vì chưa xác nhận phạm vi |
 | Quyết định | Auth D01/D02/D03 CONFIRMED A/A/A; Q2/Q4/Q10/Q11 đã chốt nguyên tắc | Spec Auth §3/8; Plan quản lý task |
 
 Không đồng nhất UI mở được, code đã viết, test tự động và tích hợp thật. Số 27/51 là kiểm kê UI mock lịch sử, không phải tiến độ phần trăm chức năng.
@@ -840,3 +840,32 @@ DB-D58/USR-D03 đã duyệt. Admin sửa full_name của tài khoản đang xem;
 
 
 **Kiểm chứng tích hợp USR-C/D (24/10):** Backend867test/6970assertion PASS/Pint183file; frontend52test/build/lint PASS (9cảnh báo cũ). Browser13status(CKr0QSXf) +12họ tên/hồi quy(CldKYjey) đạt,0runtimeexception; NAME07 chứng minh tựsửa tên cập nhật/me/navbar và vẫnkhôngkhóaAdmin, NAME11 kiểm traStatus sauName. Chi tiết/ma trận/file tại Plan§12.10–11; đãxem ảnhmobile/desktop. Snapshotdev12phần JSON khớp:20bảng/16migration, RUN_MIGRATIONS=false/Nhóm3pending; chưaCRUDAdmindev. Dọn đúngfixture/phiêntest và dừngtestriêng, giữ4containerdev/MySQLhealthy. Khôngschema/migrate/ghi/xóa dev/stage/commit/push. Chỉfull_name được sửa; các trường địnhdanh/pháp lý vẫn chỉđọc.
+
+### 11.21. Bản đồ code LEASE-A / CTR — hợp đồng nháp
+
+Chỉ nháp và đọc hợp đồng; chưa kích hoạt/thu cọc/dịch vụ/điều khoản/Thanh lý. `end_date` là ngày cuối được ở (inclusive, có tính ngày đó), lớn hơn ngày bắt đầu; đã sửa comment Model theo DB-D43, không sửa migration cũ. Phạm vi/API/AC tại brief§24; bằng chứng mới và checkpoint thật tại Plan§12.12–13.
+
+| Mở file và tìm | Chức năng |
+|---|---|
+| `frontend/src/pages/admin/AdminContractsPage.tsx:26` | effect gọi getContracts với page/filters; tìm kiếm và phân trang phía server, không lọc mock |
+| `frontend/src/pages/admin/AdminContractNewPage.tsx:20` | tải đủ lựa chọn phòng/người thuê; cùng trang dùng cả `/new` và `/:contractId/edit` |
+| `frontend/src/features/contracts/DraftContractForm.tsx:62` | submit: RHF/Zod, kiểm tra sức chứa, ref chặn gửi lặp, gọi saveDraftContract; lỗi server đưa về đúng bước |
+| `frontend/src/features/contracts/api.ts:39` | saveDraftContract: lấy CSRF cookie rồi POST/PATCH qua http có cookie phiên; getAllOptions dòng19 duyệt đủ phân trang |
+| `frontend/src/pages/admin/AdminContractDetailPage.tsx:35` | confirmDelete gọi DELETE thật, thành công204 mới về danh sách; hủy không gọi API |
+| `backend/routes/api.php` | tìm contracts.index/show/store/update/destroy; auth:sanctum→active→role:admin, ghi thêm spa/CSRF |
+| `backend/app/Http/Requests/Contract/StoreContractRequest.php:28` | rules: allowlist (danh sách trường được nhận), ngày/tiền/số người/ghi chú, trường vòng đời phải missing kể cảNULL |
+| `backend/app/Http/Controllers/Api/V1/ContractController.php:37` | store nhận validated, kiểm tra Policy, gọi Service, trả Resource201; các hàm index/show/update/destroy tương tự |
+| `backend/app/Services/ContractService.php:70` | create trong transaction (giao dịch tất cả cùng thành công hoặc cùng hủy); khóa phòng→tài khoản, lưu statusdraft/codeNULL/depositunpaid |
+| `backend/app/Services/ContractService.php:96` | update khóa phòng/tài khoản/hợp đồng, ghép PATCH với dữ liệu hiện tại rồi kiểm tra lại; FK đã đổi thì409, không ghi đè dữ liệu mới |
+| `backend/app/Services/ContractService.php:125` | delete chỉ nháp không có dữ liệu con; xóa mềm ghi deleted_at, không xóa phòng/tài khoản/lịch sử |
+| `backend/app/Policies/ContractPolicy.php:11`, `backend/app/Http/Resources/ContractResource.php:10` | chỉAdmin active; JSONdata tối thiểu, không password/token/CCCD |
+
+**Luồng thực tế:** bấm Lưu bản nháp → submit → POST `/api/v1/contracts` với room_id/user_id/ngày/tiền/số người/note → Laravel xác thực cookie và CSRF → Request/Policy kiểm tra → Service đọc `rooms`, `users`, kiểm tra `contracts` active, rồi INSERT `contracts` trong transaction → Resource201 → React chuyển chi tiết và GET đúngID. Không đổi role người thuê hoặc room.status; tiền cọc trong nháp chưa có nghĩa đã nhận. MySQL hiện có schema Nhóm2 đủ cho luồng này; không cần Nhóm3dev.
+
+**Thực hành API:** ví dụ minh họa, thay ID bằng ID thật có quyền: GET `/api/v1/contracts?status=draft&room_id=21&user_id=42&q=Nguyen&page=1`. Bộ lọc kết hợp AND; q tìm literal trong mãHD/phòng hoặc tên/email/SĐT người thuê. Response `{data:[...],links,meta}`; q không tìm note. Mở DevTools→Network→contracts, xem Query String/Request Payload/Status; cookie phiên tự gửi, không sao chép/log token. Muốn sửa giao diện: Form/baPage; đổi cách gọi: api.ts; đổi validation: schemas.ts + FormRequest; đổi truy vấn: paginate/query; đổi dữ liệu trả: Resource. Nếu đổi nghiệp vụ phải duyệt Spec trước.
+
+**Câu hỏi bảo vệ:** (1) Tại sao lưu nháp chưa có mãHD? Mã chỉ sinh trong transaction kích hoạt, chưa làm nhánh đó. (2) Vì sao chọn phòng trống ở React vẫn kiểm tra lại Laravel? Dữ liệu có thể đổi sau khi tải, và client có thể gửi request trực tiếp. (3) Vì sao PATCH phải ghép dữ liệu? Chỉ gửi ngày cuối vẫn phải so với ngày bắt đầu đang lưu. (4) Xóa mềm khác xóa cứng? deleted_at che bản nháp khỏi query thường, vẫn giữ hàng; lịch sử liên quan bị409. (5) Khóa hàng để làm gì? lockForUpdate ngăn hai thao tác thay trạng thái/quan hệ đồng thời; thứ tự thống nhất tránh deadlock, retry3 và test kiểm tra không ghi đè FK đã đổi.
+
+Kiểm thử liên quan: `backend/tests/Feature/Contracts/ContractDraftTest.php`, `frontend/tests/contracts.test.mjs`, `frontend/tests/contracts.browser.mjs`; helper CLI `ContractBrowserFixtures.php` chỉDB/accounttest có guard, không API sản phẩm. Kết quả mới chỉ ghi sau chạy tại Plan§12.13; không lấy867/6970+52 baseline làm bằng chứng Hợp đồng.
+
+**Bằng chứng mới:**963Backend/7930assertion/Pint192file,58frontend/buildDTAoQ2di/lint0lỗi9cảnhbáocũ PASS;12/12browser +12/12liveAPI DBtest PASS,0runtimeexception. Đã xem ảnh desktop/mobile; dọn đúngfixture, dừngtest riêng. Dev có1Admin mới/cachesessionsđổi, không gọi snapshot khớp toàn bộ; schema/migrations nguyênvẹn và hash tài khoản khách cũ khớp. Chưa xác nhậnnguồnAdmin/phiênđăngnhập nên không tuyên bố đã nghiệm thuquảntrịdev. Cơ chế logout xoay remember_token là tác động bảo mật hợp lệ; test khóa vẫn kiểm tra mọi dữ liệu khác và401 ở request tiếp theo.

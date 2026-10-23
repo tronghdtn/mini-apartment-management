@@ -4,7 +4,7 @@ Hệ thống quản lý chung cư mini — bài tập lớn môn **Lập trình 
 
 Một chủ sở hữu quản lý nhiều tòa chung cư mini, mỗi tòa có nhiều phòng. Hệ thống phục vụ 5 actor: **Khách**, **Cư dân**, **Quản trị viên**, **Nhân viên sửa chữa**, **Bảo vệ**.
 
-> **Trạng thái 24/10/2026:** Auth và9trangCAT/ROOM/USR dùng API thật. Mới: Admin khóa/mở khóa tài khoản khôngAdmin và chỉ sửa họ tên. **Backend867test/6970assertion, frontend52, browser13status +12họ tên/hồi quy PASS**, build/lint/Pint183file đạt (9cảnh báo cũ). Hai lượt browser dùng build riêng; các nhóm trước là lịch sử. Dev20bảng/16migration, snapshot trước/sau khớp toàn bộ; RUN_MIGRATIONS=false, Nhóm3pending, chưaseed/Admin/thửquảntrịdev. Chưa mở sửaSĐT/email/password/pháp lý; không schema/migrate/ghi/xóa dev/commit/push. [Plan](docs/IMPLEMENTATION_PLAN.md) §12.10–11, [bản đồ code](docs/PROJECT_STATUS_AND_LEARNING.md) §11.19–20.
+> **Trạng thái 24/10/2026:** Auth/CAT/ROOM/USR và ba trang Hợp đồng nháp dùng API thật. **Backend963test/7930assertion, frontend58, browserCTR12/12 +liveAPI12/12 PASS**, build/lint/Pint192file đạt (9cảnh báo cũ). Chưa kích hoạt/thu cọc/dịch vụ hợp đồng/thanh lý. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; Admin mới xuất hiện, chờ xác nhận và đăng nhập kiểm thửdev. Các localcheckpoint được duyệt/lưu, không push; không migration/seeder hoặc ghi/xóa dữ liệu dev bởi agent. [Plan](docs/IMPLEMENTATION_PLAN.md) §12.12–13; [bản đồ code](docs/PROJECT_STATUS_AND_LEARNING.md) §11.21.
 
 ## Công nghệ
 

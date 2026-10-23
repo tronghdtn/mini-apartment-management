@@ -44,7 +44,7 @@ export const AdminLayout: React.FC = () => {
   const { payments, maintenanceRequests } = useApp()
   const { user } = useAuth()
   const { pathname } = useLocation()
-  const realCatalog = pathname === '/admin/users' || pathname.startsWith('/admin/users/') || pathname === '/admin/services' || pathname === '/admin/utility-prices' || pathname === '/admin/rooms' || pathname.startsWith('/admin/rooms/') || pathname === '/admin/amenities' || pathname === '/admin/buildings' || pathname.startsWith('/admin/buildings/')
+  const realCatalog = (pathname === '/admin/contracts' || (pathname.startsWith('/admin/contracts/') && !pathname.endsWith('/terminate'))) || pathname === '/admin/users' || pathname.startsWith('/admin/users/') || pathname === '/admin/services' || pathname === '/admin/utility-prices' || pathname === '/admin/rooms' || pathname.startsWith('/admin/rooms/') || pathname === '/admin/amenities' || pathname === '/admin/buildings' || pathname.startsWith('/admin/buildings/')
 
   const pendingPaymentsCount = payments.filter((p) => p.status === 'pending').length
   const pendingMaintenanceCount = maintenanceRequests.filter((m) => m.status === 'pending').length

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AmenityAssignmentController;
 use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
+use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -35,6 +36,8 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
 });
 
 Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->group(function () {
+    Route::get('contracts', [ContractController::class, 'index'])->name('contracts.index');
+    Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract')->name('contracts.show');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('users/{user}', [AdminUserController::class, 'show'])->whereNumber('user')->name('users.show');
     Route::get('buildings/{building}/amenities', [AmenityAssignmentController::class, 'buildingIndex'])->whereNumber('building')->name('buildings.amenities.index');
@@ -50,6 +53,9 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('amenities', [AmenityController::class, 'index'])->name('amenities.index');
     Route::get('amenities/{amenity}', [AmenityController::class, 'show'])->name('amenities.show');
     Route::middleware('spa')->group(function () {
+        Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
+        Route::patch('contracts/{contract}', [ContractController::class, 'update'])->whereNumber('contract')->name('contracts.update');
+        Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract')->name('contracts.destroy');
         Route::post('users', [AdminUserController::class, 'store'])->name('users.store');
         Route::patch('users/{user}/status', [AdminUserController::class, 'updateStatus'])->whereNumber('user')->name('users.status');
         Route::patch('users/{user}', [AdminUserController::class, 'updateName'])->whereNumber('user')->name('users.updateName');

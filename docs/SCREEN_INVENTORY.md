@@ -1,5 +1,7 @@
 # Screen Inventory — danh mục màn hình và trạng thái
 
+> **LEASE-A/CTR mới24/10:** ADM11/12/13 đọc và CRUDnháp đã nối API, route sửa nháp dùng lại ADM12. Backend963/7930, frontend58, browser12/12 +liveAPI12/12 DBtest PASS. Chưa kích hoạt/dịch vụ/điều khoản/thanh lý; ADM14 vẫn mock có nhãn, không dẫn từ trangthật. Plan§12.13/học tập§11.21; kiểm thử Admin dev còn chờ phiên người dùng.
+
 > **USR-C/D mới 24/10/2026:** ADM-09/10 có API đọc/cấp nhân viên/khóa-mở khôngAdmin/sửa duy nhất họ tên, giữ Antigravity. Backend867/6970, frontend52, browser13status+12họ tên/hồi quy DBtest PASS. Các nhóm trước là lịch sử; Dev không ghi/migration mới/chưaAdmin. Plan§12.10–11, học tập§11.19–20.
 
 > **Mốc Group2 trước USR23/10/2026:** Schema dev20bảng/16migrations đã áp dụng riêng; APIgán tiện nghi đã test650/4667 toàn Backend, frontend32testPASS. Panel đã ghép theo CAT-D02 (hiện nhãn Đã lưu trữ); browser mới 14/14 ca PASS trên DB test cô lập. Dev chưa Admin/seeder/CRUDquảntrị.
@@ -136,9 +138,9 @@ Theo nhãn: [MVP] có giao diện **25/48**; [ĐỀ XUẤT UI] có giao diện *
 | ADM-07 | `/admin/services` | Đã tích hợp trên DB test | Tạo/sửa danh mục thật; chỉ3kiểu thường, metered giá qua bảng giá; chưa status/xóa/đổi kiểu |
 | ADM-08 | `/admin/utility-prices` | Đã tích hợp trên DB test | Lịch sử/lọc/thêm giá ngày01 và D33; chưa sửa/xóa; dev đã có utility_prices, ghi giá cần meter_readingsNhóm3 |
 | ADM-09, ADM-10 | `/admin/users`, `/admin/users/:userId` | API thật đọc/cấp/status/họ tên; browserstatus13+họ tên12 DBtest | List/filter/search/pagination/detail; cấp technician/guard, khóa/mở khôngAdmin, sửa full_name. SĐT/email/password/role/pháp lý chỉđọc; không mock/fallback, Plan§12.10–11 |
-| ADM-11 | `/admin/contracts` | Có giao diện | |
-| ADM-12 | `/admin/contracts/new` | Có giao diện (một phần) | Wizard lập mới có; **route sửa nháp `/admin/contracts/:contractId/edit` chưa có**. Bước bồi thường/miễn trừ minh họa phương án chờ P4, P5 |
-| ADM-13 | `/admin/contracts/:contractId` | Có giao diện | |
+| ADM-11 | `/admin/contracts` | API thật, đã tích hợp DBtest | Danh sách/tìm/lọc/phântrang; chưa nghiệp vụ kích hoạt |
+| ADM-12 | `/admin/contracts/new`, `/admin/contracts/:contractId/edit` | API nháp thật, đã tích hợp DBtest | Wizard3bước cơ bản; chưa dịch vụ/P4/P5/kích hoạt, không lưu giả |
+| ADM-13 | `/admin/contracts/:contractId` | API thật, đã tích hợp DBtest | Đọc đúngID/404; sửa/xóa mềm nháp, trạng thái khác chỉ đọc; chưa Thanh lý |
 | ADM-14 | `/admin/contracts/:contractId/terminate` | Có giao diện | Banner "chờ duyệt P1–P12"; phí trước hạn tính trong mock (`[MOCK-TIỀN]`) |
 | ADM-15 | `/admin/meter-readings` | Có giao diện | |
 | ADM-16, ADM-17 | `/admin/invoices`, `/admin/invoices/:invoiceId` | Có giao diện | Phát hành/hủy theo DB-D27 trên mock state |
