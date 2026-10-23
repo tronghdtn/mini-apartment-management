@@ -12,10 +12,10 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Chưa seed dữ liệu: chỉ bổ sung seeder dữ liệu danh mục/hệ thống sau khi thiết kế CSDL được duyệt.
+     * Chỉ danh mục hệ thống đã duyệt, không tạo user hoặc dữ liệu nghiệp vụ mẫu.
      */
     public function run(): void
     {
-        //
+        $this->call(SystemCatalogSeeder::class);
     }
 }
