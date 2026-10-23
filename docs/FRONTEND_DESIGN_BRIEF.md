@@ -1,5 +1,7 @@
 # FRONTEND DESIGN BRIEF — MINI APARTMENT MANAGEMENT
 
+> **Đồng bộ Auth 22/10/2026:** Spec hành vi chính là [AUTHENTICATION.md](AUTHENTICATION.md), Tasks ở [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Giữ giao diện Antigravity, không dùng mô tả prototype làm phê duyệt nghiệp vụ. Email/SĐT login, email đăng ký tùy chọn và Q2/Q4/Q10/Q11 được cập nhật dưới đây; AUTH-D01/D02/D03 đã CONFIRMED A/A/A ngày 22/10/2026. Các cấu trúc mock và công cụ demo trong §11 chỉ là lịch sử dựng prototype, không dùng cho Auth thật.
+
 | Thuộc tính | Giá trị |
 |---|---|
 | Phiên bản | 1.0 — 14/10/2026 |
@@ -36,7 +38,7 @@
 
 - Hệ thống quản lý **chung cư mini**: **một chủ sở hữu** quản lý **nhiều tòa nhà**, mỗi tòa có nhiều phòng. Không phải nền tảng nhiều chủ nhà.
 - Nghiệp vụ chính: giới thiệu phòng trống và đặt lịch xem phòng; lập và kích hoạt hợp đồng; ghi chỉ số điện nước; lập và phát hành hóa đơn tháng; cư dân thanh toán bằng chuyển khoản (VietQR chỉ để hướng dẫn) và gửi ảnh minh chứng; Admin xác nhận; yêu cầu sửa chữa; thanh lý hợp đồng (kiểm tra phòng, bồi thường, đối soát cọc).
-- **Không** có: cổng thanh toán/ngân hàng tự động, email/SMS, tự động lập hóa đơn theo lịch, giá điện bậc thang, ứng dụng di động riêng.
+- **Không** có trong phạm vi hiện tại: cổng thanh toán/ngân hàng tự động, tự động lập hóa đơn theo lịch, giá điện bậc thang, ứng dụng di động riêng. Email phục hồi/xác minh đã chốt nguyên tắc tương lai ở Q4, chưa triển khai; không SMS/OTP.
 - Thông báo chỉ **trong ứng dụng** (biểu tượng chuông).
 
 ---
@@ -144,8 +146,8 @@ Một "màn hình" = một route riêng. Modal, drawer, wizard bên trong màn h
 | PUB-04 | Liên hệ | `/contact` | [MVP] (chỉ thông tin; form liên hệ là [SHOULD]) |
 | PUB-05 | Đăng nhập | `/login` | [MVP] |
 | PUB-06 | Đăng ký tài khoản | `/register` | [MVP] |
-| ACC-01 | Lịch hẹn của tôi (vai trò `user`) | `/account/appointments` | [ĐỀ XUẤT UI] — Q2 |
-| ACC-02 | Tài khoản của tôi (vai trò `user`) | `/account/profile` | [ĐỀ XUẤT UI] — Q2 |
+| ACC-01 | Lịch hẹn của tôi (vai trò `user`) | `/account/appointments` | Q2 đã chốt khu tài khoản; chi tiết tích hợp xem Spec Auth |
+| ACC-02 | Tài khoản của tôi (vai trò `user`) | `/account/profile` | Q2 đã chốt khu tài khoản; chi tiết tích hợp xem Spec Auth |
 
 ### 5.2 Cư dân — `ResidentLayout`
 
@@ -238,7 +240,7 @@ Một "màn hình" = một route riêng. Modal, drawer, wizard bên trong màn h
 | Nhân viên sửa chữa | Việc được giao · Thông báo · Hồ sơ |
 | Bảo vệ | Lịch hôm nay · Thông báo · Hồ sơ |
 
-Sau đăng nhập, chuyển hướng theo vai trò: `user` → `/`; `resident` → `/resident`; `admin` → `/admin`; `technician`, `guard` → `/staff`.
+Điểm đến tham chiếu của prototype cũ: `user` → `/`, `resident` → `/resident`, `admin` → `/admin`, nhân viên → `/staff`. **AUTH-D02 CONFIRMED:** Admin tới `/admin`; user/resident/technician/guard tới `/account/profile` hiện có. Resident/Staff có thông báo khu vực chưa hoàn thiện, chỉ thông tin tài khoản thật từ `/me`; không redirect tới `/resident`/`/staff` chưa có route và không tạo dashboard giả.
 
 ---
 
@@ -258,13 +260,13 @@ Sau đăng nhập, chuyển hướng theo vai trò: `user` → `/`; `resident` �
 
 **PUB-04 Liên hệ.** Tên hệ thống, số điện thoại, email (từ cài đặt), danh sách tòa nhà và địa chỉ. **Không** có form gửi liên hệ (bảng `contact_requests` là [SHOULD]).
 
-**PUB-05 Đăng nhập.** Email + mật khẩu (form đã có schema). Lỗi sai thông tin; tài khoản bị khóa → "Tài khoản đã bị khóa, vui lòng liên hệ ban quản lý"; quá nhiều lần → thông báo thử lại sau. Liên kết "Đăng ký". **Không** có "Quên mật khẩu" (không có email trong MVP — Q4).
+**PUB-05 Đăng nhập.** Một định danh email **hoặc SĐT** + mật khẩu (T2); React dùng trường `identifier`, RHF + Zod; Laravel kiểm tra cuối cùng. Lỗi theo API Spec; không suy ra tài khoản tồn tại khi sai mật khẩu; vượt hạn mức chờ thử lại. Q4 đã chốt phục hồi qua email đã xác minh/hỗ trợ thủ công nếu không có email, nhưng chưa triển khai trong Bước 4; không dựng luồng quên mật khẩu giả.
 
-**PUB-06 Đăng ký.** Họ tên, email, số điện thoại, mật khẩu, nhập lại mật khẩu. Email và SĐT là duy nhất (lỗi 422 hiển thị đúng trường). Sau đăng ký: đăng nhập với vai trò `user`. Không hỏi CCCD ở bước này.
+**PUB-06 Đăng ký.** Bắt buộc họ tên/SĐT/mật khẩu + xác nhận; **email tùy chọn**, thiếu thì NULL. Email có giá trị và SĐT duy nhất, 422 theo trường. Vai trò duy nhất user/active; không hỏi CCCD. **AUTH-D01 CONFIRMED:** tạo thành công thì tự đăng nhập user/active, đổi mã phiên; không nâng quyền hoặc tự xác minh email.
 
-**ACC-01 Lịch hẹn của tôi** [ĐỀ XUẤT UI]. Danh sách lịch xem phòng đã đặt khi đăng nhập: mã, phòng, thời gian, trạng thái, ghi chú của ban quản lý. Không có hành động sửa (chưa có quy tắc hủy/đổi lịch bởi khách — Q3).
+**ACC-01 Lịch hẹn của tôi** [ĐỀ XUẤT UI về phạm vi chi tiết]. Q2 đã chốt có khu tài khoản; chưa có API lịch hẹn, Bước 4 không tự tích hợp module này. Danh sách lịch xem phòng đã đặt khi đăng nhập: mã, phòng, thời gian, trạng thái, ghi chú của ban quản lý. Không có hành động sửa (chưa có quy tắc hủy/đổi lịch bởi khách — Q3).
 
-**ACC-02 Tài khoản của tôi** [ĐỀ XUẤT UI]. Họ tên, email, SĐT, đổi mật khẩu.
+**ACC-02 Tài khoản của tôi.** Q2 đã chốt có khu tài khoản; Q10 đã chốt giới hạn tự sửa. **AUTH-D03 CONFIRMED:** Bước 4 chỉ đọc trường thật từ me, đã bỏ lưu giả và lịch hẹn cá nhân mock; chỉnh hồ sơ/đổi mật khẩu/thay email xác minh là task tương lai, chưa có API.
 
 ### 7.2 Cư dân
 
@@ -288,7 +290,7 @@ Sau đăng nhập, chuyển hướng theo vai trò: `user` → `/`; `resident` �
 
 **RES-09 Thông báo** (dùng chung cho mọi khu vực đăng nhập). Danh sách: tiêu đề, nội dung ngắn, thời gian, đã đọc/chưa đọc; bấm vào mở đối tượng liên quan và đánh dấu đã đọc; nút "Đánh dấu tất cả đã đọc". Lọc: tất cả/chưa đọc.
 
-**RES-10 Thông tin cá nhân.** Họ tên, email, số điện thoại (Q10 — trường nào được tự sửa), ngày sinh, giới tính, địa chỉ thường trú; **không hiển thị CCCD** cho cư dân (CCCD chỉ trả về cho Admin — DB-D19). Khối đổi mật khẩu.
+**RES-10 Thông tin cá nhân.** Họ tên, email, số điện thoại (Q10 đã chốt giới hạn tự sửa; quy trình triển khai xem Spec Auth, ngoài Bước 4), ngày sinh, giới tính, địa chỉ thường trú; **không hiển thị CCCD** cho cư dân (CCCD chỉ trả về cho Admin — DB-D19). Khối đổi mật khẩu.
 
 ### 7.3 Quản trị viên
 
@@ -372,7 +374,7 @@ Hợp đồng được lưu ở trạng thái **Nháp**; mọi trường sửa �
 1. **Kiểm tra trước** (danh sách tích xanh/đỏ): phòng không có hợp đồng active khác; người thuê không có hợp đồng active khác; đã chọn điều khoản bồi thường; đủ thông tin bắt buộc.
 2. **Chỉ số đầu**: hai ô Điện, Nước (DecimalInput). Bên cạnh hiển thị **chỉ số chốt gần nhất** của phòng (giá trị, ngày, loại "Chốt khi trả phòng"/"Định kỳ").
    - Nhỏ hơn chỉ số gần nhất → lỗi đỏ, không cho kích hoạt.
-   - Lớn hơn → hộp cảnh báo vàng: "Chỉ số đầu cao hơn chỉ số chốt gần nhất X kWh. Phần chênh lệch không tính cho hợp đồng nào." + ô **Lý do chênh lệch** (bắt buộc) + ô tích "Tôi xác nhận chênh lệch này". Một ô lý do chung hay tách Điện/Nước: [CHỜ P2] — prototype dùng **hai ô tách riêng** (phương án đề xuất A), mỗi ô chỉ hiện khi dịch vụ đó có chênh lệch.
+   - Lớn hơn → hộp cảnh báo vàng: "Chỉ số đầu cao hơn chỉ số chốt gần nhất X kWh. Phần chênh lệch không tính cho hợp đồng nào." + ô **Lý do chênh lệch** (bắt buộc) + ô tích "Tôi xác nhận chênh lệch này". **CONFIRMED DB-D40:** một lý do chung `meter_gap_reason`; tách Điện/Nước trong prototype chỉ là đề xuất mở rộng P2, không chặn kích hoạt baseline.
 3. **Tiền cọc**: trạng thái cọc hiện tại; cách ghi nhận đã nhận cọc — Q15.
 4. **Điều gì sẽ xảy ra** (hộp thông tin): sinh mã hợp đồng `HD-YYYY-NNNN`; phòng → Đang thuê; tài khoản → Cư dân; thêm Điện, Nước vào dịch vụ; **khóa** phòng, người thuê, tiền thuê, cọc, ngày, điều khoản bồi thường.
 5. Nút **Kích hoạt**. Lỗi xung đột (409): "Phòng đã có hợp đồng đang hiệu lực" / "Người thuê đã có hợp đồng đang hiệu lực" → nút "Tải lại".
@@ -404,7 +406,7 @@ Prototype dựng theo **phương án B đề xuất** (danh sách có cấu trú
 
 Nếu chủ dự án chọn phương án A (một ô văn bản tự do), chỉ cần thay danh sách bằng một Textarea; luồng áp dụng ở §8.4 bước 4 đổi từ "chọn điều kiện" thành "ghi điều kiện đã đáp ứng".
 
-### 8.4 Thanh lý hợp đồng — wizard ADM-14 [MVP; chi tiết lưu CHỜ P3–P6, P9, P11, P12]
+### 8.4 Thanh lý hợp đồng — wizard ADM-14 [MVP; cấu trúc lưu P4–P8 và chi tiết P3/P9/P11 chưa duyệt]
 
 Chỉ mở được từ hợp đồng **Đang hiệu lực**. Thứ tự cố định theo kế hoạch §14.5; không cho nhảy bước khi bước trước chưa xong. Thanh bên phải (desktop) hiển thị **tóm tắt tài chính tạm tính** cập nhật theo từng bước (số liệu từ mock).
 
@@ -412,7 +414,7 @@ Chỉ mở được từ hợp đồng **Đang hiệu lực**. Thứ tự cố �
 |---|---|---|
 | **1. Ngày bàn giao** | DatePicker "Ngày bàn giao thực tế" (≥ ngày bắt đầu). Hệ thống **tự hiển thị phân loại** (Admin không chọn): Trả trong ngày nhận phòng / Trả đúng hạn / Trả trước hạn. Dòng giải thích: "Tiền phòng và dịch vụ tính đến hết ngày dd/mm/yyyy." Textarea **Ghi chú thanh lý** — bắt buộc với *Trả trước hạn* và *Trả trong ngày nhận phòng* | Ngày bàn giao sau "bàn giao dự kiến" (trả quá hạn): chưa có mã phân loại — hiển thị cảnh báo vàng "Trường hợp trả quá hạn chờ quyết định" [CHỜ P3]. Chủ nhà đơn phương chấm dứt: chưa có cách phân biệt [CHỜ P3] |
 | **2. Chốt chỉ số cuối** | Với Điện và Nước: chỉ số trước (mốc gần nhất), **chỉ số cuối** (nhập), tiêu thụ (hiển thị). Ngày ghi = ngày bàn giao (chỉ đọc). Kỳ tiêu thụ = tháng chứa ngày bàn giao (chỉ đọc) | Chặn và liệt kê kỳ còn thiếu nếu chưa ghi đủ chỉ số các kỳ trước (liên kết ADM-15). Chỉ số cuối < chỉ số trước → lỗi. Đã có chỉ số sau ngày bàn giao → lỗi. Đã chốt trước đó: hiển thị kết quả, cho đi tiếp |
-| **3. Kiểm tra phòng** (bắt buộc) | Radio: **Không có hư hỏng bất thường** / **Có hư hỏng thuộc trách nhiệm người thuê**. Ghi chú chung + ảnh tình trạng phòng [CHỜ P6, P8]. Nếu có hư hỏng: bảng hạng mục — **Hạng mục**, **Lý do**, **Căn cứ** (báo giá / hóa đơn sửa chữa / định mức…), **Số tiền**, **Ảnh minh chứng** (≥ 1 ảnh [CHỜ P11]); thêm/xóa dòng | Không cho đi tiếp khi chưa chọn kết quả. "Không hư hỏng" → bồi thường tài sản = 0. Ghi chú cố định: "Khoản bồi thường tài sản tách riêng với phí trả trước hạn. Tiền cọc được đối soát riêng ở bước cuối." Áp dụng cho mọi loại thanh lý [CHỜ P12] |
+| **3. Kiểm tra phòng** (bắt buộc) | Radio: **Không có hư hỏng bất thường** / **Có hư hỏng thuộc trách nhiệm người thuê**. Ghi chú chung + ảnh tình trạng phòng [CHỜ P6, P8]. Nếu có hư hỏng: bảng hạng mục — **Hạng mục**, **Lý do**, **Căn cứ** (báo giá / hóa đơn sửa chữa / định mức…), **Số tiền**, **Ảnh minh chứng** (≥ 1 ảnh [CHỜ P11]); thêm/xóa dòng | Không cho đi tiếp khi chưa chọn kết quả. "Không hư hỏng" → bồi thường tài sản = 0. Ghi chú cố định: "Khoản bồi thường tài sản tách riêng với phí trả trước hạn. Tiền cọc được đối soát riêng ở bước cuối." Áp dụng cho mọi loại thanh lý **CONFIRMED DB-D49**; chỉ cấu trúc lưu P6 chưa duyệt |
 | **4. Phí trả trước hạn** | Chỉ hiện khi phân loại là *Trả trước hạn* (và *Trả trong ngày* tùy [CHỜ P9]); các trường hợp khác hiển thị "Không áp dụng". Hiển thị **điều khoản đã ký** (chỉ đọc) và **phí hệ thống tính** (không sửa được). Khối **Miễn bồi thường**: nếu hợp đồng có điều kiện miễn → ô tích "Áp dụng miễn bồi thường", chọn **một** điều kiện trong danh sách đã ký, **Căn cứ** (bắt buộc), tệp/ảnh minh chứng, ô xác nhận của Admin; nếu không có điều kiện → "Hợp đồng không có điều kiện miễn bồi thường" | Miễn toàn bộ hay một phần: [CHỜ P5]; prototype chỉ có miễn toàn bộ |
 | **5. Hóa đơn tất toán** | Bản xem trước hóa đơn `final` dạng nháp: tiền phòng/dịch vụ còn thiếu, tiền điện nước kỳ cuối, **dòng giảm trừ âm** cho các ngày từ ngày bàn giao đến cuối tháng đã thu trong hóa đơn tháng, **Phí trả phòng trước hạn**, các dòng **Bồi thường tài sản**. Tổng (≥ 0). **Không** có dòng tiền cọc. Nút **Lưu nháp** → **Phát hành hóa đơn tất toán** (xác nhận) | Nếu giảm trừ vượt các khoản phải thu: tổng = 0 và hộp vàng "Phần dư X ₫ hoàn trả ngoài hệ thống — vui lòng ghi vào ghi chú thanh lý" (liên kết sửa ghi chú bước 1) |
 | **6. Thanh toán và đối soát cọc** | Danh sách hóa đơn còn nợ của hợp đồng (gồm hóa đơn tất toán) theo hạn tăng dần. **Đối soát cọc** (xem trước từ mock): cọc đang giữ → khấu trừ lần lượt vào hóa đơn còn nợ theo hạn sớm nhất → **cọc hoàn lại cho người thuê** / **còn nợ sau khấu trừ** | **Chặn** nếu còn thanh toán *Chờ xác nhận*: hộp đỏ "Còn N thanh toán chờ xác nhận — cần xử lý trước khi thanh lý" + liên kết ADM-18. Cọc chưa nhận: "Không có cọc để khấu trừ" |
@@ -701,7 +703,7 @@ Trường `is_system`, `is_used`, `has_active_contract`, `proof_url`, `photos`, 
 | Giá điện nước riêng theo hợp đồng | [SHOULD] | |
 | Tải lên bản scan hợp đồng, ảnh giấy tờ tùy thân | [FUTURE] | |
 | Cổng thanh toán, đối soát ngân hàng tự động | [FUTURE] | |
-| Email/SMS, xác thực email, quên mật khẩu qua email | [FUTURE] | |
+| Email xác minh/khôi phục (Q4 đã chốt nguyên tắc), chưa SMS/OTP | Chưa triển khai, ngoài Bước 4 | Spec Auth Q4; không coi là chức năng hoạt động |
 | Tự động lập hóa đơn theo lịch | [FUTURE] | |
 | Giá điện bậc thang, IoT đồng hồ | [FUTURE] | |
 | Credit note / hoàn tiền tự động | [FUTURE] | Hoàn tiền ghi chú ngoài hệ thống |
@@ -713,7 +715,7 @@ Trường `is_system`, `is_used`, `has_active_contract`, `proof_url`, `photos`, 
 
 Các điểm sau do tài liệu này đề xuất để giao diện dùng được; chủ dự án có thể bỏ hoặc sửa:
 
-1. Khu tài khoản cho vai trò `user`: ACC-01 Lịch hẹn của tôi, ACC-02 Tài khoản.
+1. Khu tài khoản cho `user` đã chốt nguyên tắc Q2; chi tiết lịch hẹn, self-edit và phạm vi tích hợp không tự được duyệt theo mock. Xem AUTH-D03; số đếm phân loại UI cũ ở §5.6 là baseline thiết kế.
 2. Trang ADM-19 Công nợ (gom hóa đơn còn nợ theo hợp đồng).
 3. Nội dung Dashboard Admin (KPI, biểu đồ, danh sách việc cần làm).
 4. Đổi placeholder `/admin/residents` thành `/admin/users` (quản lý cả nhân viên); thêm khu `/staff`.
@@ -735,8 +737,8 @@ Các điểm sau do tài liệu này đề xuất để giao diện dùng đư�
 
 | Mã | Câu hỏi | Ảnh hưởng UI | Prototype đang dùng |
 |---|---|---|---|
-| P1 | Hợp đồng tối thiểu 2 ngày (`end_date > start_date`) hay cho phép 1 ngày? | Validation bước 3 wizard | `>` (đề xuất) |
-| P2 | Lý do chênh lệch chỉ số: một ô chung hay tách Điện/Nước, có lưu lượng chênh? | Modal kích hoạt | Tách 2 ô (phương án A) |
+| P1 | Baseline `end_date > start_date` vẫn hiện hành; cho phép hợp đồng dự kiến 1 ngày là mở rộng chưa duyệt | Không chặn baseline; DB-D43 chỉ đổi ý nghĩa ngày cuối | Giữ `>` |
+| P2 | **Đã chốt DB-D40:** một `meter_gap_reason` chung; tách Điện/Nước chỉ là mở rộng | Không chặn kích hoạt baseline | Prototype hai ô không là nguồn yêu cầu |
 | P3 | Trả **quá hạn** chưa có mã phân loại; chủ nhà đơn phương chấm dứt bị tính là "trả trước hạn" và tự tính phí cho người thuê | Bước 1 thanh lý | Cảnh báo "chờ quyết định" |
 | P4 | Cách lưu điều khoản bồi thường | Bước 5 wizard | 3 radio + số tiền/hệ số |
 | P5 | Cấu trúc điều kiện miễn: văn bản tự do (A), danh sách có cấu trúc (B), mẫu từ cài đặt (C)? Miễn toàn bộ hay một phần? | Bước 6 wizard, bước 4 thanh lý | B, miễn toàn bộ |
@@ -745,23 +747,23 @@ Các điểm sau do tài liệu này đề xuất để giao diện dùng đư�
 | P8 | Ảnh kiểm tra/hư hỏng/căn cứ miễn gắn vào hợp đồng | Upload ở thanh lý | Có upload |
 | P9 | Nhận và trả cùng ngày có tính phí trả trước hạn không? | Bước 4 thanh lý | Hiển thị "Chờ duyệt" |
 | P11 | Bồi thường tài sản: Admin nhập kèm căn cứ + ≥ 1 ảnh; không cần người thuê ký xác nhận trong hệ thống? | Bước 3 thanh lý | Như đề xuất |
-| P12 | Kiểm tra phòng bắt buộc với **mọi** loại thanh lý? | Bước 3 thanh lý | Có |
+| P12 | **Đã chốt DB-D49:** bắt buộc kiểm tra phòng với mọi thanh lý; cấu trúc P6 vẫn chưa duyệt | Nguyên tắc không còn thiếu quyết định | Có |
 
 ### 14.2 Câu hỏi phạm vi giao diện (không có câu trả lời trong tài liệu hiện có)
 
 | Mã | Câu hỏi |
 |---|---|
 | Q1 | Danh sách 38 trang và các tài liệu `02`–`08`, `PROJECT_CONTEXT.md` không có trong repo. Có cần đối chiếu từng trang không? Nếu có, vui lòng bổ sung tài liệu (§15). |
-| Q2 | Vai trò `user` sau khi đăng nhập có khu vực riêng không (ACC-01, ACC-02), hay chỉ quay về trang công khai? |
+| Q2 | **Đã chốt:** khách đã đăng ký có “Tài khoản của tôi”. Chi tiết tích hợp ACC-02 ở AUTH-D03; ACC-01 cần module lịch hẹn, không suy ra hoàn thành từ UI. |
 | Q3 | Khách/`user` có tự hủy hoặc đổi giờ lịch xem không? Admin có đổi giờ lịch không? Có giới hạn khung giờ nhận lịch không? |
-| Q4 | Có cần "Quên mật khẩu" trong MVP không (không có email)? Nếu không, Admin có chức năng đặt lại mật khẩu cho người dùng không? |
+| Q4 | **Đã chốt nguyên tắc:** khôi phục qua email đã xác minh; không email cần hỗ trợ xác minh thủ công; chưa SMS/OTP. Quy trình chi tiết/triển khai nằm ngoài Bước 4. |
 | Q5 | Có cho lập hợp đồng **nháp** cho phòng đang có người thuê (chuẩn bị cho người kế tiếp) không? |
 | Q6 | Khi lập hợp đồng, Admin có được **tạo tài khoản** cho người thuê chưa đăng ký không, hay người thuê bắt buộc tự đăng ký trước? |
 | Q7 | Đơn giá dịch vụ trong hợp đồng có được sửa riêng (thương lượng) hay luôn lấy theo danh mục? |
 | Q8 | Cư dân đã thanh lý còn nợ có được gửi minh chứng thanh toán cho hóa đơn cũ không? (Tài liệu chỉ nói "chặn thao tác cần hợp đồng active"; prototype đang **cho phép** thanh toán nợ cũ.) |
 | Q9 | Mức ưu tiên sửa chữa do cư dân chọn hay chỉ Admin đặt? |
-| Q10 | Cư dân được tự sửa trường nào trong hồ sơ (email/SĐT là duy nhất và dùng để đăng nhập)? Ai nhập CCCD, ngày sinh, địa chỉ thường trú — Admin khi lập hợp đồng? |
-| Q11 | Ai tạo tài khoản Nhân viên sửa chữa, Bảo vệ, Admin khác? Admin có được đổi vai trò giữa `technician`/`guard`/`admin` không? |
+| Q10 | **Đã chốt quyền tự sửa:** tên hiển thị, đổi mật khẩu, thay email khi xác minh; không tự sửa SĐT đăng nhập/role/pháp lý. Chi tiết xác minh và người/quy trình nhập dữ liệu pháp lý cần Spec riêng trước triển khai. |
+| Q11 | **Đã chốt cách cấp:** Admin cấp technician/guard; Admin mới qua Artisan, bắt buộc email. Không suy ra được phép chuyển quyền tùy ý giữa các tài khoản; chức năng cấp nhân viên chưa triển khai. |
 | Q12 | Có cần trang Công nợ riêng (ADM-19) hay chỉ cần bộ lọc trong Hóa đơn? |
 | Q13 | Admin có được thêm dòng "Khoản khác" (`other`) thủ công vào hóa đơn nháp không? |
 | Q14 | Nhân viên sửa chữa có được thấy tên và SĐT cư dân không (dữ liệu cá nhân)? |
@@ -776,7 +778,7 @@ Các điểm sau do tài liệu này đề xuất để giao diện dùng đư�
 | Ý nghĩa `end_date`: DB-D39 ("ngày bàn giao dự kiến, không tính") ↔ DB-D43 ("ngày cuối được ở, có tính") | Theo **DB-D43** (mới hơn, ghi rõ thay DB-D39) |
 | Tài liệu cũ ghi 3 actor / 20 bảng | Theo **DB-D01, DB-D02**: 5 actor, 21 bảng |
 | BR-SVC-04 cũ: dịch vụ tính trọn tháng | Theo **DB-D09**: dịch vụ định kỳ chia theo ngày ở tháng đầu/cuối |
-| DB-D31 ghi lý do chênh chỉ số vào `contracts.note` | Theo **DB-D40, DB-D44**: trường riêng (cấu trúc chờ P2) |
+| DB-D31 ghi lý do chênh chỉ số vào `contracts.note` | Theo **DB-D40, DB-D44**: trường riêng `meter_gap_reason` chung, không chờ tách P2 |
 | `09` §5.3 bước 3: "`contract_id` tự suy từ room + reading_date" | Theo **DB-D15**: xác định theo **khoảng tiêu thụ**, không suy đoán; lỗi khi không xác định được |
 | `README.md` gốc còn ghi "kế hoạch migrations đang chờ duyệt" | Không ảnh hưởng UI; trạng thái thật ở `DATABASE_IMPLEMENTATION_PLAN.md` |
 | Placeholder frontend: menu Admin có "Cư dân" (`/admin/residents`), chưa có khu nhân viên | Đề xuất `/admin/users` + `/staff` (§13) |
@@ -800,6 +802,100 @@ Các nguyên nhân làm số màn hình khác 38:
 | Cư dân xem lịch sử hợp đồng sau thanh lý | DB-D36 | Thêm RES-02, RES-03 |
 | Một hóa đơn nhiều thanh toán, Admin duyệt minh chứng | DB-D06 | Duyệt thanh toán (ADM-18) là màn hình riêng |
 | Tách màn hình chi tiết (tòa, phòng, người dùng, hóa đơn, sửa chữa) khỏi danh sách | Cách tổ chức của tài liệu này | Tăng số route; nếu gộp chi tiết vào drawer thì giảm |
-| Đề xuất mới chưa duyệt | §13 | +3 (ACC-01, ACC-02, ADM-19) |
+| Phân loại đề xuất UI baseline 18/10 | §13; hiện trạng Q2 xem Spec Auth | +3 theo bảng đếm lịch sử (ACC-01, ACC-02, ADM-19); không coi Q2 còn chưa chốt |
 
 Nếu cần đối chiếu chính xác, hãy bổ sung danh sách 38 trang (hoặc `02_SYSTEM_DISCOVERY.md`) vào repo; khi đó có thể lập bảng ánh xạ cũ → mới, đánh dấu trang bị gộp, tách, thêm hoặc bỏ.
+
+
+## 16. Lát cắt CAT đang triển khai — Sprint MVP 23/10/2026
+
+Chủ dự án yêu cầu triển khai ngay phần đã CONFIRMED, không khảo sát lại. Nghiệp vụ lấy từ DB09 §3.2/3.4 và ADM-02/03/06, không mở rộng quyền hoặc dữ liệu.
+
+- Tòa nhà: danh sách/phân trang, xem đúng ID, tạo và sửa tên/địa chỉ/số tầng/tọa độ/mô tả. Tạo active theo mặc định đã thiết kế; chưa mở đổi status/xóa vật lý. Giảm tầng không được thấp hơn phòng đang có; khi chưa có schema phòng để kiểm tra thì chỉ thao tác giảm tầng bị từ chối rõ ràng. Không suy ra số phòng bằng0 khi bảng phòng chưa triển khai dev.
+- Tiện nghi: danh sách/phân trang, tạo/sửa tên/mô tả; lưu trữ đúng SoftDeletes đã thiết kế, giữ bản ghi và liên kết, không tái sử dụng tên UNIQUE. Không có category hoặc status tự tạo; không tự sinh phí; khôi phục chưa mở.
+- Admin active mới được quản lý; API lấy phiên/quyền từ Laravel qua middleware và Policy. Các vai trò khác403, không phiên401. Không thêm Admin dev để test.
+- HTTP theo AGENTS: GET/POST `/api/v1/buildings`, GET/PATCH/PUT `/api/v1/buildings/{building}`; tương tự amenities, thêm DELETE amenities để lưu trữ204. Resource fields buildings: id/name/address/total_floors/latitude/longitude/description/status; amenities: id/name/description. List chuẩn Laravel data/links/meta,20dòng/trang, `page` khi đổi trang. Input snake_case theo DB09; duplicate422, UNIQUE race409; lỗi JSON tiếng Việt. Không có endpoint testing trong sản phẩm.
+- Giữ card/table/modal Antigravity; RHF+Zod, lỗi422 theo trường, loading/empty/retry/saving và lỗi phiên/quyền rõ ràng. Màn đã nối không import mocks. Không hiện ảnh, số phòng, số nơi dùng hoặc amenities giả. Phần phòng/tiện nghi cấp tòa chưa nối hiển thị chưa tích hợp, không gán dữ liệu mock từ ID thật.
+- AC CAT-A: Admin tạo/đọc/sửa và lưu trữ tiện nghi bền qua F5; validate tên trùng/độ dài/tầng/tọa độ, floor room guard,401/403/locked, mass assignment/UNIQUE race; archived giữ dữ liệu/links và không tái dùng tên. Build/lint/Pint và test MySQL test có guard; browser chạy môi trường test cô lập, không ghi/xóa dữ liệu dev cho CAT.
+
+Điểm chưa chốt ở Hợp đồng không chặn lát cắt này. Gán tiện nghi/sơ đồ phòng phụ thuộc schema Nhóm2 trên dev được duyệt riêng; không migration dev trong Sprint khi chưa được phép. Lịch sử Q/P cũ xem đối chiếu ở Plan, không tự xem mọi nhãn chờ duyệt là blocker.
+
+
+## 17. Lát cắt ROOM cơ bản — Sprint 23/10/2026
+
+Triển khai độc lập theo DB09§3.3 và ADM-04/05: Admin active xem/phân trang/lọc building_id,status,q; tạo phòng theo tòa, mã, tầng, diện tích, giá niêm yết/cọc nguyên VND, sức chứa, is_public, mô tả; xem đúngID và sửa thông tin này. Tạo status available theo mặc định; chưa API tự đổi status hoặc xóa phòng, không sửa hợp đồng từ thông tin niêm yết. Chưa mở chuyển phòng sang tòa khác sau khi tạo (giữ building_id khi sửa). Không ảnh/tệp, không dữ liệu hợp đồng/tiện nghi/lịch sử giả. Đây là phạm vi một phần ADM-04/05, không tuyên bố hoàn tất toàn ROOM.
+
+API GET/POST /api/v1/rooms, GET/PATCH/PUT /api/v1/rooms/{room}; list data/links/meta20dòng, thứ tựID. Resource gồm id,building_id,building:{id,name},code,floor_number,area dạngchuỗi2số,base_price/deposit_amount số nguyên,max_occupants,status,is_public,description. Trường theo DB: code<=50 unique trong tòa, floor>=1 và <=total_floors, area>0 DECIMAL8,2; tiền>=0, sức chứa>=1 UNSIGNED SMALLINT. Input được validate/allowlist tại Laravel, Policy admin; giữ photo/amenity/status/contracts ngoài payload. Giữ snapshot hợp đồng bằng cách không cập nhật contracts.
+
+Schema rooms đã có trên DB test và sau phê duyệt riêng Nhóm 2 ngày 23/10 đã có trên dev (DB plan §18). API vẫn trả 503 rõ ràng nếu môi trường thiếu schema; không trả danh sách rỗng giả hoặc SQL500. Việc chạy migration ngoài phạm vi đã duyệt vẫn phải xin phép riêng. Form/list/detail giữ Antigravity, RHF/Zod, error/retry/loading/empty và không import mocks; chưa hỗ trợ nghiệp vụ khác thì thông báo chưa tích hợp. Chưa mở public-room API trong lát cắt này, public hiện vẫn mock có nhãn.
+
+AC ROOM-A: Admin CRUD cơ bản khôngdelete/status; 401/403/locked,422đúng trường,409UNIQUErace,503missing schema, floor/capacity/decimal/money validation,lọc/phântrang,không ảnh hưởng contracts,F5/retry; backendtestDBguard và frontendbuild/test/browser cô lập. Q17 chỉ chặn đổi status có hợp đồng active, không chặn lát cắt này.
+
+**Giới hạn kỹ thuật của cả hai lát cắt:** mô tả lưu cột MySQL TEXT tối đa 65.535 byte UTF-8, kiểm tra ở cả Zod và Laravel; không đánh đồng byte với số ký tự tiếng Việt. Tiền trả JSON number chỉ nhận số nguyên chính xác trong JavaScript (tối đa 9.007.199.254.740.991), từ chối số lớn hơn thay vì làm tròn. Đây là giới hạn giao tiếp kỹ thuật hiện tại, không thay đổi BIGINT của DB hoặc đặt mức giá nghiệp vụ mới; nếu cần vượt miền này phải duyệt đổi hợp đồng JSON sang chuỗi và cập nhật nơi sử dụng.
+
+## 18. CAT-02b/03b — Dịch vụ và giá điện nước, 23/10/2026
+
+Tiếp tục theo giao việc Sprint và DB09 §3.10/3.12/3.20, DB-D04/16/18/26/33; không khảo sát lại. Nối ADM-07/08 có sẵn; chưa thêm trang Cài đặt còn thiếu. Không chạy migration/seeder dev; dữ liệu hệ thống chỉ viết seeder và kiểm thử DB test.
+
+- API Admin active: GET/POST `/api/v1/services`, GET/PATCH/PUT `/api/v1/services/{service}`; danh sách 20 dòng/trang, thứ tự ID. Resource: id/code/name/billing_type/unit/price/status/description. Tạo dịch vụ thường chỉ per_room/per_person/per_unit, price nguyên VND >=0, tên UNIQUE toàn bảng, code UNIQUE (trim/chữ hoa nhất quán), unit nullable tối đa20, mô tả TEXT. Không tạo metered hoặc chiếm mã ELECTRICITY/WATER qua API. Tạo active theo mặc định. Lát cắt sửa name/description và giá niêm yết dịch vụ thường; code/billing_type/unit/status, xóa/ngừng dịch vụ và sửa giá trực tiếp của metered chưa mở. Không đổi snapshot contract_services hoặc hóa đơn. Giới hạn số nguyên JSON chính xác như §17.
+- GET/POST `/api/v1/utility-prices`; danh sách 20 dòng/trang, ngày hiệu lực giảm dần rồi ID; lọc service_id tùy chọn. Resource: id/service_id/service:{id,code,name,unit}/unit_price/effective_from. Chỉ dịch vụ metered được thêm giá >0; effective_from ngày01, phải lớn hơn mọi meter_readings.period của dịch vụ đó theo D33. Ngày Việt Nam là DATE, không đổi UTC. Không sửa/xóa giá ở lát cắt này. Thiếu utility_prices khi đọc hoặc thiếu meter_readings để kiểm tra khi ghi: 503 rõ ràng, không giả lịch sử rỗng. Trong transaction khóa dòng dịch vụ để tuần tự hóa các lần thêm giá; MTR sau này phải dùng cùng khóa khi chọn/snapshot giá, sau các khóa cha rooms/users/contracts theo D29, trước meter_readings.
+- GET `/api/v1/settings`: chỉ 8 khóa MVP đã định nghĩa, không public, không trả key ngoài allowlist; data là danh sách key/value/type/group hiện có, kèm missing_keys cấp ngoài data khi chưa seed. Không điền giá trị giả để che cấu hình thiếu. Hai khóa số ngày đã được duyệt CAT-D01 bên dưới; các trường settings khác chỉ đọc, không chặn Dịch vụ/Giá. Không tạo trang mới trong lát cắt này.
+- Seeder hệ thống riêng, idempotent: ELECTRICITY/kWh và WATER/m3 metered/price NULL, 8 khóa settings (thông tin thật để NULL, due_days5/expiring_warning_days30). Không ghi đè giá trị có sẵn, không sinh giá mẫu hoặc dữ liệu nghiệp vụ; DatabaseSeeder không tạo user mẫu. Nếu mã hệ thống đã bị dùng sai định nghĩa thì báo xung đột, không tự sửa dữ liệu đó.
+- 401/403/locked/419 giữ cơ chế Auth; lỗi422 theo trường, UNIQUE race409 không lộ SQL; 404 đúng ID. Giao diện có loading/empty/retry/lỗi thật, RHF/Zod, không import mocks ở hai trang đã nối; chỉ thành công sau API. Điện nước chưa seed phải thông báo cấu hình thiếu, không tự seed qua HTTP. Phân biệt dữ liệu API thật và phần chưa tích hợp trên banner.
+- AC CAT-B: test cả3 loại dịch vụ, từ chối quyền/field/metered/reserved, trùng code/tên, sửa không đổi snapshot, giá ngày01/dịch vụ/kỳ đã dùng/UNIQUE/thiếu schema, seeder lặp không ghi đè/không fakeuser/không giá mẫu, settings allowlist. Build/lint/Pint và DB test có guard; browser qua Nginx trên môi trường test cô lập, không ghi dev. Tài liệu tiến độ chỉ ghi bằng chứng thực chạy.
+
+**CAT-D01 CONFIRMED — chủ dự án duyệt 23/10/2026:** `invoice.due_days` và `contract.expiring_warning_days` nhận số nguyên **1–365**, không nhận0. Triển khai độc lập PUT `/api/v1/settings/{key}` chỉ cho đúng2key trên, body `{ "value": 5 }`; Admin active, CSRF/Policy, trả Resource `{data:{key,value,type,group}}` (value là chuỗi theo TEXT hiện có). 422 khi ngoài khoảng/boolean/null/field điều khiển; key khác404. Giá trị chưa có được tạo bằng giá trị Admin vừa nhập; không tự seed qua API, không sửa thông tin ngân hàng/hệ thống. Không có API cập nhật settings tùy ý hoặc màn hình mới; GET giữ missing_keys để báo thiếu cấu hình. Không thay đổi hóa đơn/hợp đồng đã phát sinh; các module tương lai chỉ đọc cấu hình khi lập dữ liệu mới.
+
+## 19. CAT-02b.4/03b.4 — Gán tiện nghi cấp tòa/phòng
+
+Nguồn đã chốt DB-D01/03, DB09 §3.4–3.6; tiếp tục sau Nhóm2 dev đã được duyệt riêng. Không phát sinh phí, không sao chép tiện nghi tòa vào room_amenities, không đổi giá/status/hợp đồng. Chỉ Admin active, CSRF và Policy hiện có. Không thêm trang; ghép panel vào ADM-03/05 hiện hữu, giữ Antigravity.
+
+- GET/PUT `/api/v1/buildings/{building}/amenities` và `/api/v1/rooms/{room}/amenities`, tên api.v1.buildings.amenities.index/update và tương tự rooms. Request PUT `{ "amenity_ids": [1,2] }`: thay tập tiện nghi **đang hoạt động** gán trực tiếp, [] gỡ tập hoạt động; chỉ ID thật chưa lưu trữ, distinct/integer, không nhận tập kế thừa hoặc trường tiền/quyền. Liên kết tới tiện nghi đã lưu trữ được giữ nguyên, chưa mở thao tác khôi phục/gỡ riêng chúng trong lát cắt này. Không đưa inherited IDs vào room_amenities tự động; nếu Admin tự chọn một tiện nghi vốn cũng ở tòa thì vẫn là lựa chọn riêng của phòng.
+- Response200 `{data:{direct:[...],inherited:[...],effective:[...]}}`; mỗi tiện nghi id/name/description/is_archived. Building inherited=[]; Room inherited lấy từ building_amenities; effective hợp nhất theo ID không trùng, server tính. API Admin giữ dữ liệu liên kết đã lưu trữ kèm cờ để không mất lịch sử; **CAT-D02 / DB-D55 CONFIRMED (23/10/2026): hiển thị tiện nghi đã lưu trữ kèm nhãn “Đã lưu trữ”**, giữ nguyên liên kết. Không cung cấp lựa chọn gán mới/khôi phục/gỡ riêng chúng trong lát cắt này. Chọn mới chỉ từ danh mục hoạt động qua API amenities có sẵn.
+- Transaction khóa Building rồi Room (nếu có), rồi các Amenity liên quan theo ID tăng dần; đọc lại tình trạng sau khóa để không gán ID vừa bị lưu trữ hoặc làm mất liên kết lưu trữ do đua request. Đồng bộ chỉ pivot mục tiêu, không tự sửa pivot phòng khác/tòa/amenity. Thiếu đúng schema cần dùng503; 401/403/404/422/409 theo quy ước; không lỗi SQL ra client.
+- AC: gán/gỡ hoạt động, []/ID trùng/ID không tồn tại/lưu trữ, union không trùng và không sao chép, giữ liên kết lưu trữ, archive trong khoảng validate→write bị chặn an toàn, không đổi tiền/hợp đồng/quyền, mọi endpoint401/403/locked/419, thiếu schema503; frontend loading/empty/retry/save/error thật và F5, browser DBtest cô lập. Kiểm tra dev chỉ đọc trong lượt này, không tạo dữ liệu/Admin.
+
+
+## 20. USR-A — danh sách và chi tiết tài khoản chỉ đọc
+
+Nguồn: DB09 §3.1, DB-D19/36, ADM-09/10, Plan §12.7 và yêu cầu tiếp tục USR của chủ dự án. Không khảo sát lại; dùng User/activeContract và hai trang hiện có. Không schema/migration, không cấp nhân viên/khóa/mở khóa/đổi role/ghi hồ sơ, không công nợ/hợp đồng/sửa chữa giả. Không tạo Admin hoặc seed dev.
+
+- Admin active: GET `/api/v1/users` (api.v1.users.index), GET `/api/v1/users/{user}` (api.v1.users.show, ID số). Sanctum session cookie, active + role middleware và UserPolicy; account khác 403, anonymous 401, ID thiếu 404. Thiếu bảng cần đọc 503, không giả đang thuê=false.
+- List query: `role` theo 5 Enum, `status` active/locked, `has_active_contract` 0/1, `q` chuỗi tối đa191 (trim, tìm chuỗi con literal trong full_name/email/phone, không coi %/_ là wildcard), `page` số nguyên1..2147483647. Không có bộ lọc thì toàn bộ tài khoản; các bộ lọc kết hợp AND, ba trường tìm kiếm nằm trong nhóm OR. Phân trang20, thứ tựID tăng dần, Laravel data/links/meta. Query sai422 tiếng Việt; chỉ validated được dùng.
+- Mỗi dòng: id/full_name/email(nullable)/phone/role/status/created_at (UTC ISO8601 hoặc NULL nếu dữ liệu cũ chưa có timestamp), has_active_contract và active_contract:null hoặc `{id,room:{id,code,building:{id,name}}}`. Đang thuê suy từ hợp đồng active chưa soft-delete, không từ role=resident; dữ liệu phòng/tòa lấy quan hệ thật. Chỉ eager-load cột cần thiết, không query từng người hoặc trả Model/pivot thô.
+- Detail thêm id_number/date_of_birth/gender/permanent_address (đều nullable) trong Resource riêng dành Admin, theo quyền đọc hồ sơ đã chốt. Không đổi hidden của User, không đưa CCCD vào list hoặc /auth/me, không password/remember_token/hash/file/minh chứng/dòng tiền. DATE giữ YYYY-MM-DD, không tự đổi timezone. Không suy diễn giới tính lạ thành giá trị khác.
+- React thay mock ở ADM-09/10, giữ Antigravity: lọc role/status/đang thuê, tìm kiếm có submit/reset trang, phân trang thật; mở đúng ID. Chi tiết có loading/404/error/retry; không fallback tài khoản mẫu. Thao tác chưa có API được bỏ/vô hiệu rõ, không toast thành công giả, không nhập @/mocks. Banner layout đánh dấu hai trang dùng API thật; phần nghiệp vụ chưa nối ghi rõ.
+- AC: 2 endpoint thành công/401/403/locked; sai filters422/thiếuID404/thiếuschema503; AND/OR đúng, phân trang, wildcard literal, NULLemail, resident đã thanh lý không đang thuê, dữ liệu liên quan thật và không N+1; payload list/detail/me không rò trường nhạy cảm sai phạm vi; GET không thay user/role/status/hợp đồng. Frontend test/build/lint/Pint; browser DB test cô lập kiểm tra lọc/tìm/phân trang/detail/F5/404/quyền/lỗi mạng/retry/mobile. Không test ghi dev hoặc migration ngoài phê duyệt.
+
+
+**Sau USR-A:** chính sách email/mật khẩu cấp nhân viên đã CONFIRMED riêng theo DB-D56/USR-D01, triển khai lát cắt §21. Giới hạn khóa đã duyệt DB-D57/USR-D02 tại§22: không thao tác bất kỳ Admin nào qua APIstatus.
+
+
+## 21. USR-B — Admin cấp tài khoản Kỹ thuật viên/Bảo vệ
+
+**CONFIRMED: DB-D56/USR-D01**, tiếp tục Q11; chỉ tạo mới, không nâng quyền/sửa tài khoản có sẵn. Không migration/schema/Admin thật/dev data, không khóa/mở khóa hay đổi hồ sơ, không thêm trang; modal trên ADM-09 giữ Antigravity.
+
+- POST `/api/v1/users`, tên api.v1.users.store; Sanctum session cookie, active/role:admin + UserPolicy::createStaff + middleware spa/CSRF. Body full_name, phone, email tùy chọn, role chỉ technician/guard, password, password_confirmation. Laravel dùng validated, AuthIdentity/UniquePhone/PasswordRules có sẵn: tên<=120, emailRFC<=191 trim+lowercase/NULL khi rỗng, SĐT10–15chữ số có thể bắt đầu+, +84/84 Việt Nam về0, chặn cả biến thể cũ tương đương; password theo quy tắc đăng ký hiện có, xác nhận khớp, khôngNUL/khôngvượt72byte bcrypt. Không tự sửa dữ liệu cũ.
+- Từ chối status/id/user_id/email_verified_at/remember_token/id_number/date_of_birth/gender/permanent_address/has_active_contract/active_contract và trường điều khiển khác. Không tạo role admin/user/resident; không cập nhật bất cứ tài khoản nào khi trùng định danh. Gán role đã được validate thuộc2giátrị và active tại server; email không verified. Một thao tác ghi nguyên vẹn, bắt UNIQUE race409 và lỗi DB bất ngờ bằng log đã lược bỏ dữ liệu nhạy cảm, không log SQL/bindings/payload/hash/mật khẩu.
+- 201 `{data:...}` dùng AdminUserResource an toàn với has_active_contract=false/active_contract=null, không legal/password/confirmation/token/hash. Phiên Admin giữ nguyên, /auth/me vẫn tài khoản Admin; không gọi luồng register tự đăng nhập. Không trả mật khẩu để bàn giao, không emailinvitation/tokens/defaultpassword/change-first-login.
+- React mở modal “Tạo tài khoản nhân viên” trên trang danh sách: RHF/Zod, chỉ2vai trò, email tùy chọn, cả2inputpassword type=password/autocomplete=new-password. Không lưu mật khẩu vào storage/log/URL/toast hoặc render plaintext, không nút hiện mật khẩu. Lỗi422 hiện đúng trường,409 nhắc xung đột,401/403/419/mấtmạng báo thật; không thành công giả. Chặn đóng/gửi lặp khi đang lưu; hủy/unmount và lưu thành công xóa state mật khẩu; thành công đóng modal, thông báo tên/vai trò không mật khẩu, refresh danh sách bằng GET API. Hướng dẫn bàn giao trực tiếp qua kênh an toàn, Admin biết mật khẩu ban đầu; chưa ép đổi lần đầu.
+- AC: tạo cả2roles có/khôngemail, nhiềuNULL, chuẩn hóa/duplicateemail+phonevariants, dữ liệu/mật khẩu sai/fields cấm, anonymous401/nonadmin403/locked403/CSRF419, UNIQUE race409, DBerror500logsanitized, hash đúng/no default/no partial/no mutation existing/Adminsessionunchanged/no responseleak. Browser DB test riêng: tạo từ modal/đọc lại/lỗi/hủy/reset/giữphiênAdmin và nhânviênmới đăngnhập được trong contextkhác, không có quyền APIAdmin; password không ở UI/storage/URL/output. Build/lint/tests/Pint theo guard; không tạo nhân viên trên dev trong lượt kiểm thử.
+
+## 22. USR-C — Admin khóa/mở khóa theo phương án A
+
+**CONFIRMED DB-D57/USR-D02.** Không schema/migration, không đổi vai trò/mật khẩu/định danh/hồ sơ; chỉ trạng thái tài khoản. Giữ giao diện Antigravity và trang ADM-10 hiện có.
+
+- PATCH `/api/v1/users/{user}/status`, tên api.v1.users.status; body chỉ `{status:"locked"}` hoặc `{status:"active"}`. Auth Sanctum + active + role:admin + spa/CSRF, UserPolicy::changeStatus. Admin không được thao tác chính mình hoặc bất kỳ tài khoản roleAdmin, kể cả đanglocked. Chỉ4role còn lại. ID thiếu404, input sai/trường điều khiển422, chưa đăng nhập401, sai quyền/targetAdmin403, thiếu schema503, lỗi DB ngoài dự kiến500 an toàn. 200 AdminUserResource tối thiểu, không pháp lý/password/token/hash.
+- Controller authorize, Service transaction + lockForUpdate dòng users mục tiêu; kiểm tra Policy lại sau khóa để không tin target cũ. Gán trạng thái yêu cầu rõ ràng, không toggle theo trạng thái server; gửi lại cùng trạng thái không tạo thay đổi dữ liệu khác. Giữ password/role/email/phone/verified/remember_token và mọi lịch sử, không xóa session hàng loạt hoặc bảng liên quan. EnsureActiveAccount từ chối phiên cũ khi phát hiện locked và hủy phiên đó; sau mở khóa đăng nhập lại bằng mật khẩu cũ, không tự đăng nhập hay nâng quyền.
+- ADM-10: nút Khóa/Mở khóa chỉ với tài khoản khôngAdmin; modal xác nhận tên + tác động, Hủy không gọi API. Chặn đóng/gửi lặp khi lưu; thành công dựa response rồi GET lại chi tiết. API lỗi hiện thật, không đổi badge/hiện thành công giả; có thể thử lại/tải lại. Admin không có nút. Bảng danh sách đọc lại trạng thái thật; không tạo trang/đổi phong cách.
+- AC:4roles khóa/mở/idempotent; quyền anonymous/nonadmin/Adminlocked/targetAdmin/self; input sai và payloadrole/password/email/hồsơ không thay đổi; giữ dữ liệu và quan hệ hợp đồng/hóa đơn/payment; saiCSRF419, missing404/schema503, rollback500 không partial/ròSQL. Phiên target đăng nhập trước khóa bị403 rồi401, đăng nhập locked403 (email/SĐT), sau mở khóa login cũ thành công. Browser xác nhận/hủy/F5/list/APIquyền/phiêncũ/offline/retry/đanglưu/mobile, chỉDBtest.
+- Hồ sơ: ADM-10 có nhu cầu sửa nhưng chưa chốt trường/quy trình xác minh SĐT,email,pháp lý. Lát cắt chỉ sửa họ tên đã được duyệt DB-D58/USR-D03 tại§23; không tự mở các trường khác. Không chặn khóa/mở khóa.
+
+## 23. USR-D — Admin sửa duy nhất họ tên
+
+**CONFIRMED DB-D58/USR-D03.** Phạm vi tên hiển thị full_name trên ADM-10, theo quyền Admin sửa hồ sơ đã mô tả; không API tự sửa hồ sơ cho các vai trò khác. Admin active có thể sửa tên tài khoản đang xem (kể cả Admin/chính mình); đây không mở quyền khóaAdmin hoặc đổi role. Chỉ một trường, không màn hình mới/schema/migration.
+
+- PATCH `/api/v1/users/{user}`, api.v1.users.updateName; body `{full_name:"Họ tên mới"}`. Tên bắt buộc, trim, chuỗi1–120ký tự theo quy tắc có sẵn; cho trùng họ tên, không tự sửa bản ghi khác. FormRequest chỉ full_name, cấm status/role/email/phone/password/verified/legal và trường điều khiển. 200 AdminUserResource tối thiểu; 401/403/404/422/419/503/500 theo§22. PUT/DELETE vẫn không mở. PATCH cũ trong test đọc trước là405, nay inputrole/status phải422; giữ kiểm tra không đổi dữ liệu.
+- Policy updateName yêu cầu Admin active; Service transaction/lock dòng users + kiểm tra lạiPolicy, chỉ gán full_name khi khác; giữ mọi trường khác trừ updated_at. Không đổi contracts/invoices/payments/tệp hoặc các quan hệ. Không đổi session/login; nếu sửa chính mình React refresh /auth/me để navbar phản ánh tên thật. LỗiDB rollback và logan toàn.
+- Form1trường trong Modal có sẵn trên ADM-10, RHF/Zod, điền tên thật; không giả lưu. Hủy không gọi API; pendingchặnđóng/gửilặp; 422theotrường/401/403/409/419/mấtmạng báo thật, retryđược. Thành công đóng và GET lại hồ sơ; list/F5 phản ánh tênDB. Các trường khác tiếp tục chỉđọc. Giữ Antigravity/mobile.
+- AC: đổi tên hợp lệ/trim/120/ký tựViệt/trùng tên/no-op; 121/rỗng/null/array/fields cấm422; anonymous/nonAdmin/lockedAdmin bịchặn; giữ quyền/địnhdanh/mật khẩu/hợp đồng/hóa đơn, responsean toàn; thiếuID404/schema503/CSRF419/rollback500. Browserform/save/hủy/validation/F5/list/APIquyền/offline/retry/busy/mobile/khôngmởfieldkhác; nếu đổi tên chính mình navbar/me cũng đúng. ChỉDBtest, không nhập tên người dùng thật trêndev.

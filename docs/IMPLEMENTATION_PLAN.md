@@ -1,0 +1,447 @@
+# IMPLEMENTATION PLAN — Mini Apartment Management
+
+> Cập nhật 23/10/2026. Plan và Tasks dùng chung cho Claude Code/Codex. Chủ dự án đã giao triển khai Sprint MVP dựa trên quyết định CONFIRMED; không khảo sát lại hoặc hỏi lại cùng quyết định. CAT/ROOM cơ bản có bằng chứng ở §12. Không tự chạy migrations dev, tạo dữ liệu thật, xóa dữ liệu, commit/push. Gói cấu trúc P4–P8 chưa được duyệt: chỉ dừng phần phụ thuộc.
+
+## 1. Nguồn sự thật và trách nhiệm tài liệu
+
+| Nơi quản lý | Nội dung duy nhất cần duy trì ở đó |
+|---|---|
+| [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md) | Quy trình và giới hạn; CLAUDE import AGENTS, không có bộ quy tắc riêng trùng lặp |
+| [DB_DECISIONS_20261014.md](DB_DECISIONS_20261014.md) | Quyết định CONFIRMED, gồm phần bổ sung mới nhất; đề xuất không tự trở thành quyết định |
+| [09_DATABASE_DESIGN.md](09_DATABASE_DESIGN.md), [DATABASE_IMPLEMENTATION_PLAN.md](DATABASE_IMPLEMENTATION_PLAN.md) | Thiết kế vật lý, ràng buộc, nghiệp vụ CSDL; kế hoạch/biên bản migrations và P1–P12 |
+| [AUTHENTICATION.md](AUTHENTICATION.md) | Spec (đặc tả hành vi mong muốn), quyết định mở và tiêu chí nghiệm thu Auth |
+| [API_AUTHENTICATION.md](API_AUTHENTICATION.md) | Hợp đồng HTTP: endpoint, input/output, mã lỗi và chi tiết kỹ thuật hiện có |
+| File Plan này | Thứ tự, phụ thuộc, Tasks, trạng thái và liên kết bằng chứng; không chép lại toàn bộ Spec |
+| [PROJECT_STATUS_AND_LEARNING.md](PROJECT_STATUS_AND_LEARNING.md) | Bằng chứng theo lần kiểm tra, giải thích file/hàm/luồng dữ liệu, câu hỏi bảo vệ đồ án |
+| [SCREEN_INVENTORY.md](SCREEN_INVENTORY.md), [FRONTEND_DESIGN_BRIEF.md](FRONTEND_DESIGN_BRIEF.md) | Danh mục UI và tham chiếu thiết kế Antigravity; UI/prototype không chứng minh Backend đã hoàn thành hoặc nghiệp vụ được duyệt |
+
+Khi mâu thuẫn: yêu cầu/phê duyệt trực tiếp mới nhất của chủ dự án → quyết định CONFIRMED mới nhất → Spec module ở phần đã duyệt và thiết kế CSDL tương ứng. Plan chỉ phản ánh tiến độ, không ghi đè nghiệp vụ. Mâu thuẫn chưa giải quyết phải ghi rõ và dừng phần bị ảnh hưởng. Không tạo thêm backlog, file tasks hoặc Spec trùng với nơi đang quản lý.
+
+## 2. Trạng thái và bằng chứng
+
+| Trạng thái | Điều kiện sử dụng |
+|---|---|
+| Chưa làm | Chưa triển khai chức năng trong phạm vi task; UI mock/Model có sẵn được ghi riêng |
+| Đang làm | Đang xử lý một task có phạm vi được giao; phải ghi điểm đã xong và bước còn lại |
+| Bị chặn | Ghi rõ task/quyết định/môi trường đang chặn và điều kiện gỡ chặn; chỉ chặn phần phụ thuộc |
+| Đã code | Có mã/tài liệu cần thiết, chưa đủ bằng chứng kiểm thử; không đồng nghĩa đã duyệt hành vi |
+| Đã kiểm thử | Ghi loại kiểm thử, môi trường, lệnh, kết quả và lần chạy; chỉ áp dụng cho phạm vi đã kiểm tra |
+| Đã tích hợp | Luồng UI → API → DB chạy thật qua Nginx/trình duyệt và đạt tiêu chí; riêng task DB ghi rõ chỉ tích hợp schema dev, không suy ra UI hoàn thành |
+
+Trạng thái thực hiện khác trạng thái phê duyệt. Một hành vi đã code/test vẫn có thể chờ duyệt; riêng AUTH-D01 đã CONFIRMED sau phê duyệt trực tiếp. Task bị hủy/đổi phạm vi giữ ID và ghi lý do, không tái sử dụng ID. Không dùng phần trăm tự ước lượng.
+
+Nhãn bằng chứng: **[SOURCE 22/10]** = đối chiếu file; **[TEST LỊCH SỬ 22/10]** = kết quả lần chạy trước đã ghi, chưa chạy lại trong lượt tài liệu; **[VẬN HÀNH 22/10]** = biên bản bước 3.5; **[CHƯA KIỂM CHỨNG]** = thiếu thao tác thực tế.
+
+## 3. Baseline khi lập Plan — trước triển khai Bước 4
+
+Bảng này giữ mốc bàn giao để đối chiếu. Hiện trạng sau Bước 4 và kết quả kiểm thử mới ở §5/§9; các nhãn chưa tích hợp trong bảng không phải trạng thái hiện tại.
+
+| Hạng mục | Trạng thái và giới hạn | Bằng chứng |
+|---|---|---|
+| Backend Auth + Artisan | Đã kiểm thử tự động; chưa tích hợp React; AUTH-D01 đã CONFIRMED; chuẩn bị kiểm thử lượt mới | [SOURCE] `routes/api.php`, `AuthService`, command và tests; [TEST LỊCH SỬ] 227 test / 1267 assertion; xem tài liệu học tập §11 |
+| Schema email nullable | Đã tích hợp **schema dev riêng**: đúng migration email, batch 3; không có Admin thật | [VẬN HÀNH] DB dev 13 bảng, migrations 8→9, users 0→0, sessions 11→11; checksum dữ liệu giữ nguyên; DB plan §16 |
+| Nhóm 1 / Nhóm 2–3 | Nhóm 1 dev + test; Nhóm 2–3 chỉ test, 11 migration vẫn Pending trên dev | Biên bản bước 3.5; không truy vấn/rerun DB trong lượt tài liệu này |
+| Nền tảng dữ liệu | Có migrations, 14 Model cho 16 bảng, Enum/Money; chưa có chức năng nghiệp vụ từ đó | [SOURCE] ngoài Auth chỉ có `HealthCheckService`, chưa có Controller/Service nghiệp vụ |
+| Frontend Auth | Chưa làm tích hợp; chỉ có UI mock, schema email-only chưa phù hợp T2 | [SOURCE] login/register, mock context, layout tự đổi vai trò, router chưa có guard |
+| Luồng Nginx/trình duyệt | Chưa kiểm chứng Auth thật | Test trước đi qua HTTP kernel/cookie/CSRF/MySQL test, không phải trình duyệt |
+| Git | Các thay đổi Auth 1–3.5 và tài liệu chưa commit/push | `git status`; HEAD `f485050`. Không suy ra remote hiện tại từ ghi chép cũ “chưa có remote” |
+
+## 4. Module, thứ tự và phụ thuộc
+
+Thứ tự dưới đây là đề xuất triển khai theo lát cắt dọc (mỗi chức năng đi từ DB tới UI thật). Nhánh độc lập có thể tiến hành khi được giao, không cần chờ toàn bộ module trước.
+
+| ID / module | Trạng thái chức năng thật | Phụ thuộc | Spec/nguồn yêu cầu hiện có |
+|---|---|---|---|
+| BASE — Hạ tầng, DB, kiểm thử, tiền/thời gian | Đã kiểm thử từng phần; chưa nghiệm thu toàn hệ thống | — | AGENTS §7–8, DB plan §1–7, thiết kế §1/6/7 |
+| AUTH — Xác thực/phân quyền tài khoản | Đã tích hợp phạm vi Bước 4 trên môi trường test cô lập; các chức năng tài khoản tương lai chưa làm | BASE; D01–D03 cho phần Bước 4 tương ứng | **AUTHENTICATION.md**, API_AUTHENTICATION.md |
+| CAT — Tòa nhà, tiện nghi, dịch vụ, settings, giá điện nước | Tòa/tiện nghi/dịch vụ/giá cơ bản đã tích hợp trên DB test; Settings GET8key/PUT2key đã kiểm thử, pivot API đã kiểm thử, UI gán đã tích hợp DB test theo CAT-D02 (14 ca browser PASS); UISettings chưa làm | AUTH; Nhóm 2 dev đã áp dụng; ghi giá còn cần Nhóm 3 để kiểm tra D33 | Thiết kế §3.2/3.4–3.6/3.10/3.12/3.20; brief §16; Tasks §12 |
+| ROOM — Phòng và tra cứu công khai/liên hệ | Quản trị cơ bản đã tích hợp DB test; Nhóm2 dev đã áp dụng20bảng/16migrations, chưa AdminCRUDdev; public vẫn mock có nhãn | CAT, AUTH; Nhóm 2 dev đã áp dụng riêng theo DBplan§18; FILE cho ảnh | Thiết kế §3.3; brief §17; Q17 chỉ chặn chuyển trạng thái liên quan |
+| USR — Quản lý người dùng/cấp nhân viên | Đọc/cấp nhân viên/khóa-mở khôngAdmin/sửa họ tên đã tích hợp DBtest, §12.8–12.11; các trường hồ sơ khác chưa mở | AUTH; Nhóm 2 cho thông tin đang thuê. Q6 chỉ chặn tạo người thuê trong hợp đồng, Q14 chỉ chặn dữ liệu cho technician; không chặn Admin đọc. Không có API tạo Admin | AUTH Q11; thiết kế §3.1; brief ADM-09..10 và §20 cho lát cắt đọc; Cấp/status/họ tên: brief§21–23, DB-D56/57/58; không còn blocker cho các lát cắt này |
+| LEASE — Hợp đồng nháp/kích hoạt/dịch vụ | Chưa làm API; chỉ chặn nhánh P4/P5 và Q7/Q15 liên quan. P1/P2 baseline đã chốt; Q5/Q6 tùy chọn | ROOM, USR, CAT; Nhóm 2 | Thiết kế §3.8–3.11/5/6; DB plan §14; brief §8.1; Spec chưa đủ |
+| MTR — Ghi chỉ số điện nước | Chưa làm API; có schema/Model/UI mock | LEASE active, CAT giá; Nhóm 3 | DB plan §5/6; thiết kế §3.13/5; Spec chức năng cần hoàn thiện |
+| FILE — Tệp/ảnh private | Bị chặn phần liên quan P6/P8; chưa có schema Nhóm 4 | AUTH + quyền sở hữu tài nguyên; duyệt triển khai Nhóm 4 | Thiết kế §3.7; DB plan §9/14; Spec upload cần hoàn thiện |
+| INV — Hóa đơn | Chưa làm API; có schema/Model/UI mock | LEASE, CAT, MTR, Money; Nhóm 3; Q13, final phụ thuộc CLOSE | Thiết kế §3.14–3.15/5/6; DB-D27/32/43; Spec cần hoàn thiện |
+| PAY — Thanh toán/công nợ | Chưa làm API; có schema/Model | INV; FILE cho minh chứng; Q8/Q12 | Thiết kế §3.16/5/6; brief §8.6; Spec cần hoàn thiện |
+| CLOSE — Thanh lý/kiểm tra tài sản/đối soát cọc | Bị chặn P3–P9/P11/P12; chưa làm API | LEASE, MTR final, INV/PAY, FILE | DB-D43..49; DB plan §14; brief §8.4; Spec chưa đủ |
+| VIEW — Lịch xem phòng/Bảo vệ | Chưa làm API/schema Nhóm 4 | ROOM, AUTH, nhân viên; Q3 | Thiết kế §3.18; brief §8.8; Spec cần hoàn thiện |
+| MAINT — Sửa chữa/Kỹ thuật viên | Chưa làm API/schema Nhóm 4 | AUTH, USR, LEASE active, FILE; Q9/Q14/Q17 | Thiết kế §3.17; brief §8.7; Spec cần hoàn thiện |
+| NOTIF — Thông báo | Chưa làm API/schema Nhóm 4 | Sự kiện nghiệp vụ thật, AUTH; Q16 | Thiết kế §3.19, DB-D23; Spec sự kiện cần hoàn thiện |
+| DASH — Dashboard/tổng hợp | Chưa làm API; số liệu UI mock | Các API nguồn đã tích hợp; duyệt KPI/phạm vi báo cáo | Brief ADM-01/RES-01, inventory; chưa có Spec chức năng đầy đủ |
+| PROFILE — Hồ sơ/khôi phục/xác minh email | Chưa làm; không thuộc Bước 4 | AUTH; Spec chi tiết mỗi lát cắt phải duyệt trước | AUTH Q4/Q10, API Auth §5; không tự tích hợp SMS/OTP |
+
+Các liên kết “thiết kế/brief” là **nguồn một phần**, không phải Spec chức năng đã đầy đủ/đã duyệt. Khi bắt đầu module, bổ sung hành vi/lỗi/tiêu chí vào tài liệu đang sở hữu nội dung đó; chỉ đề xuất Spec module mới nếu chưa có nơi phù hợp. Không tạo trước hàng loạt file Spec rỗng. Bước 4 không tự tạo các trang nghiệp vụ Resident/Staff còn thiếu.
+
+Chuỗi chính: BASE → AUTH → CAT/USR → ROOM → LEASE → MTR → INV → PAY → CLOSE. Nhánh VIEW từ ROOM; FILE phải sẵn trước chức năng cần ảnh thật; MAINT từ USR/LEASE; NOTIF và DASH lấy sự kiện/dữ liệu từ module thật. Có thể thiết kế chỉ số final trước, nhưng nghiệm thu CLOSE cần cả INV/PAY/FILE.
+
+## 5. Tasks Authentication có thứ tự
+
+Trạng thái module không nâng thành “Đã tích hợp” chỉ vì AUTH-01 đã chạy trên dev. Checklist đánh dấu hoàn thành theo phạm vi ghi ở từng dòng; lịch sử test xem §3.
+
+| Xong | ID / task | Trạng thái | Phụ thuộc / tiêu chí nghiệm thu |
+|---|---|---|---|
+| [x] | AUTH-00 — Chuẩn hóa Spec + Plan + nguồn bằng chứng | Đã kiểm thử tài liệu; quy trình/Tasks Auth đã duyệt | Spec phân biệt CONFIRMED/đang có/chưa duyệt; kiểm tra tài liệu trong lượt này |
+| [x] | AUTH-01 — Email nullable | Đã tích hợp schema dev | Migration mới, UNIQUE nguyên vẹn, rollback guard; AC-01/02; DB plan §15–16 |
+| [x] | AUTH-02 — Artisan tạo Admin | Đã kiểm thử tự động lại 22/10: Backend 227/1267 | AC-10; chưa thử nhập tay/tạo Admin dev; không cần tạo thật để coi test tự động đạt |
+| [x] | AUTH-03 — 4 API và middleware phiên/khóa/vai trò | Đã kiểm thử tự động lại 22/10: Backend 227/1267 | AC-01..09; AC-11 đã duyệt và kiểm thử; Policy tài nguyên thuộc module nghiệp vụ tương lai |
+| [x] | AUTH-04 — Chốt AUTH-D01/D02/D03 và duyệt phạm vi Bước 4 | Đã xác nhận: chủ dự án duyệt A/A/A | Ghi câu trả lời vào Spec; duyệt từng phần độc lập, không tự đồng ý các lựa chọn mặc định |
+| [x] | AUTH-05 — Đồng bộ hậu đăng ký theo D01 | Đã kiểm thử: Backend 227/1267 PASS lượt Bước 4, giữ auto-login | Sau D01 CONFIRMED; giữ auto-login, không đổi hợp đồng API; Backend PASS và browser B03/B08b xác nhận |
+| [x] | AUTH-06 — API client/types/schema React | Đã tích hợp trên môi trường test cô lập; xem §9 | Sau khi được giao Bước 4; dùng `lib/http.ts`, identifier email/SĐT, email nullable, snake_case, RHF+Zod; AC-12 |
+| [x] | AUTH-07 — AuthProvider/useAuth và bootstrap phiên `/me` | Đã tích hợp trên môi trường test cô lập; xem §9 | AUTH-06; loading/anonymous/authenticated, danh tính từ server, không từ mock/localStorage; AC-13 |
+| [x] | AUTH-08 — Nối Login/Register giữ Antigravity | Đã tích hợp trên môi trường test cô lập; xem §9 | AUTH-05/06/07; lỗi 422 đúng trường, 403/419/429/mạng, không báo thành công giả; AC-12 |
+| [x] | AUTH-09 — Guard, điều hướng và bỏ tự đổi quyền demo | Đã tích hợp trên môi trường test cô lập; xem §9 | AUTH-07 + D02; bảo vệ URL trực tiếp/F5, gỡ quick-entry/RoleSwitcher/`AdminLayout.setRole('admin')` khỏi luồng thật; AC-13/14 |
+| [x] | AUTH-10 — Navbar/logout và tài khoản tối thiểu | Đã tích hợp trên môi trường test cô lập; xem §9 | AUTH-07/09 + D03; chỉ đọc `/me`, không thêm API hồ sơ; chặn nút lưu giả, về trang chủ/trở lại vùng phù hợp; AC-14/15 |
+| [x] | AUTH-11 — Kiểm thử tích hợp qua Nginx/trình duyệt | Đã kiểm thử: 17/17 kịch bản Chrome/Nginx/MySQL test PASS | AUTH-08..10; AC-16, môi trường/dữ liệu test cô lập; không tạo dữ liệu dev hoặc chạy migrations dev để test |
+| [x] | AUTH-12 — Nghiệm thu/cập nhật Plan và học tập | Đã kiểm thử tài liệu, cập nhật Spec/Plan/bài học và giới hạn | AC liên quan đều có bằng chứng; D01..03 đã xử lý; ghi giới hạn mock còn lại, kết quả build/lint/test/browser và Git; không tự commit |
+| [x] | AUTH-13 — Xác minh bộ Docker dev chính thức 8080 | Đã kiểm thử: 7/7 ca browser PASS; không sửa code sản phẩm | Theo yêu cầu riêng sau AUTH-12; RUN_MIGRATIONS=false, đúng DB/account dev; schema/migrations không đổi; giữ 1 tài khoản khách kiểm thử; bằng chứng §10 |
+
+AUTH-06/07 có thể độc lập với quyết định sau đăng ký khi phạm vi đã được giao; chỉ task phụ thuộc quyết định mới bị chặn. Lượt triển khai bắt đầu từ AUTH-05; trạng thái chỉ nâng sau khi có bằng chứng tương ứng.
+
+## 6. Checklist cho các module còn lại
+
+Mỗi ô là một task có ID ổn định. CAT/ROOM đã hoàn thành một phần theo ID con ở §12; ô tổng chưa đánh dấu vì còn chức năng ngoài lát cắt. Không lập kế hoạch từ đầu khi yêu cầu không đổi.
+
+| Module | Spec/quyết định trước | Backend + kiểm thử | Tích hợp + nghiệm thu |
+|---|---|---|---|
+| BASE | [ ] BASE-01 rà soát phạm vi/môi trường trước mỗi task | [ ] BASE-02 kiểm tra guard, hạ tầng, migration cần duyệt riêng | [ ] BASE-03 bằng chứng runtime + DB không bị ghi ngoài phạm vi |
+| CAT | [ ] CAT-01 chốt thao tác danh mục/khóa/xóa, khóa settings/seeder | [ ] CAT-02 Request/Policy/Service/Resource và test UNIQUE/FK (CAT-02a đã code/test; phần khác tiếp theo) | [ ] CAT-03 nối ADM-02/03/06/07/08/23 theo từng lát cắt |
+| ROOM | [ ] ROOM-01 chốt Q17, dữ liệu công khai/ảnh | [ ] ROOM-02 API quản trị/công khai và test quyền/is_public | [ ] ROOM-03 nối ADM-04/05, PUB-01..04, bỏ mock ở màn đã nối |
+| USR | [x] USR-01a/b/c/d đọc/cấp/status/họ tên đã duyệt; tách Q6/Q14/các trường khác | [x] USR-02a/b/c/d API Policy; chỉghi trườngđượcduyệt, khôngđổi quyền | [x] USR-03a/b/c/d ADM-09/10 đã tích hợp DBtest; chưaquảntrịAdmindev |
+| LEASE | [ ] LEASE-01 dùng P1/P2 baseline đã chốt; chỉ hỏi P4/P5/Q7/Q15 thực sự thiếu, Q5/Q6 tùy chọn | [ ] LEASE-02 ALTER mới sau duyệt, draft/kích hoạt, khóa/transaction/tranh chấp | [ ] LEASE-03 nối ADM-11..13 và kiểm tra tiền/ngày/quyền |
+| MTR | [ ] MTR-01 đặc tả R1–R17/khoảng tiêu thụ/giá | [ ] MTR-02 nhập all-or-nothing, không đoán hợp đồng/chỉ số | [ ] MTR-03 nối ADM-15, test thiếu/sai kỳ/chồng hợp đồng |
+| FILE | [ ] FILE-01 duyệt collection/morph/loại/kích thước/quyền | [ ] FILE-02 schema được phép + private upload/download có Policy | [ ] FILE-03 test trái quyền, tệp sai và tích hợp nơi sử dụng |
+| INV | [ ] INV-01 chốt Q13; tách monthly/final | [ ] INV-02 Money/snapshot/bất biến/hủy theo DB-D27 + tranh chấp | [ ] INV-03 nối ADM-16/17/RES-04/05, số tiền luôn từ Backend |
+| PAY | [ ] PAY-01 chốt Q8/Q12, trạng thái và ảnh | [ ] PAY-02 pending/confirm/reject, lý do, mã RCP, khóa/tranh chấp | [ ] PAY-03 nối ADM-18/RES-05; công nợ không tính payment pending |
+| CLOSE | [ ] CLOSE-01 chỉ hỏi cấu trúc P4–P8/P3/P9/P11 còn thiếu; P12 nguyên tắc đã chốt, P10 gộp P3 | [ ] CLOSE-02 kiểm tra tài sản/final/cọc/transaction, không đổi lịch sử | [ ] CLOSE-03 nối ADM-14, test cùng ngày/đúng hạn/trước hạn/quá hạn |
+| VIEW | [ ] VIEW-01 chốt Q3 và routes đặt lịch ngoài inventory | [ ] VIEW-02 Nhóm 4 được phép, Admin duyệt/Guard hôm nay/đúng thứ tự check-in/out | [ ] VIEW-03 nối PUB-03/ACC-01/ADM-22/STF-03; dữ liệu riêng từng khách |
+| MAINT | [ ] MAINT-01 chốt Q9/Q14/Q17 | [ ] MAINT-02 người đang thuê, assigned_to, chuyển trạng thái theo quyền | [ ] MAINT-03 nối RES-06..08/ADM-20..21/STF-01..02, test trái quyền |
+| NOTIF | [ ] NOTIF-01 chốt Q16/dữ liệu thông báo | [ ] NOTIF-02 gửi sau commit, sync, người nhận và đọc riêng | [ ] NOTIF-03 tích hợp chuông/list/read, không lộ dữ liệu người khác |
+| DASH | [ ] DASH-01 duyệt KPI/công thức/phạm vi | [ ] DASH-02 tổng hợp từ dữ liệu thật theo quyền | [ ] DASH-03 thay KPI mock, kiểm tra không dùng frontend tính tiền |
+| PROFILE | [ ] PROFILE-01 đặc tả từng lát cắt Q4/Q10 và hỗ trợ thủ công | [ ] PROFILE-02 triển khai sau duyệt; bảo vệ phiên/email/mật khẩu | [ ] PROFILE-03 tích hợp sau API, không mở sửa SĐT/role/pháp lý |
+
+## 7. Quyết định mở và điều kiện nghiệm thu chung
+
+- Auth: **AUTH-D01/D02/D03 đã CONFIRMED A/A/A**, không còn chặn Bước 4. Q2/Q4/Q10/Q11 đã chốt nguyên tắc, không hỏi lại như chưa có quyết định; chi tiết triển khai ngoài phạm vi phải có task riêng.
+- Hợp đồng/thanh lý: **P1–P12** quản lý duy nhất ở DB plan §14.4; P10 gộp P3. CONFIRMED DB-D43..49 không có nghĩa cấu trúc đề xuất được duyệt. Không sửa M09 đã commit.
+- UI/nghiệp vụ khác: **Q3/Q5/Q6/Q7/Q8/Q9/Q12/Q13/Q14/Q15/Q16/Q17** còn ở brief §14.2; không cần duyệt tất cả trước Auth.
+- Nguồn `PROJECT_CONTEXT.md`, docs `02`–`08`, ERD nguồn chưa có; không dựng lại nội dung bằng suy đoán. Module thiếu Spec phải hoàn thiện yêu cầu trước code.
+
+Checklist nghiệm thu mỗi lát cắt:
+
+- [ ] Spec và quyết định liên quan đã rõ, được duyệt; không dùng UI mock làm quy tắc chính thức.
+- [ ] Trường hợp bình thường, dữ liệu sai, giới hạn, quyền/sở hữu và tranh chấp liên quan có kiểm thử.
+- [ ] DB/API tương thích, không sửa migration đã commit; mọi thay đổi dev có phê duyệt riêng và backup/restore/pretend.
+- [ ] Màn hình đã nối không còn lấy danh tính/dữ liệu từ mock; phần chưa nối được ghi rõ, không có thao tác thành công giả.
+- [ ] Có bằng chứng build/lint/test phù hợp và Nginx/trình duyệt trước khi ghi “Đã tích hợp”; DB test luôn được bảo vệ.
+- [ ] Plan cập nhật, tài liệu học tập có file/hàm/luồng/kiểm thử/câu hỏi bảo vệ; nêu rõ việc chưa xác minh.
+
+## 8. Cách tiếp tục và ưu tiên kế tiếp
+
+1. AUTH-00..13 đã hoàn thành trong phạm vi ghi ở §5. Sprint 23/10 tiếp tục CAT/ROOM theo §12; không tự mở rộng hồ sơ/email/khôi phục mật khẩu.
+2. Thực hiện task đủ quyết định đầu tiên chưa xong; gán tiện nghi CAT-02b.4/03b.4 đã tích hợp DB test ở §12.7; USR đọc đã tích hợp ở §12.8; tiếp theo nhánh ghi khi các lựa chọn còn thiếu được chốt, chỉ hỏi đúng nhánh ảnh hưởng tiền/quyền/dữ liệu còn thiếu. Không cần lập lại Spec/Plan hoặc prompt dài.
+3. Trước task, đọc AGENTS + Spec/AC + API liên quan, Git status và thay đổi sẵn có; không lập lại Plan mới nếu yêu cầu không đổi.
+4. Chỉ hỏi lại khi có thay đổi yêu cầu/tác động chưa được phép. Việc duyệt Plan không cho phép tự chạy migrations dev, tạo dữ liệu thật, xóa dữ liệu, commit/push hay mở rộng sang module khác.
+5. Kết thúc lượt: cập nhật task + bằng chứng + tài liệu học tập; chat ngắn: task xong, file đổi, test, quyết định còn thiếu, task tiếp theo. Sửa lỗi kỹ thuật nhỏ không đổi yêu cầu chỉ ghi task/AC liên quan, không tạo Spec riêng.
+
+**Hiện tại:** CAT/ROOM đã qua kiểm thử/browser DB test; Nhóm2 dev đã áp dụng riêng, Room/UtilityPriceService đọc được schema mới; chưa AdminCRUDdev vì Admin0. Gán tiện nghi đã tích hợp DB test ở §12.7. USR đọc đã tích hợp ở §12.8. Nhánh ghi chỉ chờ đúng quyết định của nó; không chờ gói thanh lý để làm chức năng độc lập.
+
+## 9. Bằng chứng lượt Bước 4 trước AUTH-13 — lịch sử 22/10/2026
+
+Các kết quả dưới đây thuộc lượt triển khai trước; không chạy lại PHPUnit/build/lint/client 8/browser 17 trong lượt AUTH-13. Bằng chứng mới Docker dev ở §10.
+
+- D01/D02/D03=A và quy trình đã được chủ dự án phê duyệt trực tiếp. AUTH-05 giữ nguyên Backend auto-login, đồng bộ nhãn Spec/API.
+- Guard test 7/7, môi trường test 6/14 đạt; toàn Backend **227 test / 1267 assertion PASS**, Pint PASS trong lượt Bước 4; đây là kết quả lịch sử đối với AUTH-13.
+- Frontend `npm run build` PASS, `npm run lint` 0 lỗi/9 cảnh báo có sẵn. `npm test`: 8 test client validation/điều hướng/lỗi PASS. Không thêm package.
+- **17/17 kịch bản browser PASS** qua Chrome thật → Nginx riêng `localhost:8081` → app PHP-FPM riêng → MySQL 8.4 test. Frontend là bản build qua Vite preview; không chỉ kiểm thử HTTP kernel. Ma trận B01..B16 (thêm B08b), cách thử 419 thật và ảnh mobile ở bài học §11.11.
+- Trước fixture: cả `mysql`/`mysql_test` và session/cache đã trỏ DB/account `mini_apartment_test`; guard DB-D30 và danh tính MySQL khớp. Bypass entrypoint, `RUN_MIGRATIONS=false`, không chạy migration. Helper CLI test có guard riêng; đã thử setup/status/cleanup trên DB test.
+- Snapshot dev trước/sau **khớp toàn bộ**: 13 bảng, 9 migrations, users 0, sessions 11; cấu trúc/index/hash dữ liệu không đổi; Nhóm 2–3 vẫn 11 migration chưa áp dụng. Đã dọn đúng fixture do lượt test tạo; dừng các tiến trình/container test riêng, giữ MySQL như ban đầu.
+- Giới hạn tại thời điểm Bước 4 (nay xem §10): chưa khởi động/kiểm thử bộ container dev cổng 8080; không tạo Admin dev. Các trang Admin/public nghiệp vụ vẫn mock có nhãn; ResidentLayout/StaffLayout chưa gắn route. Chưa sửa hồ sơ/quên mật khẩu/email/cấp nhân viên, chưa Policy nghiệp vụ.
+- `git diff --check` và liên kết Markdown PASS; không cài package, không thay Backend API/schema, không commit/push. Chi tiết file thay đổi và các lỗi đã tái hiện/sửa: §11.11.
+
+## 10. AUTH-13 — kiểm chứng Docker dev chính thức (22/10/2026)
+
+**Mới thực chạy trong lượt này:** 7/7 ca Chrome → Nginx `localhost:8080` → PHP-FPM app → MySQL dev `mini_apartment` PASS. Đây là bộ `app/frontend/nginx/mysql` của Docker Compose dự án, frontend chạy Vite dev server trong container; không phải app/Nginx riêng 8081 hoặc Vite preview của lượt trước.
+
+| Ca | Kết quả thực tế |
+|---|---|
+| DEV01 | Chưa đăng nhập vào /admin tới /login; API me trả401 |
+| DEV02 | Đăng ký qua form thật201, tự đăng nhập; chỉ user/active, Resource đúng 6 trường; profile không form lưu giả |
+| DEV03 | Reload/F5 giữ đúng tài khoản từ me; cookie phiên HttpOnly và XSRF tồn tại |
+| DEV04 | Khách vào /admin bị guard từ chối, không đổi vai trò; me/DB vẫn user |
+| DEV05 | Logout 204, me 401, URL /account/profile về login |
+| DEV06 | Đăng nhập bằng email nhận đúng tài khoản và logout thật |
+| DEV07 | Đăng nhập bằng SĐT nhận đúng tài khoản và logout thật |
+
+- Đã đọc Git status, AGENTS/CLAUDE, Spec/Auth API, Plan, cấu hình Docker/entrypoint/session/Sanctum. Các thay đổi Authentication 1–4 vẫn chưa commit, không ghi đè; chi tiết nhóm file ở bài học §11.12. Prototype/.claude không thuộc công việc Auth lần này, giữ nguyên.
+- Trước startup: `docker compose config --format json` được đọc nội bộ và chỉ in trường an toàn; xác nhận `RUN_MIGRATIONS=false`, DB mysql/mini_apartment và URL8080. Sau startup kiểm tra lại getenv trong app và SELECT đúng DB/account `mini_apartment@%`; session database, SameSite=lax, HttpOnly=true, cookie Secure không bật trên localhost HTTP. Sanctum stateful có localhost/127.0.0.1:8080. Không bỏ CSRF hoặc thay cấu hình DB.
+- Lệnh vận hành: `docker compose up -d --no-build app frontend nginx`; Compose tái tạo container theo cấu hình hiện tại, volume MySQL được giữ. Trước/sau có snapshot so sánh. App log không có chạy migrations; lịch sử migrations vẫn đúng 9 dòng, 11 file Nhóm 2–3 vẫn pending. Không dùng --remove-orphans, down -v hay lệnh reset.
+- Schema/index/constraints/FK/đối tượng DB và lịch sử migrations khớp trước/sau; vẫn 13 bảng. **Dữ liệu không hoàn toàn bất biến trong lượt này:** đăng ký thật tạo đúng 1 khách (users 0→1), sessions 11→13, cache limiter đổi. Hash các bảng ngoài users/sessions/cache không đổi; không tạo Admin (admin 0), không sửa dữ liệu nghiệp vụ hoặc xóa tài khoản. Số tự tăng users tiến thêm là hệ quả INSERT, không phải migration.
+- Không phát hiện lỗi kỹ thuật cần sửa code. Không sửa Backend/Frontend/dependencies; npm startup không làm thay đổi package-lock. Không chạy PHPUnit có ghi DB trên dev; kết quả 227/1267, frontend 8 và browser 17 ở §9 là **lịch sử**, không tính như mới chạy lại.
+- Giữ 4 container dev đang chạy để tiếp tục sử dụng; đóng Chrome profile riêng sau test. Tài khoản khách test được giữ; thông tin đăng nhập và snapshot/log báo cáo nằm trong `backups/auth-dev-8080/` đã gitignore, không in mật khẩu/cookie hoặc đưa vào Git. Không commit/push.
+- Giới hạn: ca sai quyền ở /admin là guard React; không có API quản trị nghiệp vụ để thử 403 theo tài nguyên. Không thêm route thử nghiệm vào dev. Middleware role của Laravel có bằng chứng PHPUnit lịch sử; API me 401 sau logout được kiểm chứng mới. Không tạo Admin thật để thử dashboard. Khôi phục/xác minh email, hồ sơ chỉnh sửa, nhân viên và nghiệp vụ ngoài Auth vẫn chưa làm.
+
+## 11. CAT-01 — đề xuất lịch sử trước phê duyệt Sprint23/10
+
+Phần dưới giữ mốc AUTH-13. Chủ dự án nay đã giao triển khai phần CONFIRMED, xem §12; không lấy lời dừng ở lượt cũ làm điều kiện hỏi lại.
+
+**Mục tiêu CAT-01 là chốt Spec/tiêu chí trước code**, không phải triển khai ngay CAT-02/03. Nguồn có sẵn: thiết kế DB §3.2/3.4–3.6/3.10/3.12/3.20; DB-D01/03/04/05/16/18/26/33; brief §7.3 (ADM-02/03/06/07/08/23); inventory tương ứng. Chưa có Spec chức năng CAT đầy đủ; không lấy UI mock làm quyết định. Lượt này chỉ đề xuất tại Plan, chưa tạo Spec mới trùng nội dung hoặc lập trình CAT.
+
+| Phần | Nội dung đã có căn cứ | Điều cần ghi rõ trong Spec CAT-01 |
+|---|---|---|
+| Tòa nhà | Tên tối đa 150 ký tự, địa chỉ tối đa 500 ký tự, tầng>=1, tọa độ tùy chọn trong giới hạn, status active/inactive; không xóa tòa còn phòng/hợp đồng | Danh sách/chi tiết/tạo/sửa/trạng thái, quyền Admin, lỗi; tác động khi ngừng tòa/giảm tầng và điều kiện xóa tòa rỗng |
+| Tiện nghi | Tên UNIQUE, tối đa 120 ký tự, mô tả, soft delete (lưu trữ), không tự thu tiền; hợp nhất tiện nghi tòa/phòng không nhân bản | Hành vi lưu trữ/khôi phục/tên trùng và liên kết đang dùng; không thêm cột status hoặc tự detach pivot |
+| Dịch vụ | Tên UNIQUE toàn bảng; code bất biến khi đã dùng;3 kiểu phí cố định và metered hệ thống; tiền nguyên VND, metered price NULL | Quyền sửa các trường của dịch vụ đã dùng, ngừng dùng; giữ snapshot hợp đồng. Điện/Nước không sửa code/cách tính, không xóa; không tự cho tạo metered tùy ý |
+| Giá điện/nước | Ngày01, unique service/ngày hiệu lực, giá > 0, không tác động kỳ đã có chỉ số/hóa đơn; không seed giá mẫu | Luồng thêm/xem lịch sử và lỗi; đề xuất trước mắt chưa mở sửa/xóa giá chưa dùng; không triển khai ghi chỉ số/hóa đơn trong CAT |
+| Settings | Chỉ 8 khóa MVP tại DB §3.20:3 hệ thống,3 ngân hàng, due_days=5, expiring_warning_days=30; không secrets | Kiểu/giới hạn giá trị, trường được public, quyền Admin, cache/invalidation; không mở key tùy ý hoặc P5 chưa duyệt |
+
+**Phụ thuộc phải tách riêng:** DB dev đã có buildings/amenities/services/settings; chưa có rooms/pivot/utility_prices và meter_readings/invoices cần kiểm tra lịch sử giá. Model tồn tại không làm bảng xuất hiện. Seeder hệ thống còn chưa làm (DatabaseSeeder rỗng). Không trả số phòng/tiện nghi 0 giả để che bảng chưa có; không bỏ kiểm tra lịch sử giá vì bảng thiếu. Muốn tích hợp đầy đủ CAT cần phê duyệt migrations dev có backup/restore/pretend riêng; CAT-01 không cấp quyền đó. Dữ liệu hệ thống được phép theo quy tắc không đồng nghĩa đã được chạy seeder trong lượt này.
+
+**Đề xuất thứ tự khi được giao:** CAT-01a chốt ma trận dữ liệu/quyền/phụ thuộc; CAT-01b duyệt điểm mở; CAT-01c hoàn thiện Spec và hợp đồng API tại nơi phù hợp (tham chiếu DB/brief, không chép lại thiết kế); CAT-01d tách CAT-02/03 thành lát cắt có AC. Ưu tiên lát cắt tòa nhà + danh mục tiện nghi; gán tiện nghi/số phòng và giá điện nước chỉ tích hợp sau khi DB tương ứng được duyệt. Tái sử dụng giao diện Antigravity hiện có, không thêm dashboard hay màn hình.
+
+**Các điểm cần chủ dự án duyệt trong CAT-01:**
+
+1. Chọn lát cắt ưu tiên tòa nhà + tiện nghi như trên, hay một phần khác; đề xuất chọn phần này để kiểm chứng nền tảng trước giá/thu tiền.
+2. Khi tòa inactive: chặn thao tác nào, tác động tới phòng công khai/đang thuê ra sao; đề xuất không tự thay trạng thái phòng/hợp đồng, phải chốt quy tắc đọc công khai ở ROOM. Có cho xóa vật lý tòa rỗng hay chỉ ngừng hoạt động?
+3. Tiện nghi lưu trữ đang gán hiển thị thế nào; khôi phục tên đã lưu trữ thay vì tạo trùng? Soft delete và UNIQUE đã chốt, không hỏi lại việc có dùng soft delete.
+4. Dịch vụ thường đã được dùng có khóa billing_type/unit như code không; giới hạn số/ngày trong settings; giá chưa dùng có cần sửa/xóa ở lát cắt đầu không. Đây là điểm thiếu chi tiết, chưa tự duyệt lựa chọn.
+
+**Nghiệm thu CAT-01 (tài liệu):** phạm vi/không làm, vai trò/ownership cần thiết, luồng/lỗi, ma trận CONFIRMED/chờ duyệt, API draft và AC thành công/422/401/403/409/tranh chấp có liên kết nguồn; tất cả điểm phụ thuộc có quyết định hoặc được loại khỏi lát cắt rõ ràng. CAT-02/03 vẫn Chưa làm. Không migration, seeder, Controller/Service/Policy nghiệp vụ hoặc thay UI trong lượt này.
+
+
+## 12. Sprint Full MVP — điều chỉnh cách thực hiện 23/10/2026
+
+Phê duyệt trực tiếp: thực hiện ngay hành vi đã CONFIRMED từ tài liệu hiện hữu; chỉ quyết định thực sự thiếu mới hỏi. Không lấy P/Q Hợp đồng làm cổng chặn toàn CAT/ROOM. Phạm vi ngày1 bắt đầu bằng CAT; không đảm bảo Full MVP chỉ từ UI, không chạy migrations dev/chèn dữ liệu/xóa dữ liệu/commit/push ngoài quyền đã có. Lịch7ngày là ưu tiên/phụ thuộc, không phải cam kết đã hoàn thành: ngày1 CAT+ROOM nền; ngày2 USR+LEASE đủ quyết định; ngày3 MTR/INV; ngày4 PAY/CLOSE; ngày5 VIEW/MAINT/FILE; ngày6 tích hợp vai trò/DASH/NOTIF; ngày7 hồi quy/sửa lỗi/nghiệm thu. Các quyết định tiền/schema chưa chốt và migrations dev chưa duyệt phải được giải quyết kịp thời, chỉ chức năng phụ thuộc bị chặn.
+
+| Task | Phạm vi từ Spec sẵn có | Trạng thái |
+|---|---|---|
+| CAT-01a | Đồng bộ điểm đã CONFIRMED, pin contract nhỏ trong brief §16; không khảo sát lại | Đã kiểm thử tài liệu; phân loại blocker §12.2 |
+| CAT-02a | Backend buildings/amenities, Request/Policy/Service/Resource + Feature tests | Đã kiểm thử; kết quả mới §12.3 |
+| CAT-03a | Nối ADM-02/03/06 API thật, giữ Antigravity + client/browser tests | Đã tích hợp trên DB test cô lập; chưa tạo Admin/dữ liệu dev |
+| CAT-02b/03b | Dịch vụ/giá, seeder hệ thống, đọc8settings/lưu2khóa ngày; gán tiện nghi sau | Đã tích hợp lát cắt Dịch vụ/Giá trên DB test; Settings API đã kiểm thử; API gán đã kiểm thử, UI mới đang kiểm thử ở §12.7 |
+
+Không hỏi lại D01..03, DB-D40 một lý do chênh chung, DB-D43 ngày cuối inclusive, DB-D46..49 nguyên tắc thanh lý/miễn/kiểm tra tài sản. Không biến phương án cấu trúc P4..P8 chưa duyệt thành CONFIRMED. Sau mỗi nhóm ghi bằng chứng thật và task kế tiếp ở đây.
+
+
+### 12.1. Nhóm ROOM độc lập kế tiếp trong cùng Sprint
+
+ROOM-01a dùng ngay quy tắc DB09 §3.3/brief §17: **Đã kiểm thử tài liệu**. ROOM-02a Backend cơ bản + Feature tests: **Đã kiểm thử**. ROOM-03a nối ADM-04/05: **Đã tích hợp trên DB test cô lập**. Không mở Q17 đổi trạng thái, không đổi hợp đồng/phí. Mốc triển khai ROOM-A ban đầu chưa có rooms dev và API trả 503 rõ ràng. Sau đó Nhóm 2 đã được duyệt/chạy riêng, xem §12.7 và DB plan §18; chưa xác minh CRUD Admin trên dev.
+
+
+### 12.2. Rà soát quyết định 23/10 — không khảo sát lại
+
+| Phân loại | Quyết định/phạm vi | Chức năng thực sự bị ảnh hưởng |
+|---|---|---|
+| Đã chốt, tài liệu cũ chưa đồng bộ | P1 giữ end_date>start_date hiện hành; DB-D43 đổi ý nghĩa ngày cuối, không tự mở hợp đồng dự kiến1ngày. P2 giữ một meter_gap_reason chung theo DB-D40; P12 kiểm tra tài sản bắt buộc mọi thanh lý theo D49; P10 gộp P3. Q2/Q4/Q10/Q11/AuthD01..03 đã chốt; archiveAmenity đã có SoftDeletes | Không chặn CAT/ROOM. Không hỏi lại các nguyên tắc trên; phần gợi ý tách lý do/giao diện không phải yêu cầu bắt buộc |
+| Chặn trực tiếp một phần MVP, chưa duyệt | Gói lưu P4/P5-B/P6/P7/P8; miễn toàn bộ hay một phần; P9 phí khi nhận-trả cùng ngày; P11 căn cứ/số tiền/ảnh | Kích hoạt với điều khoản phí, áp miễn, kiểm tra tài sản/tệp và hóa đơn thanh lý liên quan. Chủ dự án trả lời CHƯA DUYỆT gói cấu trúc trong lượt này: không ALTER/schema tương ứng, tiếp tục độc lập |
+| Chặn trực tiếp nhánh MVP | P3 mã trả quá hạn/ghi chú; Q15 ghi nhận cọc và điều kiện trước kích hoạt; Q7 quyền thương lượng đơn giá hợp đồng | Chỉ nhánh đóng quá hạn, thu cọc/kích hoạt và chỉnh giá hợp đồng; không ảnh hưởng giá niêm yết phòng hay danh mục tiện nghi |
+| Chặn đúng quyền/trường MVP | Q8 gửi minh chứng nợ cũ sau thanh lý; Q9 ai đặt ưu tiên; Q14 technician được xem dữ liệu riêng tư nào; Q16 sự kiện/người nhận notification | PAY nhánh nợ cũ, MAINT trường ưu tiên/dữ liệu cư dân, NOTIF; không chặn CRUD phòng/tòa hoặc xác nhận thanh toán cơ bản |
+| Chặn thao tác riêng | Q17 đổi status phòng có activecontract; tác động inactive tòa đến phòng/tra cứu | Không mở các chuyển trạng thái/cascade chưa chốt; tạo/xem/sửa thông tin phòng vẫn làm |
+| SHOULD/FUTURE hoặc tùy chọn, không chặn baseline | Gia hạn/renewed/chuyển cọc; P2 tách lý do; P5-C mẫu điều kiện; Q3 tự đổi/hủy lịch/khung giờ mở rộng; Q5 nháp phòng còn người; Q6 tạo tài khoản ngay wizard; Q12 trang Công nợ riêng; restoretiện nghi, xóa vật lý tòa rỗng, sửa giá điện/nước chưa dùng | Có thể để ngoài lát cắt đang triển khai; baseline đặt lịch→Admin duyệt→Guard check-in/out đã có quy tắc. Nếu đưa thêm nhánh vào MVP thì duyệt đúng nhánh |
+| Gate vận hành riêng, không thiếu khảo sát | Nhóm2–3 trên dev chưa duyệt chạy; Nhóm4/tệp cần gói cấu trúc chưa duyệt | Chặn đưa API phụ thuộc schema lên DBdev thật, không chặn viết code/test DBtest có guard; không tự migration hoặc trả dữ liệu giả để che thiếu bảng |
+
+Nguồn: DB_DECISIONS mới nhất D40/D43..53; DB09§3.2/3.3/3.4/3.8/§7; DBplan§14; brief§14.2. Thiếu file khảo sát02–08 không là câu hỏi nghiệp vụ mới và không là lý do đứng yên. Không đánh dấu toàn CAT/ROOM/LEASE 'Bị chặn' vì một nhánh riêng.
+
+### 12.3. Bằng chứng mới CAT/ROOM — 23/10/2026
+
+- [x] CAT-01a, CAT-02a, CAT-03a; ROOM-01a, ROOM-02a, ROOM-03a trong phạm vi brief §16–17. Đã tạo Request/Controller/Service/Resource/Policy cho 3 tài nguyên và nối 5 trang Antigravity hiện có; không thêm màn hình/package/schema. Room không đổi status/chuyển tòa/xóa; Building không đổi status/xóa; Amenity chỉ soft archive theo thiết kế.
+- [x] Kiểm tra guard trước DB tests: 7 test/7 assertion; TestEnvironment 6/14 PASS. `docker compose exec -T app php artisan test`: **428 test / 3080 assertion PASS** trên `mysql_test`/DB và tài khoản `mini_apartment_test`. Cấu hình phpunit/guard/account riêng giữ nguyên; kết nối `mysql` trong test cũng trỏ DB test. Pint `--test` PASS, 140 file. Có trường hợp 401/403/locked/422/409 UNIQUE race/503 thiếu bảng, Unicode vượt TEXT, phân trang/lọc và hợp đồng giữ nguyên khi sửa metadata.
+- [x] `npm test`: **19 test PASS** (8 Auth + 11 CAT/ROOM); `npm run build` PASS; `npm run lint` 0 lỗi, 9 cảnh báo có sẵn. Build vẫn cảnh báo bundle >500 kB, chưa tối ưu ngoài phạm vi. Giới hạn TEXT kiểm tra bytes UTF-8 ở Laravel/Zod, tiền nhận đúng số nguyên an toàn JSON/JS; không làm tròn hoặc sửa BIGINT.
+- [x] **16/16 ca browser PASS**, Chrome thật → Nginx test 8081 → Vite preview bản build và PHP-FPM test riêng → MySQL test; 10 CAT + 6 ROOM. Tạo/đọc/sửa bền qua F5, archive/tên trùng, lỗi 422 theo trường, 404 không fallback, API 403 thật với tài khoản không phải Admin, mất mạng không báo lưu thành công, mobile 390px không tràn. Bộ này không ghi dev; không coi là đã kiểm thử CAT/ROOM trên Docker dev 8080. TEXT biên được kiểm tra bằng PHPUnit và Node tests, chưa thao tác chuỗi dài trên browser.
+- [x] App test `RUN_MIGRATIONS=false`, bypass entrypoint, cả mysql/mysql_test và session/cache xác minh đúng DB test trước fixture. Chrome dùng resolver localhost→127.0.0.1 để tránh dịch vụ IPv6 khác tại ::1:8081; không sửa dịch vụ đó hoặc bỏ CSRF. Helper fixture có guard, không endpoint test trong sản phẩm.
+- [x] Đã dọn đúng 3 dữ liệu nghiệp vụ và 5 tài khoản do browser test tạo trên DB test bằng đối chiếu ID/tên/mã lượt. Đã dừng đúng Chrome/Vite preview và 2 container test; 4 container dev vẫn chạy, MySQL healthy. Snapshot dev trước/sau khớp toàn bộ metadata/hash: **13 bảng, 9 migrations, 1 user, không Admin**; 11 migrations Nhóm 2–3 vẫn chưa chạy. Không migration hoặc ghi/xóa dữ liệu dev, không commit/push.
+- Bằng chứng nội bộ đã gitignore: `backups/catalog-sprint-20261023/` (JSON kết quả 16 ca, ảnh mobile, snapshots, runtime logs; fixture chứa thông tin test không đưa vào Git). Harness tái chạy: `frontend/tests/catalog.browser.mjs`; chỉ chạy sau xác minh môi trường test và dựng fixture mới.
+- **Còn thiếu:** dịch vụ/settings/giá/gán tiện nghi, public room API/ảnh, chuyển trạng thái và các module khác. CAT/ROOM hiện chỉ là lát cắt cơ bản, không đánh dấu cả CAT/ROOM hay Full MVP hoàn tất. Chưa có phê duyệt migrations Nhóm 2–3 dev; P4–P8 chưa duyệt theo trả lời mới, không triển khai ALTER đó.
+- **Tiếp theo:** CAT-02b/03b phần dịch vụ/settings đủ quy tắc; chỉ hoãn đúng trường/quyền còn thiếu theo §12.2/brief §14.2. Khi cần schema dev, chuẩn bị danh sách migration cụ thể + backup/restore/pretend để duyệt riêng; không tự chạy. Lịch 7 ngày phụ thuộc giải quyết đúng các blocker thật, không biến thành vòng khảo sát lại.
+
+Chi tiết file/hàm/luồng dữ liệu và câu hỏi bảo vệ: [PROJECT_STATUS_AND_LEARNING.md](PROJECT_STATUS_AND_LEARNING.md) §11.13. Kết quả 227/1267 và browser Auth 17/7 ở §9–10 vẫn giữ đúng mốc lịch sử; không cộng vào 16 ca mới.
+
+### 12.4. CAT-02b/03b — nhóm tiếp theo 23/10
+
+Theo brief §18: CAT-02b.1 API dịch vụ + seeder hệ thống/settings đọc; CAT-02b.2 giá điện nước GET/POST; CAT-02b.3 PUT2khóa ngày đã duyệt; CAT-03b.1/2 nối ADM-07/08 hiện có. CAT-02b.1/2/3 Đã kiểm thử; CAT-03b.1/2 Đã tích hợp trên DB test cô lập (12/12 ca browser PASS). Không suy ra đã chạy trên dev. Chưa thêm màn hình Cài đặt. CAT-D01/DB-D54 vừa được duyệt: thêm API PUT riêng hai khóa số ngày1–365; các khóa khác vẫn chỉ đọc. Không sửa code/schema Thanh lý P4–P8, không chạy migration/seeder dev.
+
+Phân việc không trùng file: Backend sở hữu class/requests/resource/policy/seeder mới; Frontend sở hữu features/services + utility-prices và 2 trang tương ứng; tests sở hữu bộ Feature/Node tests mới; agent chính tích hợp routes/banner, kiểm thử tập trung và lập phương án dev/checkpoint ở DB plan. Không tạo Plan/Spec song song, commit/push hoặc thay dependency.
+
+### 12.5. Checkpoint Git đề xuất — chưa stage/commit/push
+
+HEAD đã kiểm tra `f485050`; các thay đổi Auth/email/Admin/CAT/ROOM và tài liệu vẫn chưa commit. Migrations Nhóm 2 đã có commit từ trước, việc áp dụng dev là tác vụ vận hành riêng, không cần tạo/sửa lại migration hoặc đưa P4–P8 vào checkpoint.
+
+| Thứ tự | Checkpoint đề xuất | File/phụ thuộc cần gom và bằng chứng |
+|---|---|---|
+| 1 | `feat: cho phép tài khoản không có email` | Migration email nullable mới + GroupOneSchema/OptionalUserEmailMigrationTest + hunk quyết định/schema tương ứng; không sửa các migration cũ |
+| 2 | `feat: tạo quản trị viên bằng Artisan` | Console/CreateAdminCommand, AuthIdentity/PasswordRules cần dùng, Console tests; Admin bắt buộc email chưa tự xác minh. Các file hỗ trợ shared giữ một chủ sở hữu, checkpoint sau không tạo bản sao |
+| 3 | `feat: xác thực phiên và phân quyền bằng Sanctum` | Backend Auth Request/Controller/Resource/Service, middleware, Provider/bootstrap/routes **hunk Auth**, Auth tests/Support; depends1–2. Không stage toàn routes vì có CAT/ROOM |
+| 4 | `feat: kết nối giao diện xác thực với API` | Feature auth, router/App/layout/navbar/public login/register/account/mocks README, test Auth + npm test script phù hợp lúc đó; depends3 |
+| 5 | `feat: quản lý tòa nhà tiện nghi và phòng cơ bản` | Backend 3 resource + policies/requests/services/MaxTextBytes/NotBoolean + CAT/ROOM tests, hunk routes/bootstrap liên quan; frontend3features/5pages/apiErrors/textLimits/layout/test CAT; depends3–4. Có thể tách Backend/Frontend nếu muốn checkpoint nhỏ, luôn giữ import/test khớp file đã stage |
+| 6 | `feat: quản lý danh mục dịch vụ và bảng giá điện nước` | CAT-B API/seeder/settings đọc8khóa+PUT2khóa ngày đã duyệt +2features/2pages/test/hunk routes/banner; depends5. Chỉ đề xuất commit sau kiểm thử mới ghi ở §12.4; không lấy 428/19/16 cũ làm bằng chứng cho code mới |
+| 7 | `docs: cập nhật tiến độ Sprint và biên bản Nhóm 2` | Plan/brief/learning/inventory/README/AGENTS và DB plan §17–18; hunks của quyết định Auth đã chốt nên đi cùng checkpoint1–4 khi phù hợp |
+| 8 | `feat: gán tiện nghi cấp tòa và phòng` | API/Request/Service/Resource, feature amenity-assignment, hai trang chi tiết, tests và hunk route/CAT-D02; phụ thuộc checkpoint 5. Bằng chứng mới §12.7; chỉ đề xuất, chưa stage/commit |
+| 9 | `feat: xem danh sách và hồ sơ tài khoản` | USR read Controller/Request/Service/Policy/2Resource, 2route, user-management feature/2pages/layoutbanner và tests; bản đồ code/Spec§20/Plan§12.8. Backend699/5053 +frontend39 +browserUSR16 PASS. Quy tắc học code có thể tách docs; chưa stage/commit |
+
+Trước commit sau này: chọn file/hunk có chủ đích, xem diff staged, chạy checks theo AGENTS trên trạng thái checkpoint; không `git add .`. Không đưa `.env`, backups/fixtures/ảnh test có dữ liệu, dist/vendor/node_modules/log, `.claude/` hoặc các prototype cũ vào commit công việc này. Không giả định untracked đồng nghĩa file rác, không tự xóa chúng. Những checkpoint trên là đề xuất, không quyền tự commit/push.
+
+### 12.6. Kiểm chứng CAT-B mới trong lượt tiếp tục
+
+- Backend toàn bộ **572 test / 4134 assertion PASS** sau bổ sung CAT-D01/DB-D54; Pint PASS164file. Guard7/7 và TestEnvironment6/14 đã kiểm tra trước. Tất cả testDB chỉ mysql_test/mini_apartment_test/accounttest, không thay guard hoặc phpunit. Bản555/3932 trước thêm SettingsDays là trung gian; 428/3080 thuộc nhóm trước.
+- Frontend **27 test PASS**, build PASS; lint0lỗi/9cảnh báo có sẵn, bundle vẫn cảnh báo>500kB. Chưa dependencies/màn hình mới.
+- Ma trận browser riêng CATB01–12: 401; tạo/validate/F5/sửa/duplicate dịch vụ; khóa giá metered; thêm giá đúngngày01/F5/lọc/duplicate; Backend403 thật; offline; Settings365/0; mobile390px. Lượt đầu5caPASS rồi harness timeout vì Input.insertText không điền được input date, đã tái hiện ô rỗng và sửa riêng harness; không sửa sản phẩm/giảmvalidation. Lượt cuối **12/12 ca PASS** trên DB test cô lập qua Chrome/Nginx8081, không runtime exception. Harness đã thêm chờ dropdown sẵn sàng; không sửa sản phẩm để vượt test. Ảnh services-mobile/utility-prices-mobile được xem trực tiếp, bảng cuộn trong khung, không tràn trang.
+- Migration dev: chỉ đề xuất cụ thể Nhóm2 ở DBplan§17 (7file200006–200012), chưa chạy migration/pretend/seeder hoặc tạo Admin. DBcharset/collation utf8mb4/utf8mb4_unicode_ci; không gộp Nhóm3/P4–P8. Backup/restore mới là kế hoạch sau phê duyệt, chưa tuyên bố đã thực hiện.
+- Checkpoint commit đề xuất §12.5; index chưa stage, HEADf485050, không commit/push. Còn gán tiện nghi, màn hình Settings và các thao tác ngoài lát cắt; hai khóa số ngày đã CONFIRMED1–365, không hỏi lại. Chi tiết file/luồng/hàm/câu hỏi học tập ở §11.14 của tài liệu học tập.
+
+**Kết thúc lượt CAT-B:** source/API/UI/test/docs đã cập nhật. Đã dọn đúng dữ liệu browser test theo ID/key/mã lượt, dừng Chrome/Vite preview và2container test; 4container dev giữ chạy, MySQL healthy. Snapshot dev trước/sau khớp toàn bộ metadata/hash/migrations:13bảng/9migrations/1khách, không Admin; RUN_MIGRATIONS=false. Không migration/seed/ghi hoặc xóa dev, không stage/commit/push. Kết quả572/4134 +27 +12 là bằng chứng mới; 428/3080 +19 +16 ở§12.3 giữ lịch sử. Kiểm tra links/fences/diff theo tài liệu.
+
+**Task tiếp theo:** CAT-02b.4/03b.4 — gán tiện nghi cấp tòa/phòng và hiển thị hợp nhất theo DB-D01/DB09§3.5–3.6; dùng2pivot, không sao chép tiện nghi xuống từng phòng, không phát sinh phí. Đọc/ghi phải báo rõ khi dev thiếu schema; không tự migration. Settings màn hình/ghi6trường thông tin còn thiếu chưa làm; hai khóa số ngày đã duyệt không hỏi lại. Phương án Group2 cần chủ dự án duyệt một lần theo DBplan§17; phạm vi7file không kèmGroup3/P4–P8/seeder/Admin.
+
+### 12.7. Nhóm 2 dev và gán tiện nghi — 23/10/2026
+
+| Task | Trạng thái và bằng chứng mới |
+|---|---|
+| DB-G2-DEV | **Đã tích hợp schema dev.** Sau phê duyệt đúng 7 file: backup mới ngoài repo, restore cô lập/đối chiếu, diễn tập và 33 DDL pretend đạt; apply 7 path thành công batch 4. Dev từ 13 bảng/9 migration thành **20 bảng/16 migration**; 7 bảng mới rỗng, cấu trúc và dữ liệu cũ nguyên vẹn, bảng migrations thêm đúng 7 dòng. Nhóm 3 vẫn 4 file pending. Biên bản đầy đủ ở DB plan §18 |
+| CAT-02b.4 | **Đã tích hợp trên DB test cô lập.** GET/PUT gán tiện nghi cấp tòa/phòng, Backend tính hợp không trùng/không sao chép; giữ liên kết lưu trữ. Toàn Backend **650 test/4.667 assertion PASS**, gồm 78 ca mới; Pint **169 file PASS** |
+| CAT-03b.4 | **Đã tích hợp trên DB test cô lập.** Panel trên hai trang chi tiết hiện hữu, giữ Antigravity. **CAT-D02/DB-D55 CONFIRMED:** hiện tiện nghi đã lưu trữ kèm nhãn, chỉ sửa tập hoạt động. Frontend **32 test PASS**, build PASS, lint 0 lỗi/9 cảnh báo cũ. Browser **14/14 ca PASS**, không runtime exception; không dùng kết quả lịch sử thay cho nhóm này |
+
+**Ma trận trình duyệt mới, Chrome/Nginx 8081 + DB/account test riêng:**
+
+| Ca | Kết quả thực chạy |
+|---|---|
+| ASSIGN01 | Anonymous: API trả 401, giao diện yêu cầu đăng nhập — PASS |
+| ASSIGN02 | Admin test đăng nhập, tạo fixture qua API thật — PASS |
+| ASSIGN03 | Gán tiện nghi tòa qua UI; phòng kế thừa, không sao chép pivot — PASS |
+| ASSIGN04 | Tải lại trang giữ lựa chọn tòa; gỡ hết hoạt động, gán lại — PASS |
+| ASSIGN05 | Gán trực tiếp phòng; hợp kế thừa không trùng — PASS |
+| ASSIGN06 | Tải lại trang giữ lựa chọn phòng; PUT thật có XSRF — PASS |
+| ASSIGN07 | Archive thật qua API; có nhãn, không checkbox đã lưu trữ, lưu giữ liên kết — PASS |
+| ASSIGN08 | Gỡ tập hoạt động vẫn giữ liên kết đã lưu trữ cấp tòa/phòng — PASS |
+| ASSIGN09 | Mobile 390 px, nhãn rõ, không tràn ngang; đã xem ảnh — PASS |
+| ASSIGN10 | Mất mạng khi lưu không báo thành công giả; tải lại/thử lại — PASS |
+| ASSIGN11 | Mất mạng khi tải có lỗi và tải lại được — PASS |
+| ASSIGN12 | Tài khoản user bị Laravel chặn 403 ở cả 4 endpoint — PASS |
+| ASSIGN13 | CSRF sai trả 419 thật, tập gán không đổi — PASS |
+| ASSIGN14 | Dừng PUT trước server, archive ID bằng API rồi tiếp tục: 422 thật, lỗi hiện đúng trường; tải lại được — PASS |
+
+Lượt browser đầu timeout trước ca 01 vì localhost IPv6 trỏ ứng dụng khác; xác định test Nginx chỉ bind IPv4. Chạy lại Chrome với `--host-resolver-rules="MAP localhost 127.0.0.1"` và đích IPv4 cho request Node; **không sửa sản phẩm hoặc làm yếu validation**. Lượt cuối 14/14 đạt. Harness tại frontend/tests/amenity-assignment.browser.mjs; artifact/screenshot/log trong backups/amenity-assignment-20261023 đã gitignore. Browser 12 CAT-B, 16 CAT/ROOM, 7 Auth dev trước đó là **lịch sử**, không chạy lại toàn bộ trong lượt này. Race tại browser là thay trạng thái trước khi PUT tới server; Feature test còn kiểm tra ranh giới sau validation, không tuyên bố test hai process gán đồng thời.
+
+**Mức xác minh Docker dev:** localhost:8080 đang chạy; 5 route HTML 200/health 200, protected API 401 (gồm 2 API gán mới). Room/UtilityPrice Service chỉ đọc được danh sách rỗng đúng schema. Chưa kiểm thử CRUD bằng Admin trên dev vì **Admin = 0**, không được tự tạo hoặc giả quyền. ELECTRICITY/WATER chưa seed; thêm giá vẫn cần meter_readings Nhóm 3 để thực thi D33 nên trả 503. Không tự gộp migrations/seeder/Admin ngoài phạm vi.
+
+**Git và phạm vi:** giữ công việc Auth/CAT/ROOM chưa commit; không sửa 7 migration đã commit, không stage/commit/push. Checkpoint đề xuất ở §12.5 có thêm nhóm gán tiện nghi, chưa thực hiện. Học tập: §11.15–11.16.
+
+**Tiếp theo:** lát cắt USR-01/02a/03a danh sách/chi tiết tài khoản chỉ đọc cho Admin, tận dụng ADM-09/10 hiện có và thiết kế §3.1; không tạo trang mới. Tách cấp nhân viên/khóa tài khoản/nhập pháp lý khỏi lát cắt đọc; chỉ hỏi quyết định thực sự thiếu ở thao tác phụ thuộc, không lấy P4–P8 hoặc Q6/Q14 chặn việc đọc độc lập. Vận hành dev với Admin/seeder là phạm vi riêng, chưa được phép trong lượt này.
+
+
+**Đóng lượt kiểm thử:** dọn đúng fixture trên DB/account test đã xác minh lại: 2 phòng, 3 tiện nghi, 1 tòa, 5 tài khoản cùng liên kết/phiên của lượt; schema test vẫn 24 bảng. Đóng Chrome/Vite riêng và dừng đúng 2 container test, giữ 4 container dev chạy/MySQL healthy. Snapshot dev cuối `after-browser.json` trong thư mục backup Group 2 khớp toàn bộ nội dung JSON với `after.json`: 20 bảng, 16 migration, dữ liệu không đổi thêm sau apply. So sánh chuỗi ban đầu khác do CRLF/LF; chuẩn hóa xuống dòng và đối chiếu từng phần JSON đều khớp, không phải thay đổi dữ liệu. RUN_MIGRATIONS=false, hash 7 migration nguồn không đổi. Kiểm tra Markdown/link/code fences và git diff --check đạt; không stage/commit/push.
+
+
+### 12.8. USR-A — tiếp tục module độc lập
+
+| Task | Phạm vi | Trạng thái |
+|---|---|---|
+| USR-01a | Pin lát cắt đọc từ ADM-09/10 và DB09 §3.1 tại brief §20; thêm quy tắc hướng dẫn code thật vào AGENTS §3.2 | Đã kiểm thử tài liệu — file/line/API/links/fences/diff đã kiểm tra |
+| USR-02a | GET users/list/detail, FormRequest/Policy/Service/Resource, Feature tests; không API ghi | Đã kiểm thử — toàn Backend 699 test/5.053 assertion, Pint176 file PASS |
+| USR-03a | Nối hai trang hiện hữu API thật, filter/search/pagination/detail và bỏ thao tác giả; tests | Đã tích hợp trên DB test cô lập — frontend39 test/build/lint và browser16/16 PASS |
+| USR-04a | Kiểm thử Nginx/browser DB test cô lập; cập nhật bản đồ code ngắn | Đã kiểm thử — browser16/16 PASS, 0 runtime exception; learning §11.17 |
+
+Nguồn/AC tại brief §20. Phân công theo file: Backend API riêng, React feature/pages riêng, tests riêng; root quản lý route/glue/tài liệu và kiểm tra hợp nhất. Không ghi đè thay đổi Auth/CAT/ROOM, không migration/seed/Admin hoặc ghi dev, không commit/push. Kết quả 650/4667 +32 +14 trước đó là lịch sử cho đến khi có lượt kiểm tra mới.
+
+
+**Ma trận browser USR-A trước khi chạy:** anonymous/Backend403/locked; list và pagination20+; tìm tên/email/SĐT và ký tự literal; kết hợp role/status/đang thuê; detail đúng ID/NULL/hồ sơ pháp lý/đang thuê thật, F5; ID thiếu404 không fallback; lỗi mạng và retry; mobile390px/bảng cuộn; không có nút hoặc API ghi giả. Fixture chỉ DB/account test, chờ Backend suite hoàn tất trước setup. Kết quả từng ca sẽ ghi sau thực chạy; không lấy browser14 gán tiện nghi làm bằng chứng USR.
+
+
+**Cập nhật quyết định USR ghi:** email/mật khẩu/bàn giao nhân viên đã được duyệt DB-D56/USR-D01, xem §12.9; không còn là blocker. Phạm vi khóa đã được chốt tiếp bằng DB-D57/USR-D02: chỉ tài khoản khôngAdmin, xem§12.10; không còn blocker này. Hồ sơ chỉ chờ đúng phạm vi trường/quy trình, không chặn khóa/mở khóa; P4–P8 không liên quan.
+
+
+**Bằng chứng mới USR-A:** toàn Backend **699 test/5.053 assertion PASS** (49 ca mới), Pint **176 file PASS**; frontend **39 test PASS** (7 ca mới), build PASS, lint 0 lỗi/9 cảnh báo có sẵn. Frontend đã sửa kiểu created_at nullable theo schema và hiển thị thông tin thiếu, không tạo ngày giả; lượt build/test/lint và browser cuối dùng bản đã sửa.
+
+**Browser USR01–16: 16/16 PASS, 0 runtime exception** qua Chrome/Nginx 8081, DB/account test riêng: anonymous401/guard; list20 dòng/resource chỉ đọc; 23 fixture phân trang20/3; AND role/status/đang thuê + reset trang; resident đã thanh lý không đang thuê; xóa lọc; tìm tên/email/SĐT/%/_/backslash literal; validation191/không kết quả; detail pháp lý đúng Admin và không có ở list/me; F5 nhận đúng API/ID; 404 không fallback; mobile390px/bảng cuộn trong khung; Backend403 và guard; offline list/retry; offline detail/retry; mọi request user chỉ GET. Locked và thiếu schema còn có Feature tests trong full suite, không tuyên bố đã có browser riêng cho mọi ca đó. Đã xem ảnh desktop/mobile, giữ Antigravity. Harness frontend/tests/user-management.browser.mjs; browser artifacts backups/user-management-20261023; logs full suite backups/usr-read-20261023, đều gitignore.
+
+Lượt browser đầu timeout trước ca01, chưa có đủ metadata để kết luận nguyên nhân. Đã giữ report đầu riêng; profile mới được xác minh Document/Script200 từ127.0.0.1, rootReact có thật và đúng asset mới trước khi chạy lại 16ca đạt. Không sửa sản phẩm hoặc làm yếu validation vì timeout. Không quy kết nguyên nhân IPv6 của lượt trước sang lượt này khi chưa có chứng cứ.
+
+**Dev chỉ đọc mới:** mở lại 4 container cũ sau khi xác minh RUN_MIGRATIONS=false cả Compose và container; không recreate, không migrate. GET /api/v1/users và /users/999999 trả401; HTML /admin/users trả200. Chưa Admin dev nên không tuyên bố đã thao tác quản trị thật trên8080. Snapshot/cleanup cuối ghi bổ sung sau đối chiếu; 650/4667 +32 +14 ở§12.7 là lịch sử, không cộng browser14 thành caUSR.
+
+
+**Đóng lượt USR-A:** cleanup đã xác minh lại guard/SQL/session:23USR users+2contracts/1room/1building và5Auth accounts cùng phiên của đúng lượt đã dọn trên DB test; schema test24 bảng không đổi. Đóng Chrome/Vite riêng, dừng2container test, giữ4container dev/MySQL healthy. Snapshot dev-before/dev-after khớp **mọi phần JSON**:20bảng/16migration/1khách, cấu trúc và hash dữ liệu không đổi. migrate:status chỉ đọc xác nhận4file Nhóm3 vẫn pending; RUN_MIGRATIONS=false. Không chạy migration/seeder/Admin hoặc ghi/xóa dev; không stage/commit/push. Còn thiếu đúng nhánh USR ghi đang hỏi, không đánh dấu cả moduleUSR hoàn tất.
+
+
+### 12.9. USR-B — cấp nhân viên theo phê duyệt mới
+
+DB-D56/USR-D01 đã CONFIRMED (email tùy chọn, Admin nhập ẩn+xác nhận mật khẩu và bàn giao thủ công); không hỏi lại gói này. Tại mốc USR-B lựa chọn khóa còn chờ; nay đã duyệt DB-D57/USR-D02, triển khai§12.10. Spec/API/AC tại brief§21; không schema/dev migration/seed/Admin hoặc dữ liệu dev, không commit/push.
+
+| Task | Phạm vi | Trạng thái |
+|---|---|---|
+| USR-02b | POST users với Request/Policy/Service, tạo đúng technician/guard và không đổi phiên; tests | Đã kiểm thử — toàn Backend 771 test/5.806 assertion, Pint179 file PASS |
+| USR-03b | Modal cấp nhân viên tại trang danh sách hiện có, xử lý lỗi/reset mật khẩu/refresh thật | Đã tích hợp trên DB test cô lập — frontend46/build/lint và browser14 ca PASS, mức bằng chứng bên dưới |
+| USR-04b | Auto tests + browser cô lập, cập nhật bản đồ code ngắn | Đã kiểm thử — Backend771/5806, frontend46, browser14 ca; học tập §11.18 |
+
+Các kết quả 699/5053 +39 +browserUSR16 là lịch sử của USR-A, không tính là kiểm thử chức năng tạo mới.
+
+
+**Ma trận browser USR-B trước khi chạy:** Admin mở modal tại danh sách; 2 lựa chọn vai trò và password luôn ẩn; validation/confirmation; hủy mở lại không giữ mật khẩu; tạo technician không email và guard có email chuẩn hóa, 201+GET refresh thật; /me vẫnAdmin, nhân viên đăng nhập được ở context khác và bị403APIAdmin; duplicate422/không nâng quyền tài khoản cũ; inputroleAdmin/directPOST bị422; CSRF419; lỗi mạng không thành công giả/thử lại; bận thì không đóng/gửi lặp; mobile/modal cuộn và không tràn; UI/storage/URL/response không chứa mật khẩu; 404/list read hồi quy. Chỉ ghiPASS theo ca thực chạy trên DB test, chưa setup fixture khi fullsuite đang chạy.
+
+**Test USR-A được cập nhật đúng thay đổi đã duyệt:** trước đây POST/users chưa có nên assert405. Sau USR-D01, giữ kiểm tra GET không ghi và PUT/PATCH/DELETE không mở; POST roleadmin giờ phải422 (không được cấpAdmin), vẫn đối chiếu tài khoản/hợp đồng không đổi. Không bỏ kiểm thử bảo vệ hoặc làm yếu quyền.
+
+
+**Bằng chứng mới USR-B (23/10):** toàn Backend **771 test/5.806 assertion PASS** (72 ca mới), Pint179 file PASS. Frontend **46 test PASS** (7 ca mới), build PASS (asset index-CAYj2kHN.js), lint0 lỗi/9 cảnh báo cũ; không thêm package. Guards DB-D30/phpunit không đổi, preflight xác minh mysql_test/mini_apartment_test/mini_apartment_test@% và tài khoản test không đọc được dev. Các mốc699/5053 +39 +browserUSR-A16 là lịch sử, không dùng thay cho USR-B.
+
+**Browser14 ca PASS trên Nginx8081/DB test, 0 runtime exception:** STAFF01 anonymousPOST401; 02 modal2vai trò/passwordẩn; 03 confirmation sai khôngPOST; 04 hủy/mở lại xóa mật khẩu; 05 technicianNULLemail/+84về0/201/GETrefresh; 06 giữ phiênAdmin/F5/detailthật; 07 guard/emailchuẩn hóa; 08 duplicateemail422; 09 duplicatephone422/khôngnângquyền; 10 roleAdmin422/cross-siteCSRF419/khôngghi; 11 staffmới đăngnhập ở cookiejar riêng và bị403APIAdmin; 12 offlinekhôngthànhcônggiả/thửlại; 13 giữPOSTđangbay, chặnđóng/gửilặp, chỉ1lần201; 14 mobile390×844 vừa khung,390×667cuộn tới nút thao tác, không tràn/không lộ mật khẩu trong text/storage/URL, hủy xóa state. Đã xem ảnh desktop/mobile. **13ca từ lượt chính, ca14 chạy lại riêng**, cùng build; không tuyên bố14ca trong một lượt. Harness frontend/tests/staff-user.browser.mjs; browser-summary.json và báo cáo từng lượt trong backups/staff-create-20261023 (gitignore).
+
+**Lỗi được giữ bằng chứng và xử lý:** routePOST ban đầu đặt nhầm nhóm/auth làm72ca405; đã chuyển đúng nhómAdmin và thêm test URI/middleware/không mở auth/users. 37ca so sánh model factory với dữ liệu SQL thiếu các cộtNULL mặc định: đổi baseline sang đọc từ SQL, vẫn so toàn bộ giá trị. Browser đầu giả định token sai từ same-origin luôn419 không đúng Laravel13; đổi request giả mạo cross-site theo PreventRequestForgery, không sửa bảo mật sản phẩm. Lượt tiếp kiểm tra GET trước khi hoàn tất: chờ danh sách thực nhận dữ liệu. Mobile ban đầu đòi form luôn cuộn dù615px vừa khung: kiểm tra đúng cả màn cao và màn ngắn. Không bỏ test hoặc làm yếu quyền/validation.
+
+**File của lát cắt:** Backend: StoreStaffUserRequest mới; AdminUserController/AdminUserService/UserPolicy/routes bổ sung POST; StaffUserCreateTest mới, AdminUserReadTest cập nhật đúng contract mới; StaffBrowserCleanup chỉ CLI DBtest. React: StaffUserForm mới, user-management api/schema/AdminUsersPage và thông báo AdminUserDetailPage; accountSchemas dùng chung với auth/schemas; tests staff-user.test.mjs và staff-user.browser.mjs. Spec/quyết định/tiến độ/bản đồ code cập nhật trong các file đang sở hữu nội dung; không tạo Spec khác, migration, Model/Enum hoặc màn hình mới. Giữ toàn bộ công việc Auth/CAT/ROOM có sẵn.
+
+**Dev chỉ đọc:** health200, HTML/admin/users200 khi Accept:text/html, API/users401 không đăng nhập. Request HTML với Accept:application/json ban đầu404 do SPA fallback của Vite; headerHTML đúng200, không phải lỗi route sản phẩm. RUN_MIGRATIONS=false; snapshot dev-before-resume/dev-after khớp cả12phần JSON (schema/columns/indexes/constraints/FK/objects/migrations/count/hash/create table…),20bảng/16migration/1khách/0Admin. Nhóm3 đúng4file300013–300016 vẫn pending. Không migrate/seed/Admin/nhânviên hoặc xóa dev. Chưa kiểm chứng quản trị trên8080 vì không được tự tạoAdmin.
+
+**Checkpoint10 đề xuất, chưa thực hiện:** `feat: cấp tài khoản kỹ thuật viên và bảo vệ`; tách đúng hunk/file USR-B kể trên, phụ thuộc checkpoint9/2/3, kèm DB-D56/brief§21/learning§11.18 và test. Không stage/commit/push. **Tiếp theo:** nhánh khóa/mở khóaUSR đã duyệt riêng DB-D57/USR-D02 và tiếp tục tại§12.10; cấpnhânviên không còn blocker. Các phần LEASE/ROOMcôngkhai/VIEW độc lập tiếp tục theo Plan khi đủ quyết định riêng; P4–P8 không chặnCAT/USR, chưa duyệt/chạyNhóm3dev. Không tự coi việc duyệt cấpnhânviên là duyệt khóaAdmin, tạoAdmindev hoặc seeder.
+
+**Đóng lượt USR-B:** xác minh lại DB/account test rồi dọn đúng4STAFF +5Auth fixture và phiên gắn tài khoản của lượt cuối; hai lượt lỗi trước cũng dọn đúng3/4STAFF+5Auth tương ứng. Không resetDB hoặc xóa dữ liệu dev. Đóng Chrome riêng, dừng đúng preview5175 và2container test; giữ4container dev/MySQLhealthy. Lint cuối0lỗi/9cảnh báo cũ, diff--check đạt. Mọi backup/fixture/report nằm dưới backups/ đã gitignore; không stage/commit/push. Snapshot dev khớp12phần và4fileNhóm3pending đã được kiểm tra thực tế, không suy từ tài liệu.
+
+### 12.10. USR-C — khóa/mở khóa đã duyệt
+
+DB-D57/USR-D02 CONFIRMED phương án A. Spec/HTTP/AC tại brief§22; không hỏi lại phạm vi này. Hồ sơ tách riêng; chỉ sửa họ tên đã được duyệt DB-D58/USR-D03 và tiếp tục§12.11, không mở các trường khác. Không schema/migrate/ghi/xóa dev/Admin/seeder/commit/push; giữ thay đổi USR-A/B/Auth/CAT/ROOM.
+
+| Task | Phạm vi | Trạng thái |
+|---|---|---|
+| USR-02c | PATCH users/{user}/status; Policy, Request, transaction/row lock, tests quyền/lịch sử/phiên | Đã kiểm thử: 819/6402 +Pint181, sau đó hồi quy cùng họ tên |
+| USR-03c | Nút+modal xác nhận ADM-10, lỗi thật/GET refresh, không màn hình mới | Đã tích hợp DB test: browser13/13 trên buildCKr0QSXf; hồi quy thêm sau họ tên |
+| USR-04c | Tests/build/lint/Pint/browser cô lập và bản đồ code | Đã kiểm thử: 48ca mới, frontend49/browser13 PASS; bản đồ§11.19, mốc trước tích hợp họ tên |
+| USR-05 | Lát cắt sửa hồ sơ | Đã duyệt duy nhất full_name (DB-D58), triển khai02d–04d; SĐT/email/mật khẩu/pháp lý chưa mở |
+
+Mốc771/5806+46+browserUSR-B14 là lịch sử cho đến khi chạy kiểm thử mới. Ma trận browser trước chạy: lock/unlock cả4roles; hủy/giữphiênAdmin; targetphiêncũ403→401, lockedlogin403/unlocklogin200; targetAdmin/self/noUI/403; directnonadmin403; invalid422/CSRF419; F5/listthật; offline/retry; pendingchặnđóng/gửilặp; mobile390px/actionsvisible. Fixture chỉDB/account test đã guard, không dùng Admin dev.
+
+
+### 12.11. USR-D — họ tên đã được duyệt trong lúc kiểm thử USR-C
+
+DB-D58/USR-D03 CONFIRMED, brief§23; không hỏi lại phạm vi họ tên. USR-05 đã gỡ blocker cho đúng1trường, còn SĐT/email/mật khẩu/pháp lý không mở. BrowserUSR-C đang dùng buildCKr0QSXf, không rebuild dist hoặc chạy DBsuite/xóa fixture khi lượt đó chưa kết thúc; sau cleanup mới chạy testDB mới và build/tích hợp họ tên.
+
+| Task | Phạm vi | Trạng thái |
+|---|---|---|
+| USR-02d | PATCH users/{user} chỉ full_name, Policy/Request/transaction/tests | Đã kiểm thử: toàn Backend867/6970, Pint183file PASS |
+| USR-03d | Modal1trường trênADM-10; refreshdetail/me khi sửa chính mình | Đã tích hợp DBtest: browser12/12 trênCldKYjey, frontend52/build/lint PASS |
+| USR-04d | Auto/browser DBtest, kiểm tra lại status sau tích hợp, cập nhật học tập | Đã kiểm thử: Backend867/6970/Pint183, frontend52, browser12/12 +status13/13; bản đồ§11.19–20 |
+
+Browser trước chạy: form chỉ họ tên; hủy/validation; sửa têntrim/GETrefresh/F5/list; payloadrole/status bị422/nonAdmin403; tựsửa tênAdmin/me/navbar; offline/retry/busy; mobile; regressionkhóa/mởkhóa vẫn cấmAdmin. Bằng chứng819/6402 +49 trước đó chỉ cho USR-C, chưa bao gồm họ tên.
+
+
+
+**Bằng chứng USR-C đã hoàn tất trước USR-D:** 819test/6402assertion Backend, Pint181file, frontend49/build/lint PASS; 13/13browser trên Nginx8081/DBtest, buildCKr0QSXf,0runtimeexception. Đủ cả4roles lock/unlock; cookieResident trước khóa403→401, lockedlogin403/unlocklogin200; Admin/self không nút và403API; nonadmin403, protected422/CSRF419/404; F5 chờ GETmới, liststatus thật, offline/retry, pendingchặnđóng/gửilặp, mobile390×667. Đã xem ảnh desktop/mobile, dọn đúng5Auth fixture trước chạy suite họ tên. Đây là bằng chứng lịch sử của buildC, không dùng thay cho browserhọ tên.
+
+**Tự động bản tích hợp USR-C/D mới 24/10:** toàn Backend867test/6970assertion PASS (thêm48ca status+48ca name so với771), Pint183file PASS; frontend52test PASS (46+3status+3name), buildPASS/CldKYjey, lint0lỗi/9cảnhbáocũ. Sandbox từng chặn Node spawnEPERM trước test, đã chạy lại với quyền tiến trình con; không sửa sản phẩm, bỏ test hoặc giảm validation. Test đọc cũ chỉ đổi kỳ vọng PATCH/users/{id} từ405 sang422 với payloadrole/status theo APIhọ tên mới, vẫn so toàn bộ dữ liệu cũ không đổi; PUT/DELETE vẫn405.
+
+
+**Browser USR-D 12/12 PASS,0runtimeexception**, Nginx8081/MySQLtest, buildCldKYjey: NAME01anonymous401;02chỉtrườngtên/điềnsẵn/hủykhôngPATCH;03rỗng/121ký tựkhônggửi;04trim/lưu/GETrefresh/F5/tra têntronglist/giữhồsơ;05fieldscấm422/CSRFcross-site419/404;06cả4nonAdmin403;07Admin tựsửa tên→/me/navbar mới, vẫnkhôngkhóachínhmình;08offlinekhôngghi/thửlại;09giữPATCHđangbay/chặnđóng/gửilặp;10mobile390×667/actionsvisible;11hồi quylock/unlock sauđổi tên,rolekhôngđổi;12response tối thiểu/nohash/legal/runtime. Đã xem ảnhdesktop/mobile. Harness bổ sung chờ bộlọc trả đúng1dòng trướcassert để tránh đọc bảng trướcGET xong; không sửa sản phẩm hoặc giảmassert. 13caStatus trước dùngCKr0QSXf,12caName dùngCldKYjey; không gộp thành25ca cùngbuild. Bản cuối có hồi quyStatus quaNAME11 vàfullBackend867.
+
+**File của USR-C/D:** Backend thêm UpdateUserStatusRequest/UpdateUserNameRequest, UserStatusTest/UserNameTest; sửa UserPolicy, AdminUserService, AdminUserController, routes và kỳ vọng PATCH của AdminUserReadTest. React thêm UserStatusAction/UserNameForm, schema/API, ghép AdminUserDetailPage + thông báo AdminUsersPage; tests user-status/user-name (unit+browser). Không sửa UserModel/Enum/AuthService/EnsureActiveAccount hoặc schema. DB-D57/58, brief§22/23, AuthSpec/Plan/học tập và các mục tiến độ có sẵn được đồng bộ. Giữ mọi thay đổiAuth/CAT/ROOM/USR-A/B chưacommit.
+
+**Dev/cleanup:** snapshot dev-before(USR-C)/dev-after(USR-D) khớp cả12phần JSON gồm schema/columns/indexes/FK/constraints/objects/migrations/count/hash/create table:20bảng/16migration, không thay dữ liệu. RUN_MIGRATIONS=false;300013/300014/300015/300016 vẫnpending. Xác minh guard vàSQLidentity trước mỗi fixture/test/cleanup; tài khoản test bị từ chối đọc dev. Dọn đúng5fixtureUSR-C trước suiteName và đúng5fixtureName sau kiểm thử (đổi tên vẫn giữ prefixrun+SĐTfixture), không resetDB. ĐóngChrome/Vite5175 và dừng2container test, giữ4container dev/MySQLhealthy. Chưa thao tácquảntrị trêndev8080 vìchưaAdmin; không tựtạoAdmin/seed/migrate/ghi/xóa dev/stage/commit/push. Artifacts/logs dưới backups/user-status-20261023 và backups/user-name-20261024 đãgitignore, khôngin credentials.
+
+**Checkpoint đề xuất, chưa thực hiện:**11`feat: khóa và mở khóa tài khoản không phải quản trị viên` (C),12`feat: cập nhật họ tên tài khoản` (D), tách hunk chungController/Service/Policy/routes/page/API/schema theo phụ thuộc9–10. Cảhai cótest/Spec/Plan/bảnđồcode; không stage/commit/push. **Cần quyết định:** không còn cho hai lát cắtUSR đã giao; SĐT/email/password/pháp lý giữ chỉđọc, không tựmở. **Tiếp theo:** các lát cắtMVP còn lại theoPlan; không dùngP4–P8chặnmoduleđộc lập, không tựduyệt tiền/quyền/schema. USR hiện hoàn thành đúng các lát cắtđãduyệt, không tuyên bố đã có mọi nghiệp vụ hồ sơ/lịch sử.
+
+### 12.12. Checkpoint và tiếp tục Hợp đồng — 24/10/2026
+
+Chủ dự án đã cho phép **local commit có chọn lọc**, không push; yêu cầu này thay thế giới hạn chưa commit của các lượt trước. Rà soát 179 file chính thức thay đổi (35 tracked, 144 untracked): không phát hiện secrets, SQL dump hoặc runtime artifacts trong nhóm này. `.env`, backup, fixture JSON, build/dependencies/log đã ignore. `.claude/`, `public-ui-concept/`, `ui-antigravity-full/` chưa xác nhận nguồn/phạm vi nên giữ nguyên ngoài checkpoint.
+
+Kiểm tra **mới trước checkpoint**: MySQL test preflight đúng connection/database/account riêng và bị từ chối đọc dev; Backend **867 test/6.970 assertion PASS**, Pint **183 file PASS**; frontend **52 test PASS**, build PASS (`CldKYjey`), lint 0 lỗi/9 cảnh báo cũ. Browser USR/Auth/CAT ở các mục trên là lịch sử, chưa chạy lại trong lượt này. Logs dưới `backups/checkpoint-ctr-20261024/` (gitignore).
+
+Chia checkpoint: (1) ALTER email nullable + tests; (2) Backend Auth/CAT/ROOM/USR + tests và system seeder chưa chạy dev; (3) React tích hợp + test source; (4) Spec/Plan/học tập/quy tắc. Backend dùng chung routes/provider nên lưu nguyên nhóm tương thích thay vì tách hunk tạo commit thiếu lớp phụ thuộc. Kiểm tra từng staged manifest/diff/secrets trước commit; hash thực tế bổ sung sau khi thành công.
+
+Đã tạo local checkpoint `ff5888a` (nullable) và `9151d49` (Backend); commit React theo ngay sau. Staged diff phát hiện 5 browser harness có dòng trống dư cuối file: chỉ bỏ dòng dư, chạy lại **52 frontend test PASS**; không thay logic sản phẩm/test. Không đưa ba thư mục ngoài phạm vi vào index. Không push.
+
+Docker dev bốn container đang chạy, `RUN_MIGRATIONS=false`, `app:create-admin` đã đăng ký. Chủ dự án tự nhập thông tin bằng `docker compose exec app php artisan app:create-admin`, không gửi mật khẩu qua chat. Chưa có bằng chứng Admin dev đã được tạo/đăng nhập; tiếp tục phần Hợp đồng độc lập, không tự tạo tài khoản hoặc dữ liệu demo.
+
+Hợp đồng dùng task **LEASE** hiện có (CTR trong yêu cầu mới là cùng module). Tiếp tục danh sách/chi tiết và CRUD **nháp** theo DB09 §3.8, brief §8.1 và DB plan §14; chưa kích hoạt/thanh lý, dịch vụ thương lượng giá hoặc P4–P8. Không migration/seeder/dev writes. Chi tiết lát cắt và bằng chứng mới sẽ ghi §12.13.

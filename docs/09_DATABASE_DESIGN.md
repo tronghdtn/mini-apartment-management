@@ -1,9 +1,11 @@
 # 09 — DATABASE DESIGN — MINI APARTMENT MANAGEMENT
 
+> **Cập nhật đã duyệt 22/10/2026 — v1.6, DB-D51:** email đăng ký là tùy chọn; schema mục 3.1 và checklist đã cập nhật. Thay đổi được triển khai bằng migration ALTER mới, không sửa migrations đã commit; **đã áp dụng riêng trên DB dev theo phê duyệt bước 3.5**, DB plan §16. Các ghi chép baseline 14/10 bên dưới là lịch sử thiết kế.
+
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | **BASELINE THIẾT KẾ ĐỂ TRIỂN KHAI** — 14/10/2026; **chưa chạy migrations / chưa kiểm thử DB thực tế** |
-| Phiên bản | **1.5** — 14/10/2026: đồng bộ DB-D43..DB-D50 (O7 đảo lại: `end_date` inclusive; O8–O10; bồi thường trước hạn; miễn bồi thường; kiểm tra tài sản; Nhóm 4). Phần cấu trúc lưu chưa chốt: `DATABASE_IMPLEMENTATION_PLAN.md` §14. 1.4 — đồng bộ DB-D39..DB-D42 (O7 `end_date` nửa mở, O8 cột xác nhận chênh chỉ số, O9 thanh lý ngày đầu, Nhóm 3). 1.3 — đồng bộ DB-D31..DB-D38 (O1–O6: ngày bàn giao loại trừ, chênh chỉ số, giá, thiếu chỉ số, vai trò sau thanh lý). 1.2 — đồng bộ DB-D23..DB-D30 (queue, E1–E5, thứ tự khóa, DB test). 1.1 — đồng bộ Q1–Q12 (DB-D11..DB-D22). 1.0 — thay bản thảo 13/10; dùng cho backend Laravel + MySQL 8. Lịch sử: §10 |
+| Trạng thái | Thiết kế đã duyệt; tiến độ triển khai/kiểm thử từng đợt ở `DATABASE_IMPLEMENTATION_PLAN.md`. DB-D51 đã kiểm thử DB test và áp dụng riêng dev (batch 3); Nhóm 2–3 vẫn chỉ test, xem DB plan §16 |
+| Phiên bản | **1.6** — 22/10/2026: DB-D51 (email tùy chọn), giữ baseline DB-D01..DB-D50. Cấu trúc hợp đồng/thanh lý chưa chốt vẫn ở `DATABASE_IMPLEMENTATION_PLAN.md` §14. Lịch sử: §10 |
 | Phạm vi | **21 bảng chính**, 5 actor; một chủ nhà quản lý nhiều tòa nhà, không multi-tenant |
 | Nguồn | `02_SYSTEM_DISCOVERY.md` v0.10 (04/10/2026); quyết định bổ sung 13–14/10/2026 trong `DB_DECISIONS_20261014.md` |
 | Ưu tiên khi xung đột | (1) quyết định mới trong `DB_DECISIONS_20261014.md`; (2) bản thiết kế này; (3) `02_SYSTEM_DISCOVERY.md` v0.10 và các tài liệu `03`–`08` ở các phần không xung đột |
@@ -59,7 +61,7 @@ Các bảng hạ tầng khác do Laravel cần (`migrations`, `cache`, `jobs` ..
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
 | `full_name` | VARCHAR(120) | NN |
-| `email` | VARCHAR(191) | NN, UQ |
+| `email` | VARCHAR(191) | NULL, UQ nếu có (DB-D51, duyệt 22/10/2026) |
 | `phone` | VARCHAR(20) | NN, UQ |
 | `password` | VARCHAR(255) | NN, hash |
 | `role` | VARCHAR(20) | NN, DEF `user`; `user/resident/admin/technician/guard` |
@@ -72,6 +74,10 @@ Các bảng hạ tầng khác do Laravel cần (`migrations`, `cache`, `jobs` ..
 | `remember_token` | VARCHAR(100) | NULL, Laravel standard khi dùng |
 
 Index `(role,status)`. Bảng `users` đã có từ migration framework: thay đổi bằng **migration ALTER mới**, không sửa migration đã chạy (DB-D21). `id_number` **ẩn khỏi serialization mặc định**, chỉ Resource dành cho Admin có quyền mới trả về (DB-D19). Người thuê đại diện là `contracts.user_id`; người ở cùng không bắt buộc có tài khoản. Không xóa tài khoản từng có hợp đồng; khóa thay vì xóa.
+
+**Đăng ký (DB-D51 — CONFIRMED 22/10/2026):** bắt buộc `full_name`, `phone`, `password`; `email` tùy chọn. Không có email thì lưu NULL, không dùng chuỗi rỗng hoặc email giả. MySQL cho nhiều NULL trong UNIQUE email; các email có giá trị vẫn phải duy nhất. UNIQUE và NOT NULL của `phone` không đổi. Backend/React Auth đã tích hợp; Docker dev 8080 kiểm chứng tại Plan §10; Spec và phê duyệt tại [AUTHENTICATION.md](AUTHENTICATION.md).
+
+**Migration và rollback:** `2026_10_22_100001_make_users_email_nullable` chỉ đổi nullability của `users.email`, giữ độ dài 191, UNIQUE và dữ liệu hiện có. `down()` dừng trước ALTER nếu có email NULL, không tự sửa/xóa dữ liệu. Muốn bắt buộc email trở lại cần kế hoạch thu thập email thật, backup và tạm dừng ghi tài khoản khi đổi schema. Migration này đã được duyệt/chạy riêng trên dev ở bước 3.5; không suy ra quyền chạy migrations khác.
 
 ### 3.2 `buildings` (timestamps)
 
@@ -314,6 +320,8 @@ Index `(room_id,preferred_at)`, `(status,preferred_at)`, `(user_id,created_at)`,
 
 `id BIGINT UNSIGNED PK`; `key VARCHAR(191) NN UQ`; `value TEXT NULL`; `type VARCHAR(20) NN` (`string/integer/boolean/json`), `group VARCHAR(50) NN`; không FK trực tiếp. `SettingService` có validation/cache/invalidation. Seed `system.name`, `system.contact_phone`, `system.contact_email`, `bank.name`, `bank.account_number`, `bank.account_holder`, `invoice.due_days=5`, `contract.expiring_warning_days=30` và các khóa khác **chỉ khi thuộc MVP**. Không đưa mật khẩu hay secret vào settings. Trong raw SQL quote `` `group` `` vì từ khóa SQL.
 
+**DB-D54 CONFIRMED 23/10/2026:** hai khóa số ngày nhận số nguyên **1–365**, không nhận0; vẫn lưu TEXT với type integer, không cần migration. GET đọc trực tiếp DB ở lát cắt CAT-B (chưa cache nên không có cache cũ cần invalidation); khi thêm cache phải bảo đảm cập nhật/hủy cache cùng quy trình ghi. Không áp giá trị mới ngược vào dữ liệu hóa đơn/hợp đồng đã phát sinh.
+
 ### 3.21 `sessions` (Laravel database sessions)
 
 Bám migration mặc định Laravel phiên bản đã cài: `id VARCHAR(255) PK`, `user_id BIGINT UNSIGNED NULL`, `ip_address VARCHAR(45) NULL`, `user_agent TEXT NULL`, `payload LONGTEXT NN`, `last_activity INT NN` và index `user_id`, `last_activity`. `SESSION_DRIVER=database`; Sanctum SPA cookie + CSRF; không cần thêm `personal_access_tokens` cho web MVP.
@@ -462,6 +470,9 @@ ALTER TABLE invoices
 | DB-39 | Sửa điều khoản bồi thường sau khi hợp đồng `active` (DB-D47) | Bị chặn; điều khoản giữ nguyên |
 | DB-40 | Miễn bồi thường: (a) điều kiện có trong hợp đồng + căn cứ; (b) điều kiện không có trong hợp đồng hoặc thiếu căn cứ (DB-D48) | (a) phí = 0, lưu người xác nhận/căn cứ; (b) 422 |
 | DB-41 | Thanh lý khi chưa kiểm tra tài sản; kiểm tra "không hư hỏng"; có 2 hạng mục hư hỏng kèm ảnh (DB-D49) | Chưa kiểm tra → 409; không hư hỏng → không có dòng bồi thường tài sản; có hư hỏng → 2 dòng riêng trên `final`, tách khỏi phí trước hạn; cọc đối soát riêng |
+| DB-42 | Tạo tài khoản có email, email NULL và không truyền email (DB-D51) | Email có giá trị được giữ nguyên; nhiều tài khoản có NULL được phép; không sinh email giả/chuỗi rỗng |
+| DB-43 | Hai tài khoản trùng email có giá trị; trùng SĐT kể cả khi email NULL (DB-D51) | UNIQUE chặn bản ghi trùng; email nullable, SĐT vẫn NOT NULL; các chỉ mục giữ nguyên |
+| DB-44 | Rollback email tùy chọn khi (a) không có NULL, (b) còn NULL; migrate lại (DB-D51) | (a) khôi phục NOT NULL, giữ dữ liệu/chỉ mục; (b) dừng rõ lý do, dữ liệu/schema/lịch sử migration không đổi; migrate lại giữ nguyên dữ liệu |
 
 ## 8. Thứ tự migrations và phạm vi giao Claude
 
@@ -484,6 +495,7 @@ ALTER TABLE invoices
 
 | Phiên bản | Ngày | Thay đổi |
 |---|---|---|
+| 1.6 | 22/10/2026 | DB-D51 (CONFIRMED): email đăng ký tùy chọn, `users.email` nullable và giữ UNIQUE; `phone` vẫn NOT NULL UNIQUE. Migration ALTER mới; chặn rollback nếu còn NULL; thêm DB-42..DB-44. Chưa chạy trên DB dev. |
 | 1.0 | 14/10/2026 | Baseline 21 bảng / 5 actor (thay bản thảo 13/10). |
 | 1.5 | 14/10/2026 | Đồng bộ DB-D43..DB-D50: **đảo O7** — `end_date` là ngày cuối được ở (inclusive), đúng hạn `actual_end_date = end_date + 1`; mã thanh lý `on_time`/`early_termination`/`same_day` nhất quán với ngày bàn giao; bồi thường trước hạn 3 loại, tự tính, bất biến; miễn bồi thường theo điều kiện trong hợp đồng; kiểm tra tài sản bắt buộc, khoản tài sản tách riêng trên `final`; Nhóm 4 + index O11. Viết lại DB-34, thêm DB-37..DB-41. Cấu trúc lưu chờ duyệt (P1–P12). |
 | 1.4 | 14/10/2026 | Đồng bộ DB-D39..DB-D42: `end_date` là ngày bàn giao dự kiến (nửa mở), hợp đồng quá hạn vẫn active thì tiếp tục tính tiền; thêm `contracts.meter_gap_reason`, `meter_gap_confirmed_by` (thay việc ghi vào `note`); cho phép thanh lý ngay ngày bắt đầu có lý do; duyệt Nhóm 3. Thêm test DB-34..DB-36. |

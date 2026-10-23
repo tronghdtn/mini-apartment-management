@@ -4,7 +4,7 @@ Hệ thống quản lý chung cư mini — bài tập lớn môn **Lập trình 
 
 Một chủ sở hữu quản lý nhiều tòa chung cư mini, mỗi tòa có nhiều phòng. Hệ thống phục vụ 5 actor: **Khách**, **Cư dân**, **Quản trị viên**, **Nhân viên sửa chữa**, **Bảo vệ**.
 
-> **Trạng thái (18/10/2026):** giao diện chính thức ở `frontend/` (phong cách Antigravity) đã có 27/51 màn hình nhưng **toàn bộ chạy trên dữ liệu giả**; Backend mới có `GET /api/v1/health`, **chưa có API nghiệp vụ và chưa có đăng nhập thật**. Thiết kế CSDL 21 bảng đã duyệt ([docs/09_DATABASE_DESIGN.md](docs/09_DATABASE_DESIGN.md)); migrations Nhóm 1 chạy trên DB dev, Nhóm 1–3 chạy trên DB test ([docs/DATABASE_IMPLEMENTATION_PLAN.md](docs/DATABASE_IMPLEMENTATION_PLAN.md)). Tiến độ thật và giải thích kiến trúc: [docs/PROJECT_STATUS_AND_LEARNING.md](docs/PROJECT_STATUS_AND_LEARNING.md).
+> **Trạng thái 24/10/2026:** Auth và9trangCAT/ROOM/USR dùng API thật. Mới: Admin khóa/mở khóa tài khoản khôngAdmin và chỉ sửa họ tên. **Backend867test/6970assertion, frontend52, browser13status +12họ tên/hồi quy PASS**, build/lint/Pint183file đạt (9cảnh báo cũ). Hai lượt browser dùng build riêng; các nhóm trước là lịch sử. Dev20bảng/16migration, snapshot trước/sau khớp toàn bộ; RUN_MIGRATIONS=false, Nhóm3pending, chưaseed/Admin/thửquảntrịdev. Chưa mở sửaSĐT/email/password/pháp lý; không schema/migrate/ghi/xóa dev/commit/push. [Plan](docs/IMPLEMENTATION_PLAN.md) §12.10–11, [bản đồ code](docs/PROJECT_STATUS_AND_LEARNING.md) §11.19–20.
 
 ## Công nghệ
 
@@ -153,7 +153,7 @@ mini-apartment-management/
 | Cư dân, Nhân viên | Chưa có màn hình (mục menu/vai trò tương ứng hiển thị mờ "Chưa có") |
 | Khác | Đường dẫn không tồn tại → 404; lỗi khi tải route → trang lỗi |
 
-Danh mục đầy đủ 51 màn hình và trạng thái từng màn: [docs/SCREEN_INVENTORY.md](docs/SCREEN_INVENTORY.md). Nút "Vai trò" ở header Admin chỉ là công cụ demo; `/admin` **chưa được bảo vệ** — sẽ thêm khi triển khai đăng nhập thật (Sanctum).
+Danh mục đầy đủ 51 màn hình và trạng thái từng màn: [docs/SCREEN_INVENTORY.md](docs/SCREEN_INVENTORY.md). Auth đã dùng dữ liệu thật từ `/me`; `/admin` có guard theo vai trò server. Đã gỡ đổi vai trò demo khỏi luồng đang chạy. Laravel vẫn kiểm tra phiên/quyền trên API; guard React chỉ phục vụ trải nghiệm. Số đếm27/51 là baseline UI18/10, không phải tiến độ API.
 
 ## Bảng CSDL hiện có
 

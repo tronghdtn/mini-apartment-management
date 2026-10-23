@@ -1,8 +1,10 @@
 # PROJECT STATUS & LEARNING — Mini Apartment Management
 
+> **Hiện trạng 24/10/2026 — USR-C/D:** Admin khóa/mở khóa khôngAdmin + sửa duy nhất họ tên đã tích hợp DBtest theoDB-D57/58. Backend867/6970, frontend52/build/lint/Pint183file PASS; browser13status(CKr0QSXf)+12họ tên/hồi quy(CldKYjey) PASS/0runtimeexception. Dev20bảng/16migration/1khách/0Admin/chưaseed; snapshot12phần khớp, RUN_MIGRATIONS=false/Nhóm3pending. Chưa sửa định danh/pháp lý hoặc quản trị bằngAdmin dev; không schema/migrate/ghi/xóa dev/commit/push. Plan§12.10–11, bản đồ§11.19–20; nhóm trước là lịch sử.
+
 | Thuộc tính | Giá trị |
 |---|---|
-| Cập nhật | 19/10/2026 (T1: commit + chạy lại test) |
+| Cập nhật | 23/10/2026 — CAT/ROOM cơ bản; Auth và T1 giữ đúng mốc lịch sử |
 | Người đọc | Chủ dự án (sinh viên) và AI agent làm tiếp |
 | Mục đích | Nói **thật** dự án đang ở đâu, kế hoạch làm tiếp, và giải thích kiến trúc để chủ dự án tự trình bày được |
 | Nhãn bằng chứng | **[KIỂM CHỨNG 18/10]**, **[KIỂM CHỨNG 19/10]** = đã chạy lệnh/kiểm tra trong ngày đó · **[THEO TÀI LIỆU]** = ghi trong `docs/`, chưa chạy lại · **[ĐỀ XUẤT]** = kế hoạch, chưa làm, chưa được duyệt |
@@ -11,18 +13,18 @@ Tài liệu này **không** thay các quyết định trong `DB_DECISIONS_202610
 
 ---
 
-## 0. Tóm tắt một phút
+## 0. Hiện trạng và cách đọc bằng chứng
 
-| Phần | Hiện trạng thật |
-|---|---|
-| Giao diện (`frontend/`) | 27/51 màn hình mở được, phong cách Antigravity. **100% dữ liệu giả** — chưa màn hình nào gọi API nghiệp vụ. Ai cũng vào được `/admin` |
-| API (Laravel) | Chỉ có `GET /api/v1/health`. **Chưa có đăng nhập, chưa có API nghiệp vụ nào** |
-| CSDL dev `mini_apartment` | Nhóm 1 (`users` ALTER, `buildings`, `amenities`, `services`, `settings`) — các bảng đều **rỗng** |
-| CSDL test `mini_apartment_test` | Nhóm 1–3 (16 migration nghiệp vụ) |
-| Logic nghiệp vụ (Service) | Chưa có. Mới có schema, Model, Enum, helper `Money` và test mức CSDL |
-| Git | Ngày 19/10 đã commit toàn bộ công việc theo 8 nhóm (§2.3); chưa push. Còn để ngoài Git: hai thư mục prototype cũ và `.claude/` |
+| Phần | Hiện trạng mới nhất | Mức xác minh |
+|---|---|---|
+| Backend | Health/Auth/Artisan/CAT/ROOM/Settings, USR đọc/cấp/status/họ tên | Mới:867/6970 + Pint183 file PASS; §11.19–20 |
+| DB dev | Nhóm1+emailnullable+Nhóm2 riêng;20bảng/16migrations; users1/khôngAdmin; Nhóm3chưachạy | Nhóm2 backup/restore/pretend/apply PASS, bảng cũ nguyên vẹn; snapshot sau tests không đổi thêm; §11.15 |
+| Frontend | Auth +9 trang CAT/ROOM/USR thật, Antigravity; phần chưa nối có nhãn | Mới:52 test/build/lint, browserstatus13 +họ tên12 PASS; các nhóm trước là lịch sử |
+| Kiểm thử | Mới:867/6970 Backend,52frontend, browserstatus13/họ tên12 PASS trên DB test riêng | §11.19–20/Plan§12.10–11; chưa quản trị bằng Admin dev |
+| Git | T1 đã commit; thay đổi Auth, CAT/ROOM và tài liệu chưa commit/push | `git status`, HEAD `f485050`; ghi chép “chưa có remote” ở lịch sử không dùng làm hiện trạng |
+| Quyết định | Auth D01/D02/D03 CONFIRMED A/A/A; Q2/Q4/Q10/Q11 đã chốt nguyên tắc | Spec Auth §3/8; Plan quản lý task |
 
-**Rủi ro lớn nhất hiện nay:** code chỉ nằm trên một máy (chưa có remote, chưa push). Bản sao lưu ngoài repo: `D:MaNguonMomini-apartment-backupspre-T1-commit-20261019` (đã thử khôi phục).
+Không đồng nhất UI mở được, code đã viết, test tự động và tích hợp thật. Số 27/51 là kiểm kê UI mock lịch sử, không phải tiến độ phần trăm chức năng.
 
 ---
 
@@ -53,7 +55,7 @@ Phục vụ bàn không được tự quyết giá món. Tương tự, **React k
 
 ### 1.2 Hành trình một request có thật: kiểm tra sức khỏe hệ thống
 
-Đây là đường đi **duy nhất** từ React tới MySQL đang tồn tại trong code. Mọi module sau này sẽ đi theo đúng khuôn này.
+Đây là mẫu gọi API từ React đang có trong source; component mẫu chưa gắn vào trang. React Auth đã gọi API thật; luồng mới ở §11.11. Mọi module sau cần kiểm chứng đường đi thật tương tự.
 
 | Bước | Nơi xử lý | File | Việc làm |
 |---|---|---|---|
@@ -89,11 +91,11 @@ AdminBuildingsPage.tsx (nút "Thêm tòa nhà", form React Hook Form + Zod)
 
 1. `frontend/index.html` có `<div id="root">` và nạp `src/main.tsx`.
 2. `main.tsx` gắn `<App />` vào `#root` (bọc `StrictMode` để phát hiện lỗi khi phát triển).
-3. `app/App.tsx` bọc `AppProvider` (kho dữ liệu giả) quanh `RouterProvider`.
+3. `app/App.tsx` bọc `AuthProvider` (danh tính thật) rồi `AppProvider` (nghiệp vụ giả) quanh `RouterProvider`.
 4. `app/router.tsx` khai báo cây route. Layout được chọn theo **tiền tố URL**: `/` → `PublicLayout`, `/admin` → `AdminLayout`. Layout vẽ khung (menu, header) rồi để `<Outlet />` hiển thị trang con.
-5. Trang (`pages/...`) lấy dữ liệu bằng `useApp()` từ `mocks/AppContext.tsx` — **đây là chỗ sẽ được thay** bằng hàm trong `features/<feature>/api.ts`.
+5. Login/Register/Profile và danh tính trong layout dùng `useAuth()` + `features/auth/api.ts`. Trang nghiệp vụ còn `useApp()` từ mock context, có nhãn minh họa; chuyển từng module sau khi có Spec/API.
 
-Vai trò hiện **không** quyết định layout; nút "Vai trò" chỉ đổi biến `role` trong bộ nhớ và chuyển trang. Khi có đăng nhập thật, router sẽ có "route guard": kiểm tra vai trò từ `GET /auth/me` trước khi cho vào `/admin`. Guard này chỉ phục vụ trải nghiệm; bảo mật thật nằm ở Policy của Laravel.
+Layout chọn theo URL; `RequireAuth` kiểm tra phiên/vai trò lấy từ `/auth/me` trước khi render vùng Admin. Nút đổi vai trò demo đã gỡ khỏi luồng đang chạy. Guard phục vụ trải nghiệm; bảo mật API thật là middleware Laravel và Policy khi triển khai tài nguyên nghiệp vụ.
 
 ### 1.5 Thuật ngữ
 
@@ -121,7 +123,7 @@ Vai trò hiện **không** quyết định layout; nút "Vai trò" chỉ đổi 
 
 ---
 
-## 2. Những gì đã hoàn thành thật sự
+## 2. Bằng chứng baseline lịch sử 18–19/10/2026
 
 "Hoàn thành" ở đây có nghĩa là có code hoặc tài liệu kèm bằng chứng. **Chưa có chức năng nghiệp vụ nào chạy end-to-end** (giao diện → API → CSDL).
 
@@ -183,7 +185,7 @@ Không commit (có chủ đích): `public-ui-concept/`, `ui-antigravity-full/` (
 
 ---
 
-## 4. Những chức năng còn thiếu
+## 4. Khoảng trống UI/nghiệp vụ (đọc cùng snapshot §0)
 
 ### 4.1 Màn hình (24 màn + 1 route con)
 
@@ -195,7 +197,7 @@ Không commit (có chủ đích): `public-ui-concept/`, `ui-antigravity-full/` (
 
 ### 4.2 Backend
 
-- Đăng nhập/đăng ký/đăng xuất (Sanctum), Policy, middleware phân quyền.
+- Auth API và middleware phiên/khóa/vai trò đã có. Còn thiếu React Auth và Policy quyền sở hữu theo từng tài nguyên nghiệp vụ.
 - Mọi API nghiệp vụ: tòa nhà, tiện nghi, dịch vụ, phòng, người dùng, hợp đồng, giá và chỉ số điện nước, hóa đơn, thanh toán, sửa chữa, lịch xem phòng, thông báo, cài đặt, upload tệp.
 - Migrations Nhóm 4 (`maintenance_requests`, `viewing_appointments`, `attachments`, `notifications`) — chưa tạo ở đâu cả.
 - Seeder dữ liệu hệ thống (Nhóm 5): dịch vụ `ELECTRICITY`, `WATER` và các khóa `settings`. Bảng `services` trên DB dev đang **0 dòng**.
@@ -215,7 +217,7 @@ Không commit (có chủ đích): `public-ui-concept/`, `ui-antigravity-full/` (
 
 ---
 
-## 5. Trạng thái Database migrations
+## 5. Baseline Database migrations lịch sử 18/10 (hiện tại xem DB plan §16)
 
 **Cách kiểm tra (18/10/2026):** bật Docker Desktop, `docker compose start mysql` (chỉ MySQL), rồi chạy **SELECT** trên bảng `migrations` và `information_schema` của hai database. Không chạy `migrate`, không ghi dữ liệu.
 
@@ -241,11 +243,11 @@ Không commit (có chủ đích): `public-ui-concept/`, `ui-antigravity-full/` (
 | Chỉ số, Hóa đơn, Thanh toán | Nhóm 3 | Cần chạy Nhóm 3 trên dev |
 | Ảnh phòng, minh chứng thanh toán, lịch xem phòng, sửa chữa, thông báo | Nhóm 4 | Chưa có migration |
 
-**Điểm cần chú ý về thứ tự:** M09 (`contracts`) còn chờ thêm cột theo P2, P4, P5, P6. Kế hoạch CSDL §14.3 cho phép **sửa trực tiếp M09** vì nó chưa chạy trên dev và chưa commit. Nếu chạy Nhóm 2 lên dev **trước** khi chốt P2/P4/P5/P6, mọi thay đổi sau đó phải bằng migration ALTER mới. Hai cách xử lý: (a) chốt P2/P4/P5/P6 trước khi chạy Nhóm 2 trên dev, hoặc (b) chấp nhận viết migration ALTER sau.
+**Đính chính sau T1:** M09 (`contracts`) đã commit, dù chưa chạy trên dev cũng **không được sửa trực tiếp**. P2/P4/P5/P6 vẫn chờ duyệt; sau duyệt phải tạo migration ALTER mới và kiểm thử nâng cấp/rollback. Việc đưa Nhóm 2 lên dev cần phê duyệt riêng, backup/restore/pretend; Plan và DB plan §14.3/14.6 quản lý phần việc tiếp theo.
 
 ---
 
-## 6. Laravel API đã có thật
+## 6. Baseline Laravel API lịch sử 18/10 (Auth mới xem §11)
 
 Kết quả `php artisan route:list` ngày 18/10/2026 [KIỂM CHỨNG 18/10]:
 
@@ -263,123 +265,15 @@ Kết quả `php artisan route:list` ngày 18/10/2026 [KIỂM CHỨNG 18/10]:
 
 ## 7. Quyết định còn chờ duyệt
 
-Những mục dưới đây **không** được coi là đã chốt chỉ vì giao diện đang minh họa chúng.
+Không duy trì bản sao bảng quyết định ở đây: Auth D01–D03 nằm ở [Spec Auth §8](AUTHENTICATION.md); P1–P12 ở [DB plan §14.4](DATABASE_IMPLEMENTATION_PLAN.md); các Q còn mở ở [Design Brief §14.2](FRONTEND_DESIGN_BRIEF.md). Q2/Q4/Q10/Q11 đã chốt nguyên tắc, xem Spec Auth §3. T2/T3/T4 đã chốt; cấu trúc P1–P12 không tự trở thành CONFIRMED vì prototype minh họa.
 
-### 7.1 Hợp đồng và thanh lý — P1..P12 (`DATABASE_IMPLEMENTATION_PLAN.md` §14.4)
+## 8. Kế hoạch triển khai duy nhất
 
-| Mã | Câu hỏi | Chặn module |
-|---|---|---|
-| P1 | Validation `end_date`: hợp đồng tối thiểu 2 ngày (`end_date > start_date`) hay cho phép 1 ngày | Hợp đồng (lập nháp) |
-| P2 | Lý do chênh chỉ số khi kích hoạt: một ô chung hay tách Điện/Nước, có lưu lượng chênh | Hợp đồng (kích hoạt), schema M09 |
-| P3 | Mã thanh lý bổ sung: trả quá hạn, gia hạn, chủ nhà đơn phương chấm dứt (P10 gộp vào đây) | Thanh lý |
-| P4 | Cột lưu điều khoản phí trả trước hạn (`none` / `fixed` / `rent_multiple`) | Hợp đồng (lập nháp), schema M09 |
-| P5 | Cấu trúc lưu điều kiện miễn phí trước hạn (A/B/C); miễn toàn bộ hay một phần | Hợp đồng, thanh lý, schema M09 |
-| P6 | Cách lưu kết quả kiểm tra tài sản | Thanh lý, schema M09 |
-| P7 | Loại dòng hóa đơn mới `termination_fee`, `damage` | Hóa đơn `final` |
-| P8 | Ảnh kiểm tra/hư hỏng/căn cứ miễn gắn vào hợp đồng (`attachments`) | Nhóm 4, thanh lý |
-| P9 | Nhận và trả cùng ngày có tính phí trước hạn không | Thanh lý |
-| P11 | Bồi thường tài sản: Admin nhập kèm căn cứ + ≥ 1 ảnh, không cần người thuê ký trong hệ thống | Thanh lý |
-| P12 | Kiểm tra tài sản bắt buộc với mọi loại thanh lý | Thanh lý |
-
-### 7.2 Phạm vi giao diện — Q1..Q17 (`FRONTEND_DESIGN_BRIEF.md` §14.2)
-
-> Không nhầm với Q1–Q12 trong `DB_DECISIONS` (đó là các câu đã chốt thành DB-D11..DB-D22).
-
-| Ảnh hưởng | Câu hỏi |
-|---|---|
-| Đăng nhập | **Q2 — đã chốt 19/10:** khách đã đăng ký có khu vực "Tài khoản của tôi". Còn mở: **Q4** (quên mật khẩu / Admin đặt lại mật khẩu?), **Q10** (cư dân tự sửa trường nào; ai nhập CCCD), **Q11** (ai tạo tài khoản nhân viên/Admin, có đổi vai trò không) |
-| Phòng | **Q17** (đổi phòng sang bảo trì khi đang có hợp đồng active?) |
-| Hợp đồng | **Q5** (lập nháp cho phòng đang có người thuê?), **Q6** (Admin tạo tài khoản cho người thuê?), **Q7** (đơn giá dịch vụ riêng theo hợp đồng?), **Q15** (thời điểm ghi nhận đã nhận cọc) |
-| Hóa đơn, thanh toán | **Q8** (đã thanh lý còn nợ có gửi minh chứng được không), **Q12** (trang Công nợ riêng?), **Q13** (Admin thêm dòng "Khoản khác"?) |
-| Khác | Q1 (đối chiếu "38 trang" cũ), Q3 (đổi/hủy lịch xem), Q9 (ai đặt mức ưu tiên sửa chữa), Q14 (nhân viên thấy SĐT cư dân?), Q16 (danh sách sự kiện thông báo) |
-
-### 7.3 Quyết định kỹ thuật/quy trình mới
-
-| # | Câu hỏi | Đề xuất |
-|---|---|---|
-| T1 | Commit công việc hiện có thế nào | **Đã làm 19/10** (§2.3) |
-| T2 | Đăng nhập bằng email hay số điện thoại | **Đã chốt 19/10:** email **hoặc** số điện thoại + mật khẩu |
-| T3 | Tạo tài khoản Admin đầu tiên | **Đã chốt 19/10:** bằng lệnh Laravel Artisan (tên lệnh, cách nhập mật khẩu: đề xuất `app:create-admin` tương tác, không lưu mật khẩu vào repo) |
-| T4 | Nút "Vai trò" demo khi có đăng nhập thật | **Đã chốt 19/10:** không cho chuyển vai trò tùy ý khi đăng nhập thật; công cụ demo chỉ còn trong môi trường thử nghiệm được kiểm soát; có nút "Về trang chủ" và lối vào khu vực phù hợp với tài khoản |
-| T5 | Hai route ngoài danh mục `/rooms/:roomId/book`, `/book` | Giữ tạm như màn hình phụ của PUB-03; quyết định khi nối API lịch xem phòng |
-| T6 | Thời điểm chạy Nhóm 2 trên dev so với P2/P4/P5/P6 | Xem §5 — chốt P2/P4/P5/P6 trước khi chạy Nhóm 2 trên dev |
-| T7 | `filesystems.local.serve = true` | Xem lại khi làm upload (Nhóm 4) |
-
----
-
-## 8. Kế hoạch triển khai Backend và kết nối Frontend [ĐỀ XUẤT]
-
-### 8.1 Nguyên tắc
-
-- Làm theo **lát cắt dọc**: mỗi module đi trọn từ CSDL → API (kèm Feature test) → nối màn hình → bỏ mock của màn hình đó → giải thích để học (§9). Không làm hết backend rồi mới làm frontend.
-- Mỗi bước dừng lại chờ duyệt; commit nhỏ; mỗi endpoint có test thành công, 422, 401/403.
-- Màn hình giữ nguyên phong cách Antigravity; chỉ thay nguồn dữ liệu và form.
-- Không đụng các phần đang chờ P1–P12; làm phần không bị chặn trước.
-
-### 8.2 Bảng tổng quan
-
-| Bước | Module | Cần trên DB dev | Bị chặn bởi | Màn hình nối API |
-|---|---|---|---|---|
-| 0 | Chuẩn bị | — | T1, T3; duyệt seeder Nhóm 5 | — |
-| 1 | Authentication | Có sẵn | Q4, Q10, Q11; dữ liệu bắt buộc khi đăng ký; cơ chế cấp tài khoản | PUB-05, PUB-06, guard `/admin`, SYS-01 (403) |
-| 2 | Tòa nhà + danh mục tiện nghi | Có sẵn (2a); Nhóm 2 cho `building_amenities` (2b) | — | ADM-02, ADM-03, ADM-06; bộ lọc tòa ở PUB-01 |
-| 3 | Phòng | **Nhóm 2** (duyệt + backup + pretend) | T6, Q17; ảnh phòng chờ Nhóm 4/P8 | ADM-04, ADM-05, PUB-02, PUB-03 |
-| 4 | Hợp đồng (nháp → kích hoạt) | Nhóm 2 | **P1, P2, P4, P5**, Q5, Q6, Q7, Q15 | ADM-11, ADM-12 (+ route sửa nháp), ADM-13 |
-| 5 | Điện nước (giá + chỉ số) | Nhóm 2 (`utility_prices`), **Nhóm 3** (`meter_readings`) | — | ADM-08, ADM-15 |
-| 6 | Hóa đơn tháng | Nhóm 3 | Q13; hóa đơn `final` chờ P3–P9, P11, P12 | ADM-16, ADM-17 |
-| 7 | Thanh toán | Nhóm 3; minh chứng ảnh cần Nhóm 4 | Q8; P8 cho upload | ADM-18 (màn mới), sau đó RES-05 |
-| Sau | Thanh lý, Nhóm 4 (sửa chữa, lịch xem, thông báo, tệp), khu Cư dân/Nhân viên | Nhóm 4 | P3–P12, Q3, Q9, Q14, Q16 | ADM-14, ADM-19..25, RES-*, STF-* |
-
-### 8.3 Chi tiết từng bước
-
-**Bước 0 — Chuẩn bị (không viết nghiệp vụ)**
-1. ~~Commit công việc hiện có theo T1~~ — **xong 19/10**.
-2. ~~Chạy lại test backend trên DB test~~ — **xong 19/10**: 133/133 PASS, pint PASS, DB dev không đổi.
-3. Seeder hệ thống Nhóm 5: `ELECTRICITY`, `WATER` (`billing_type = metered`, `price` NULL) và các khóa `settings` để trống/mặc định — đây là dữ liệu hệ thống AGENTS §3 cho phép, nhưng vẫn cần duyệt danh sách khóa.
-4. Lệnh `app:create-admin` (T3).
-
-**Bước 1 — Authentication**
-- API dự kiến: `POST /api/v1/auth/register` (tạo `role = user`, 201 — trường bắt buộc **chưa chốt**), `POST /api/v1/auth/login` (email **hoặc** số điện thoại + mật khẩu — T2; throttle; sai thông tin → 422; tài khoản `locked` → 403), `POST /api/v1/auth/logout` (204), `GET /api/v1/auth/me` (200/401). Có thể thêm `PUT /api/v1/auth/password` nếu Q4/Q10 cần.
-- Backend: `AuthController` (mỏng), `LoginRequest`, `RegisterRequest`, `AuthService` (đăng nhập bằng session `web`, `session()->regenerate()`), `UserResource` (không có `id_number`, `password`, `remember_token`).
-- Frontend: `features/auth/{api.ts, types.ts, schemas.ts}`, `AuthProvider` + hook `useAuth` (Context), guard theo vai trò trong `router.tsx`, interceptor 401 → `/login`. `LoginPage`/`RegisterPage` giữ giao diện, chuyển form sang RHF + Zod, hiện lỗi 422 đúng trường.
-- Test: đăng nhập đúng/sai/bị khóa/vượt throttle, `me` khi chưa đăng nhập (401), đăng xuất, đăng ký trùng email/SĐT (422), không lộ trường nhạy cảm.
-
-**Bước 2 — Tòa nhà**
-- 2a (chạy được ngay trên dev): `GET/POST /api/v1/buildings`, `GET/PUT /api/v1/buildings/{building}`, đổi `status` thay vì xóa khi đã có phòng; CRUD danh mục `amenities`; `GET` công khai danh sách tòa đang hoạt động cho trang chủ.
-- 2b (sau Nhóm 2 trên dev): gắn tiện nghi cấp tòa (`building_amenities`).
-- Policy: chỉ `admin` ghi; tên tòa unique → 422.
-
-**Bước 3 — Phòng**
-- Điều kiện: chạy Nhóm 2 trên dev (duyệt riêng; backup + `--pretend` + thử khôi phục như Nhóm 1), sau khi giải quyết T6.
-- API: CRUD phòng lồng trong tòa (`/api/v1/buildings/{building}/rooms`), đồng bộ tiện nghi phòng, danh sách công khai (`is_public` + `available`), chi tiết công khai.
-- Ảnh phòng cần `attachments` (Nhóm 4, P8) → tạm hiển thị ảnh mặc định; form đặt lịch PUB-03 giữ giả lập cho tới khi có `viewing_appointments`.
-
-**Bước 4 — Hợp đồng (chỉ nháp và kích hoạt)**
-- Lập/sửa/xóa nháp; kích hoạt trong transaction với thứ tự khóa `rooms → users → contracts → contract_services`; tự thêm `ELECTRICITY`/`WATER` đúng một lần; sinh mã `HD-` khi kích hoạt; xử lý chênh chỉ số (DB-D31, DB-D40); 409 khi phòng hoặc người đại diện đã có hợp đồng active.
-- Cần chốt P1, P2, P4, P5 trước (ảnh hưởng cột M09 và validation). **Thanh lý chưa làm.**
-- Test tranh chấp: hai lần kích hoạt đồng thời cho cùng phòng.
-
-**Bước 5 — Điện nước**
-- Giá: `effective_from` luôn là ngày 01; không ảnh hưởng kỳ đã có chỉ số/hóa đơn (DB-D33).
-- Chỉ số: nhập theo kỳ tiêu thụ, all-or-nothing; backend tự xác định hợp đồng theo **khoảng tiêu thụ** (DB-D15), lỗi 422 khi không xác định được; quy tắc R1–R17 (kế hoạch §5).
-
-**Bước 6 — Hóa đơn tháng**
-- Lập nháp kỳ T = tiền phòng T + dịch vụ T + điện nước T−1, chia ngày tháng đầu/cuối bằng `Money` (HALF_UP từng dòng); thiếu chỉ số bắt buộc → chặn (DB-D34); phát hành sinh `INV-` và **bất biến**; hủy + lập lại theo DB-D27. Frontend chỉ hiển thị số từ API — bỏ các chỗ `[MOCK-TIỀN]` tương ứng.
-
-**Bước 7 — Thanh toán**
-- 7a: Admin ghi nhận/xác nhận/từ chối (lý do bắt buộc), sinh `RCP-` khi xác nhận, cập nhật `paid_amount`, test tranh chấp C3.
-- 7b: cư dân gửi minh chứng ảnh — cần Nhóm 4 (`attachments`, P8) và khu Cư dân.
-- ADM-18 là màn hình mới → cần duyệt UI trước khi dựng.
-
-### 8.4 Nhiệm vụ lập trình đề xuất làm ngay
-
-**Bước 0 (mục 1–2) rồi Bước 1 — Authentication**, vì: (1) không cần chạy thêm migration nào trên dev; (2) không bị chặn bởi P1–P12; (3) mọi module sau đều cần biết "ai đang đăng nhập, vai trò gì" để viết Policy. T1–T4 và Q2 đã chốt 19/10. Trước khi code còn cần chủ dự án chốt: dữ liệu bắt buộc khi đăng ký, quên mật khẩu (Q4), cơ chế cấp tài khoản nhân viên/Admin (Q11), trường cư dân được tự sửa (Q10).
-
----
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) thay kế hoạch đề xuất cũ trong mục này. Đọc task ID, Spec/AC, phụ thuộc và mức phê duyệt trước khi tiếp tục; không lập lại kế hoạch từ đầu, không tự đi sang module khác.
 
 ## 9. Cách giải thích mỗi module (áp dụng từ nay)
 
-Khi hoàn thành một module, báo cáo ngoài kết quả test sẽ trả lời đủ 6 câu:
+Sau mỗi task/module, ghi phần giải thích chi tiết vào tài liệu này theo 6 câu dưới đây. Chat chỉ tóm tắt task xong, file đổi, test, quyết định cần duyệt và task tiếp theo:
 
 1. Module này dùng để làm gì (ví dụ đời thực)?
 2. File code chính nằm ở đâu?
@@ -388,7 +282,7 @@ Khi hoàn thành một module, báo cáo ngoài kết quả test sẽ trả lờ
 5. Vì sao chọn cách thiết kế này (và phương án đã loại)?
 6. Giảng viên có thể hỏi gì và trả lời thế nào?
 
-### 9.1 Ví dụ mẫu: module "Health check" (module backend duy nhất đang có)
+### 9.1 Ví dụ mẫu: module "Health check" (mẫu nền tảng)
 
 1. **Dùng để làm gì?** Như đèn báo trên bảng điều khiển ô tô: mở `/api/v1/health` là biết API có sống và có kết nối được MySQL không. Dùng khi cài đặt lần đầu hoặc khi nghi hệ thống lỗi.
 2. **File chính:** `backend/routes/api.php`, `app/Http/Controllers/Api/V1/HealthController.php`, `app/Services/HealthCheckService.php`, `app/Http/Resources/HealthResource.php`, `app/Enums/HealthStatus.php`; phía React: `frontend/src/features/system/api.ts`, `types.ts`.
@@ -428,3 +322,521 @@ Khi hoàn thành một module, báo cáo ngoài kết quả test sẽ trả lờ
 |---|---|
 | 19/10/2026 | T1: commit theo nhóm (§2.3), chạy lại test backend (133/133), ghi nhận quyết định T2, T3, T4, Q2 |
 | 18/10/2026 | Tạo tài liệu: trạng thái thật sau khi chuyển frontend Antigravity, kiểm chứng DB dev/test bằng SELECT, danh sách route Laravel, quyết định chờ duyệt, kế hoạch Auth → Tòa nhà → Phòng → Hợp đồng → Điện nước → Hóa đơn → Thanh toán |
+
+## 11. Authentication — bài học và bằng chứng theo lần thực hiện
+
+> Chuyển từ AUTHENTICATION.md khi chuẩn hóa Spec-driven ngày 22/10/2026, không chạy lại test trong lượt tài liệu. Các đoạn “lượt bước 2/3 không chạy migration dev” dưới đây là **lịch sử của lượt đó**; bước 3.5 sau đó đã áp dụng riêng email nullable trên dev. Spec và quyết định hiện hành ở AUTHENTICATION.md; tiến độ chỉ cập nhật ở IMPLEMENTATION_PLAN.md. Kết quả PASS lịch sử không chứng minh luồng Nginx/trình duyệt đã chạy.
+
+### 11.1. Command và đường đi dữ liệu
+
+```text
+Terminal → CreateAdminCommand::handle()
+         → hỏi thông tin + mật khẩu ẩn và nhập lại
+         → Laravel Validator kiểm tra dữ liệu + email/SĐT trùng
+         → User (cast password: hashed), gán Enum Admin/Active
+         → một INSERT vào MySQL (UNIQUE bảo vệ lần cuối)
+         → thông báo thành công hoặc mã thoát thất bại
+```
+
+Không đi qua React hay HTTP; người chạy phải có quyền truy cập môi trường vận hành và cấu hình Database. Lệnh này không xác thực người vận hành bằng tài khoản web; giới hạn truy cập terminal/máy chủ là trách nhiệm quản trị hệ thống.
+
+| File / thành phần | Trách nhiệm |
+|---|---|
+| `backend/app/Console/Commands/CreateAdminCommand.php` | Laravel tự phát hiện command; `handle()` điều phối nhập liệu, validation, tạo mới và thông báo |
+| `askHiddenPassword()` | Symfony Question bật hidden, tắt fallback hiển thị, giữ nguyên khoảng trắng của mật khẩu |
+| `backend/app/Models/User.php` (không sửa) | Cast `hashed` băm mật khẩu; `role/status` không mass-assignable, command gán tường minh bằng Enum |
+| `backend/tests/Feature/Console/CreateAdminCommandTest.php` | Kiểm thử command qua Artisan với câu trả lời mô phỏng; thao tác dữ liệu thật trên MySQL test |
+
+Chỉ ghi dữ liệu khi mọi trường hợp lệ. Role/status được gán trước `save()`, nên chỉ có **một INSERT**, không có khoảng giữa tạo tài khoản rồi nâng quyền. Không dùng `firstOrCreate`, `updateOrCreate`, không UPDATE tài khoản cũ.
+
+### 11.2. Quy tắc kiểm tra trong command
+
+- Họ tên: bắt buộc, tối đa 120 ký tự. Email: bắt buộc, đúng định dạng RFC, tối đa 191 ký tự, duy nhất theo collation hiện có của MySQL. Không tự xác minh quyền sở hữu email.
+- SĐT: bắt buộc, 10–15 chữ số, được có dấu `+` đầu chuỗi; vẫn giữ giới hạn cột 20 ký tự và UNIQUE. Chỉ kiểm tra hình thức, không chứng minh sở hữu SĐT. Bước 3 đã chốt DB-D53: số Việt Nam `+84/84` quy về `0`, email về chữ thường; kiểm tra trùng cả dạng SĐT cũ tương đương.
+- Họ tên/email/SĐT được bỏ khoảng trắng đầu/cuối; mật khẩu không bị trim.
+- Mật khẩu: dùng `Password::defaults()` của Laravel, hiện tối thiểu 8 ký tự; nhập lại phải khớp. Với driver bcrypt hiện tại: tối đa 72 **byte**, kể cả tiếng Việt; từ chối ký tự NUL. Không có mật khẩu mặc định hoặc tham số nhận mật khẩu trong command.
+- Trạng thái chỉ được gán `UserStatus::Active`, vai trò chỉ `UserRole::Admin`; không có tùy chọn đổi sang vai trò/trạng thái khác. Tài khoản đang khóa mà trùng email/SĐT vẫn bị từ chối, giữ nguyên tài khoản cũ.
+- Nếu terminal không ẩn được mật khẩu: dừng, không chuyển sang nhập hiện. `--no-interaction` bị từ chối. Dữ liệu sai trả mã thoát 1 và cần chạy lại; thành công trả 0.
+- UNIQUE vẫn chặn xung đột xuất hiện sau validation. Lỗi CSDL khi lưu chỉ hiện thông báo chung; báo cáo lỗi chỉ chứa SQLSTATE, không gửi SQL/bindings, mật khẩu/hash vào log. Không in email/SĐT trong thông báo thành công.
+
+### 11.3. Cách sử dụng sau khi được phép tạo tài khoản thật
+
+Từ thư mục `backend/`: `php artisan app:create-admin`. Nhập họ tên, SĐT, email, mật khẩu và nhập lại mật khẩu tại terminal. Không gửi mật khẩu vào câu lệnh, tệp hoặc chat.
+
+Lệnh sử dụng kết nối Database hiện được cấu hình. **Lượt triển khai bước 2 chưa tạo Admin thật, chưa chạy migration trên dev.** Không khởi động app chỉ để thử vì cấu hình Docker có thể tự chạy migration. Trước khi vận hành thật cần được phép riêng và kiểm tra cấu trúc/Database đích; command không tự chạy migrations.
+
+Email bắt buộc không có nghĩa email đã xác minh hoặc khôi phục mật khẩu đã hoạt động. Việc gửi thư/xác minh/phục hồi sẽ triển khai ở bước khác.
+
+### 11.4. Kiểm thử và giải thích để bảo vệ đồ án
+
+Kiểm tra `phpunit.xml`, `tests/TestCase.php`, kết nối `mysql_test` và tài khoản riêng `mini_apartment_test` trước test có thao tác DB. Không sửa/bỏ guard DB-D30. Test command không tạo dữ liệu trên dev; dữ liệu trong test được rollback bởi `RefreshDatabase` trên DB test được bảo vệ.
+
+Nhóm test bao gồm: tạo Admin hợp lệ, thêm Admin thứ hai, email/SĐT trùng (không nâng quyền/mở khóa tài khoản cũ), dữ liệu sai/biên độ dài, hash mật khẩu, không lộ mật khẩu trên output, không tự xác minh email; xung đột UNIQUE sau validation; lỗi CSDL được báo cáo không chứa SQL/hash; từ chối chạy không tương tác; cấu hình cả hai câu hỏi mật khẩu ẩn và dừng khi terminal không hỗ trợ.
+
+- **Artisan là gì?** Công cụ dòng lệnh của Laravel, phục vụ tác vụ vận hành ngoài trình duyệt.
+- **Vì sao hash?** Database chỉ lưu giá trị băm một chiều; không lưu mật khẩu gốc. Sau này dùng `Hash::check()` để so khớp, không giải mã mật khẩu. Hash không thay thế việc bảo vệ Database hay mật khẩu mạnh.
+- **Vì sao không tự đăng ký Admin?** Nếu người dùng tự chọn quyền Admin, họ có thể chiếm quyền quản lý. Quyền vận hành command phải được kiểm soát ở hệ thống.
+- **Vì sao validation và UNIQUE cùng tồn tại?** Validation cho lỗi dễ hiểu; UNIQUE chặn trường hợp dữ liệu bị chiếm sau lúc kiểm tra.
+- **Vì sao không sửa Fillable để thêm role?** Tránh những luồng tạo/sửa người dùng khác vô tình nhận quyền từ dữ liệu bên ngoài. Command gán Enum tường minh.
+- **Vì sao không thêm transaction?** Tác vụ hiện chỉ có một INSERT chứa đầy đủ trường và quyền; nếu câu SQL thất bại thì không có tài khoản dở dang. Khi mở rộng thành nhiều lần ghi phải đánh giá transaction lại.
+
+### 11.5. Kết quả chạy thực tế — bước 2, 22/10/2026
+
+| Kiểm tra | Kết quả |
+|---|---|
+| `php artisan test --filter=TestDatabaseGuardTest` | 7 test / 7 assertion PASS trước test có thao tác DB |
+| `php artisan test --filter=TestEnvironmentTest` | 6 test / 14 assertion PASS; đúng DB/tài khoản test và chặn quyền đọc DB dev |
+| `php artisan test --filter=CreateAdminCommandTest` | **28 test / 269 assertion PASS** |
+| `php artisan test` toàn bộ | **165 test / 755 assertion PASS** |
+| `php vendor/bin/pint --test` | PASS |
+| `npm run build`, `npm run lint` trong frontend | PASS; bundle >500 kB và 9 cảnh báo lint có sẵn, không sửa frontend |
+| `php artisan help app:create-admin` | Laravel nhận đúng command; không có tham số mật khẩu/role/status |
+| `git diff --check` | PASS |
+
+Kiểm thử chạy trên MySQL `mini_apartment_test` với guard DB-D30 giữ nguyên. Không chạy migration hoặc tạo Admin thật trên DB dev; không commit/push. Chỉ khởi động MySQL cho test và đưa về trạng thái dừng ban đầu sau kiểm tra. Không khởi động container app.
+
+**Mức xác minh:** đã chạy command qua Laravel trong kiểm thử tự động với câu trả lời tương tác mô phỏng và MySQL test thật; kiểm tra trực tiếp thuộc tính hidden/fallback/trim của câu hỏi mật khẩu. Chưa thử nhập tay trên terminal thật. Chưa kiểm tra đăng nhập hoặc gửi email vì các chức năng này chưa triển khai. Kết quả 137 test / 486 assertion của bước 1 vẫn là baseline lịch sử.
+
+### 11.6. Bước 3 — Backend Auth và giải thích để học
+
+Endpoint chính thức, trường gửi/nhận, chuẩn hóa và mã lỗi nằm ở `API_AUTHENTICATION.md`. Không có migration mới, không sửa Model/Enum, không nối React. Code đăng ký hiện tự đăng nhập, **chờ AUTH-D01**, không coi brief là phê duyệt; không bắt buộc xác minh email để đăng nhập.
+
+| File thêm trong bước 3 | Vai trò |
+|---|---|
+| `backend/app/Http/Controllers/Api/V1/AuthController.php` | Nhận FormRequest, gọi Service, đổi/hủy phiên và trả Resource |
+| `backend/app/Http/Requests/Auth/RegisterRequest.php` | Chuẩn hóa input; kiểm tra đăng ký, email tùy chọn, từ chối role/status |
+| `backend/app/Http/Requests/Auth/LoginRequest.php` | Chuẩn hóa định danh, kiểm tra kiểu/giới hạn input đăng nhập |
+| `backend/app/Services/AuthService.php` | Tạo đúng user/active; tìm tài khoản, dùng guard kiểm tra mật khẩu + khóa; không đoán khi SĐT cũ mơ hồ |
+| `backend/app/Http/Resources/UserResource.php` | Danh sách cho phép gồm 6 trường; không serialize Model thô |
+| `backend/app/Http/Middleware/EnsureSpaSession.php` | Yêu cầu phiên SPA đã được Sanctum khởi tạo |
+| `backend/app/Http/Middleware/EnsureActiveAccount.php` | Chặn tài khoản khóa, hủy phiên phát hiện bị khóa |
+| `backend/app/Http/Middleware/EnsureUserHasRole.php` | Kiểm tra vai trò Enum từ user của server, có thể tái sử dụng nhiều vai trò |
+| `backend/app/Support/AuthIdentity.php` | Chuẩn hóa email/SĐT, liệt kê dạng SĐT cũ tương đương, không sửa DB |
+| `backend/app/Support/PasswordRules.php` | Tái sử dụng kiểm tra mật khẩu cho API và Artisan; ngăn cắt ngầm bcrypt |
+| `backend/app/Rules/UniquePhone.php` | Chặn SĐT trùng kể cả các dạng Việt Nam tương đương đã lưu trước đây |
+| `backend/tests/Feature/Auth/AuthenticationTest.php` | Test HTTP kernel, CSRF, cookie mã hóa, session MySQL, khóa/vai trò và rate limit |
+| `backend/tests/Support/InteractsWithSpaCookies.php` | Client test gửi/nhận cookie thật; bỏ qua cơ chế giữ guard/session trong RAM giữa request mô phỏng |
+
+File chỉnh liên quan: `routes/api.php` (4 route Auth), `bootstrap/app.php` (alias middleware, JSON lỗi), `AppServiceProvider.php` (limiter, chỉ dùng cookie), `CreateAdminCommand.php` và test command (dùng chung chuẩn hóa/rules); tài liệu Auth/quyết định/README/trạng thái dự án. Các thay đổi chưa commit bước 1–2 được giữ lại, không sửa migration cũ.
+
+**Đường đi đăng nhập:** client lấy cookie CSRF → POST `identifier/password` → `LoginRequest` chuẩn hóa/validate → `AuthService::login()` tra MySQL → guard `web->attemptWhen()` kiểm tra hash và `isActive()` → guard lưu ID user vào session → Controller `regenerate()` đổi session ID và CSRF token → cookie phiên trả về client → GET `me` dùng cookie tìm session, rồi đọc user từ DB → middleware kiểm tra active → Resource trả dữ liệu được phép.
+
+**Session và cookie khác nhau:** session là dữ liệu phiên ở server (hiện lưu bảng `sessions`); cookie phiên là mã phiên được mã hóa nằm trong trình duyệt. Client không gửi vai trò để chứng minh quyền. Cookie phiên HttpOnly; cookie CSRF có thể được Axios đọc để gửi header bảo vệ POST. Sanctum phối hợp middleware cookie/session/CSRF và guard Laravel, không cần phát hành token để lưu localStorage.
+
+**Nhiệm vụ các lớp:** Controller điều phối HTTP; FormRequest kiểm tra input; Service xử lý quy tắc xác thực; Model truy cập dữ liệu và cast hash/Enum; Middleware kiểm tra điều kiện trước khi chạy endpoint; Resource giới hạn thông tin đầu ra. Kiểm tra vai trò mới chỉ là quyền theo nhóm; khi có tài nguyên nghiệp vụ vẫn phải thêm Policy kiểm tra quyền sở hữu.
+
+**5 câu hỏi giảng viên có thể hỏi:**
+
+1. *Vì sao phải `regenerate()`?* Đổi mã phiên sau đăng nhập, tránh kẻ khác dùng mã phiên đã biết trước; mã cũ không giữ xác thực.
+2. *Vì sao guard React không đủ?* Người dùng sửa được trình duyệt hoặc tự gọi API. Middleware Laravel kiểm tra user/role/status lấy từ DB.
+3. *Có cần giải mã mật khẩu khi đăng nhập?* Không; guard kiểm tra mật khẩu nhập với hash bằng hasher Laravel. `User` có cast `hashed` khi ghi.
+4. *Admin khóa tài khoản đang đăng nhập thì sao?* Request bảo vệ tiếp theo đọc trạng thái mới, `EnsureActiveAccount` hủy phiên và trả 403; mở khóa không làm phiên đó tự sống lại.
+5. *Làm sao chứng minh cookie thật đang hoạt động trong test?* Không dùng `actingAs`/`withSession`; test gửi encrypted cookie qua request, quên guard/cache phiên trong RAM, kiểm tra `sessions.user_id`, cookie cũ sau logout, cookie bị sửa và CSRF thiếu/sai trên MySQL test. Đây là kiểm thử HTTP kernel, chưa phải thao tác qua Nginx/trình duyệt thật.
+
+### 11.7. Trạng thái kiểm chứng bước 3 — 22/10/2026
+
+| Kiểm tra | Bằng chứng hiện có |
+|---|---|
+| Guard DB-D30 trước test có thao tác DB | 7 test / 7 assertion PASS |
+| Môi trường DB test | 6 test / 14 assertion PASS; DB/tài khoản riêng và quyền hạn đúng |
+| Test liên quan sau khi khởi động lại Docker (`AuthenticationTest`, `CreateAdminCommandTest`) | **90 test / 781 assertion PASS**, gồm mọi bổ sung cuối |
+| `php artisan test` toàn bộ sau khi khởi động lại Docker | **227 test / 1267 assertion PASS** |
+| `php vendor/bin/pint --test`, `git diff --check` | PASS sau chỉnh sửa cuối |
+| Frontend `npm run build` / `npm run lint` | PASS; bundle >500 kB và 9 cảnh báo lint có sẵn; không sửa frontend |
+| `php artisan route:list --path=api -v` | Đúng 4 endpoint Auth + health, middleware đúng; không có route testing/admin trong sản phẩm |
+
+**Sự cố môi trường đã khắc phục:** chủ dự án khởi động lại Docker Desktop; đã xác nhận MySQL healthy ở cổng 3307, chạy lại guard + môi trường test rồi nhóm Auth/Artisan và toàn bộ backend. Đã kiểm thử các ca cookie giả, đổi quyền, giới hạn IP và limiter dùng REMOTE_ADDR chống giả forwarded IP. Lần kiểm thử bị ngắt trước đó không được tính là PASS. Backend bước 3 đã hoàn tất trong phạm vi kiểm thử HTTP kernel và MySQL test. Giữ MySQL đang chạy như trạng thái lúc chủ dự án tiếp tục công việc; app/frontend/nginx vẫn dừng.
+
+Không chạy migration, tạo tài khoản hoặc sửa dữ liệu trên DB dev. Không commit/push. Còn chưa kiểm chứng qua Nginx/trình duyệt, chưa nối React và không triển khai các chức năng đã loại khỏi bước 3.
+
+### 11.8. Bước 3.5 — nâng cấp email nullable trên dev
+
+- Phê duyệt trực tiếp chỉ migration `2026_10_22_100001_make_users_email_nullable.php`; không Nhóm 2–3, không tạo Admin.
+- Backup ngoài repo: `D:\MaNguonMo\mini-apartment-backups\email-nullable-20261022T112541Z\mini_apartment.sql`. Không chép SQL/session hoặc thông tin cá nhân vào Git.
+- Lần restore đầu khác collation do tạo sẵn DB tạm bằng mặc định image; đã dừng trước migration. Lần tiếp theo dùng container không mạng, volume riêng, server `utf8mb4/utf8mb4_unicode_ci`, để dump tự tạo DB. Metadata DB/bảng/cột/index, số bản ghi, dữ liệu và lịch sử migrations khớp; 13 bảng CHECK TABLE OK; không routine/event/trigger. Dump chỉ khác cách ghi CHARACTER SET dư thừa, không khác dữ liệu.
+- Sau `--pretend` chỉ có ALTER email, chạy `php artisan migrate --database=mysql --path=database/migrations/2026_10_22_100001_make_users_email_nullable.php --no-interaction --no-ansi` trong backend.
+- Trước→sau: 13→13 bảng; 8→9 migrations, dòng mới batch 3; users 0→0, sessions 11→11; checksum dữ liệu ngoài migrations không đổi. Email varchar191 NO→YES nullable; UNIQUE email/phone và phone NOT NULL không đổi; Nhóm 2–3 vẫn Pending 11 migration. SHOW CREATE đổi thứ tự hiển thị UNIQUE nhưng định nghĩa/index metadata không đổi.
+- Biên bản ngoài repo: `migration-final-report.txt`, `restore-verification-v2.txt`, `post-migration-checks.json`, `before-resume.json`, `after.json` cùng thư mục backup; đã đọc lại trong lượt tài liệu, không chạy DB lại.
+- **Charset** là bộ ký tự (utf8mb4 lưu tiếng Việt/emoji); **collation** là quy tắc so sánh/sắp xếp (unicode_ci không phân biệt hoa/thường). **Migration** mô tả thay đổi cấu trúc có lịch sử; **backup** lưu cấu trúc và dữ liệu tại một thời điểm để phục hồi. `migrate` thường xét mọi file pending; `--path` giới hạn một file; bảng `migrations` ghi tên/batch đã chạy.
+- Giảng viên có thể hỏi: làm sao tránh chạy Nhóm 2–3? Vì sao restore phải cô lập? Vì sao UNIQUE cho nhiều NULL? Vì sao không sửa migration cũ? Nếu bắt buộc email trở lại? Trả lời bằng bằng chứng `--path/pretend`, metadata/checksum và lịch sử migrations; rollback bị chặn khi còn NULL, cần email thật và phê duyệt, không điền giả/xóa tài khoản.
+
+### 11.9. Mẫu ghi bài học cho Tasks tiếp theo
+
+Ghi task ID; chức năng; file và hàm/class chính; luồng React → Laravel → MySQL; lý do chọn; lệnh/môi trường/ca kiểm thử và kết quả thực tế; điều chưa kiểm chứng; 3–5 câu hỏi giảng viên kèm hướng trả lời. Không chép mật khẩu, cookie/session hay dữ liệu cá nhân vào ví dụ. Spec quản lý yêu cầu; bài học này giải thích code đã viết và giới hạn bằng chứng.
+
+### 11.10. Lượt chuẩn hóa Spec → Plan → Tasks (22/10/2026)
+
+Chỉ sửa tài liệu/AGENTS. Đọc source và biên bản bước 3.5; không chạy Database, migrations, build, test ứng dụng hoặc trình duyệt. Kiểm tra tài liệu: 11 file Markdown UTF-8, 45 liên kết file nội bộ tồn tại, code fences cân bằng, AUTH-00..12/AC-01..16/AUTH-D01..03 được định nghĩa; `git diff --check` PASS. Rà soát phát hiện và sửa mã màn hình Staff trong Plan và nhãn điều hướng prototype/Q10. Con số 227/1267 ở §11.7 là test lịch sử, không phải kết quả lượt này.
+
+Spec trả lời “hệ thống cần làm gì”; API Spec trả lời “React và Laravel giao tiếp thế nào”; Plan/Tasks trả lời “làm phần nào tiếp, phụ thuộc gì, bằng chứng nào”; tài liệu học tập giải thích “code đã viết hoạt động ra sao”. Không lấy dấu hoàn thành task tài liệu làm phê duyệt ba quyết định Auth còn mở hoặc coi toàn bộ module đã tích hợp.
+
+### 11.11. AUTH-05..12 — React Authentication thật (22/10/2026)
+
+Mốc trước AUTH-13: các giới hạn dev 8080 của lượt này được kiểm chứng tiếp ở §11.12; số test dưới đây là lịch sử đối với lượt AUTH-13.
+
+**Phạm vi được duyệt:** D01 tự đăng nhập user/active sau đăng ký; D02 Admin tới `/admin`, bốn vai trò còn lại tới `/account/profile`, Resident/Staff có thông báo khu chưa hoàn thiện; D03 profile chỉ đọc. Không thêm màn hình, thư viện, API hoặc migration, không tạo Admin dev, không commit/push. Backend Auth giữ nguyên hợp đồng; mọi thay đổi Backend cũ chưa commit được bảo toàn.
+
+**File mới và chức năng:**
+
+| File | Nhiệm vụ/hàm cần hiểu |
+|---|---|
+| `frontend/src/features/auth/types.ts` | `AuthUser` đúng 6 trường Resource, 5 vai trò; `accountDestination()` chọn vùng đã có, `safeDestination()` chỉ cho URL nội bộ phù hợp vai trò, tránh open redirect (bị đưa tới website lạ) |
+| `frontend/src/features/auth/api.ts` | `getCurrentUser/login/register/logout`; chỉ dùng `lib/http`, trước POST lấy CSRF cookie; payload đăng ký có danh sách trường cho phép, email trống thành NULL |
+| `frontend/src/features/auth/authContext.ts`, `useAuth.ts` | Hợp đồng state/hàm và hook (hàm dùng lại trạng thái React); không chứa dữ liệu tài khoản giả |
+| `frontend/src/features/auth/AuthProvider.tsx` | `refresh()` đọc me khi mở app/focus; `authenticate()` dùng chung login/register; `logout()` chờ server. Không lưu token, mật khẩu hoặc role trong localStorage |
+| `frontend/src/features/auth/RequireAuth.tsx` | Chờ bootstrap (đọc phiên lúc khởi động); 401 đưa tới login, sai vai trò hiện thông báo403; lỗi mạng có thử lại, không giả là đã logout |
+| `frontend/src/features/auth/AccountActions.tsx` | Danh tính thật, liên kết tài khoản/khu vực, logout có pending/lỗi; chỉ về public khi server đã hủy phiên hoặc xác nhận401 |
+| `frontend/src/features/auth/errors.ts` | `authErrorMessage()` thông báo an toàn theo status; `applyAuthErrors()` đưa422 vào trường RHF được cho phép |
+| `frontend/tests/auth.test.mjs` | 8 test bằng Node có sẵn, không thêm package; schema/giới hạn byte/điều hướng/lỗi |
+| `frontend/tests/auth.browser.mjs` | Kiểm thử Chrome qua CDP (giao thức điều khiển trình duyệt); 17 ca trên môi trường test cô lập, không in mật khẩu/cookie |
+| `backend/tests/Support/AuthBrowserFixtures.php` | Helper CLI chỉ dành test: bootstrap Laravel, guard DB-D30 + SELECT danh tính đúng DB/account test rồi mới setup/status/cleanup theo mã lượt. Không phải API/công cụ tạo Admin thật |
+
+**File sửa trong Bước 4:** `frontend/package.json` thêm script test; `features/auth/schemas.ts` định danh/email tùy chọn/confirmation/giới hạn bcrypt; `app/App.tsx` provider thật ngoài mock; `app/router.tsx` guard; `pages/public/LoginPage.tsx` và `RegisterPage.tsx` RHF+Zod/API thật; `GuestProfilePage.tsx` chỉ đọc me; `GuestAppointmentsPage.tsx` placeholder chưa triển khai; `PublicNavbar.tsx`, `PublicLayout.tsx`, `AdminLayout.tsx` danh tính/logout thật và nhãn mock; `src/mocks/README.md` ranh giới dữ liệu. Tài liệu đồng bộ: README gốc, AGENTS, AUTHENTICATION, API_AUTHENTICATION, IMPLEMENTATION_PLAN, FRONTEND_DESIGN_BRIEF, SCREEN_INVENTORY, README và bài học này. Không sửa Backend API/schema trong bước này; các thay đổi Auth 1–3.5 trước đó vẫn chưa commit.
+
+**Luồng đăng nhập bằng chính code:**
+
+```text
+LoginPage.handleSubmit → Zod kiểm tra sơ bộ
+  → useAuth().login → AuthProvider.authenticate → auth/api.login
+  → lib/http.fetchCsrfCookie → GET /sanctum/csrf-cookie
+  → Axios POST /api/v1/auth/login { identifier, password } + cookie/XSRF header
+  → Nginx → Laravel route → LoginRequest (chuẩn hóa/kiểm tra)
+  → AuthService.login → User/Eloquent → MySQL users
+  → guard web kiểm tra hash và active → lưu user ID trong session MySQL
+  → AuthController tái tạo session ID/CSRF → UserResource trả đúng 6 trường
+  → AuthProvider lưu user trong state React → safeDestination → render vùng phù hợp
+F5 → provider gọi /me với cookie → Laravel đọc session/user và active → khôi phục UI
+```
+
+Controller điều phối HTTP, Service xử lý quy tắc, Model đọc/ghi MySQL, Middleware kiểm tra trước endpoint, Resource giới hạn trường trả về. React chỉ hiển thị; sửa role trong DevTools không làm Laravel cấp quyền. API nghiệp vụ tương lai vẫn cần Policy (quy tắc quyền theo tài nguyên/người sở hữu), không chỉ guard React.
+
+**Session/cookie/Sanctum:** session là dữ liệu phiên tại server (bảng sessions), cookie HttpOnly là mã phiên mã hóa trong trình duyệt; không chứa quyền do client tự khai. Cookie XSRF đọc được để Axios gửi header bảo vệ POST. Sanctum phối hợp cookie/session/CSRF với guard web, không phát hành Bearer token. Mật khẩu chỉ gửi qua request tới server để so với hash, không ghi log hoặc lưu client. Khi triển khai HTTPS phải giữ cấu hình cookie Secure thích hợp; lượt test dùng localhost HTTP.
+
+**Vì sao provider có revision/sequence?** Request bất đồng bộ có thể về sai thứ tự. `/me` cũ trả401 sau login thành công không được xóa phiên mới: revision (số thế hệ thao tác Auth) và refreshSequence loại kết quả cũ; pendingMutation ngăn focus-refresh chen vào login/logout. Refresh nền giữ trang/form đang mở, không đặt loading làm mất dữ liệu đang nhập. Lỗi mạng không chứng minh phiên đã mất; giữ user đã biết, báo lỗi và để Backend kiểm tra request thật. Khóa tài khoản được phát hiện ở request bảo vệ tiếp theo; focus chỉ giúp UI cập nhật sớm, không phải khóa bảo mật duy nhất.
+
+**Các lỗi đã tái hiện và sửa:** logout từng bị guard chuyển về login trước khi navigate về public; sau khi server xác nhận hủy phiên dùng `window.location.replace('/')` để kết thúc state cũ và về đúng trang chủ. Refresh nền từng có nguy cơ unmount form; đã giữ Outlet ổn định và thử nội dung tìm kiếm không mất. Navbar mobile đổi sang liên kết tài khoản gọn, đầy đủ thao tác trong menu; kiểm tra 320/375/390 px không tràn ngang. Zod mặc định từ chối email hợp lệ có `#`, trong khi Laravel RFC chấp nhận; đổi sang pattern RFC5322 có sẵn và thử đăng ký thật email này. Backend vẫn kiểm tra cuối cùng.
+
+**Môi trường và kết quả thực chạy:**
+
+- Guard DB-D30 7 test / 7 assertion và môi trường test 6/14 đạt trước khi test DB; Backend toàn bộ **227 test / 1267 assertion PASS**; `php vendor/bin/pint --test` PASS, helper CLI cũng được Pint kiểm tra.
+- `cd frontend; npm test`: **8/8 PASS**. `npm run build` PASS (TypeScript + Vite); `npm run lint` 0 lỗi, 9 cảnh báo cũ. Bundle khoảng 801 kB còn cảnh báo >500kB; chưa tối ưu module nghiệp vụ mock ngoài phạm vi.
+- Browser dùng Chrome headless thật, profile riêng; Nginx `127.0.0.1:8081` → app PHP-FPM riêng → MySQL 8.4. Frontend là bản build qua Vite preview 5175; không coi đây là kiểm thử Vite HMR hoặc bộ container dev 8080. Cấu hình Nginx giữ tuyến dự án, chỉ thay upstream test.
+- App test bỏ qua entrypoint; `RUN_MIGRATIONS=false`, `APP_ENV=local` để không bỏ qua CSRF do chế độ PHPUnit. `mysql`/`mysql_test`, database session và cache đều trỏ DB/account `mini_apartment_test` đã xác minh. Không có migration trong lượt browser. Không dùng tài khoản MySQL dev/root cho fixtures.
+- Helper setup/status/registration-cleanup/cleanup đã chạy trên DB test. Cleanup chỉ xóa user mang mã lượt + phone đã lưu và sessions tương ứng; không xóa/reset bảng hoặc DB. Artifact/fixture/password/cookie profile nằm trong `backups/auth-step4-e2e/` đã gitignore, không đưa vào Git. Không in secrets trong báo cáo.
+- Snapshot dev đọc trực tiếp trước/sau, metadata/index/constraints/migration/row counts/SHA256 dữ liệu khớp:13 bảng, 9 migrations, users 0, sessions 11; Nhóm 2–3 vẫn 11 migration Pending. Không chạy migrations dev hoặc tạo tài khoản dev. Dừng app/Nginx/browser/Vite test riêng sau xác minh; MySQL giữ trạng thái đang chạy như trước.
+
+Ma trận browser — **17/17 PASS** (B08b là ca bổ sung):
+
+| Ca | Bằng chứng | AC |
+|---|---|---|
+| B01 | Anonymous vào /admin tới login, không quick-entry/credential điền sẵn | 13/14 |
+| B02 | Input login thiếu bị chặn trước request | 12 |
+| B03 | Sai email/confirmation, đăng ký không email 201, auto-login, profile thật chỉ đọc, cookie phiên HttpOnly | 01/06/11/12/15 |
+| B04 | F5 khôi phục từ cookie, user vào /admin bị chặn | 08/09/13 |
+| B05 | Profile mobile 320/375/390px không overflow | 14 |
+| B06 | Logout 204, /me 401, URL tài khoản về login | 08/13/14 |
+| B07 | Đăng nhập email và SĐT đều tới đúng tài khoản | 04/12 |
+| B08 | Server 422 email/SĐT trùng hiện đúng trường | 02/12 |
+| B08b | Email RFC chứa # và chữ hoa đăng ký thật, hiển thị chuẩn hóa chữ thường, auto-login | 04/11/12 |
+| B09 | Cả 5 vai trò tới vùng đã có, Resident/Staff chỉ profile thật; Admin có nhãn nghiệp vụ mock, không đổi role | 14/15 |
+| B10 | Khóa sau login làm /me 403, login locked 403 thông báo thật | 05/12/16 |
+| B11 | HTTP request nguồn lạ nhận 419 thật từ Laravel | 06/16 |
+| B12 | Thử sai liên tục nhận 429 thật và thông báo chờ | 07/12 |
+| B13 | Giữ response login rồi focus: không chen /me cũ, login thành công và có XSRF header | 06/13 |
+| B14 | Focus-refresh không làm mất nội dung form đang nhập | 13 |
+| B15 | Mất mạng khi logout giữ tài khoản và báo lỗi; khôi phục mạng logout thật | 08/12/14 |
+| B16 | Giao diện nhận 419 thật, không giả login thành công | 06/12/16 |
+
+**Ca419 cần giải thích đúng:** Laravel 13 `PreventRequestForgery` chấp nhận nguồn `Sec-Fetch-Site: same-origin` hoặc token hợp lệ. Do đó bỏ header token của request same-origin không chứng minh lỗi bảo mật. Chrome tự tái tạo header nguồn khi tiếp tục request CDP; B16 giữ POST, relay qua Node với header nguồn/token bị làm hỏng, lấy **phản hồi 419 thật** qua Nginx/Laravel rồi trả nguyên body về browser. Không giả body/status thành công và không sửa/tắt middleware. CDP cần status phrase rõ ràng cho 419; đã sửa test harness, không sửa ứng dụng để ép test đạt. B11 độc lập kiểm tra chặn nguồn lạ thật; PHPUnit kiểm tra CSRF/session sâu hơn.
+
+**Cách chạy lại:** chạy guard và suite Backend trên DB test trước; dựng app/Nginx test riêng với cấu hình trên, xác minh `SELECT DATABASE(), CURRENT_USER()` ở cả hai kết nối và `RUN_MIGRATIONS=false`; tạo fixtures qua helper CLI `setup <file mới>`, chép file vào thư mục artifact gitignore; mở Chrome với profile test riêng/remote debugging ngẫu nhiên và Vite preview của build mới. Sau đó từ root đặt `AUTH_E2E_CONFIRMED_TEST_DB=mini_apartment_test`, chạy `node frontend/tests/auth.browser.mjs`. Không dùng flag xác nhận này thay bước kiểm tra kết nối. `AUTH_E2E_CASE` tùy chọn chỉ chạy một ca chẩn đoán, không được tính như đủ 17 ca. Sau cùng cleanup đúng file fixtures, so sánh snapshot dev và dừng tiến trình test riêng. Không chạy harness vào môi trường dev hay profile Chrome cá nhân.
+
+**Giới hạn:** chưa thử nhập tay Artisan Admin, chưa chạy bộ dev 8080, chưa API sửa hồ sơ/đổi mật khẩu/khôi phục/xác minh email/cấp nhân viên. Layout Resident/Staff còn mock nhưng chưa gắn route; dữ liệu Admin/public nghiệp vụ chưa tích hợp có nhãn minh họa. Có Auth không đồng nghĩa phòng/hợp đồng/hóa đơn đã có Backend. AUTH-12 kết thúc ở đây, chưa bắt đầu CAT hoặc task mới.
+
+**5 câu hỏi bảo vệ và hướng trả lời:**
+
+1. *F5 có làm mất đăng nhập không, dữ liệu nào được giữ?* React state mất; cookie vẫn gửi, AuthProvider.refresh gọi me; Laravel tìm session và user trong MySQL rồi trả Resource.
+2. *Nếu sửa role trong DevTools thành admin?* Chỉ thay UI cục bộ. Backend không tin role request; auth:sanctum + active + role/Policy đọc user từ DB quyết định quyền.
+3. *Vì sao có cả Zod và FormRequest/UNIQUE?* Zod báo lỗi sớm; client có thể bị bỏ qua. FormRequest là kiểm tra cuối của ứng dụng, UNIQUE chống tranh chấp hai request đồng thời. Email trống ở form được API client chuyển NULL.
+4. *Tại sao logout phải gọi server, và khi mất mạng thì sao?* Chỉ đổi trang không hủy session. API logout invalidate phiên/đổi CSRF; khi mất mạng giữ trạng thái và báo chưa thực hiện được, không tuyên bố thành công.
+5. *Tại sao không kiểm tra xác minh email để đăng nhập, hoặc đưa Resident vào dashboard?* Spec chưa duyệt bắt buộc verified; D02 chỉ duyệt profile tối thiểu khi khu nghiệp vụ chưa có. Không lấy ý tưởng/UI mock làm quyết định; mở rộng cần Spec/Task mới.
+
+### 11.12. AUTH-13 — xác minh Docker dev 8080 và đề xuất CAT-01
+
+**Phân biệt môi trường:** Bước 4 trước dùng Nginx/app riêng 8081, Vite preview và DB test. Lượt này dùng đúng Docker Compose app/frontend/nginx/mysql của dự án, Nginx8080 và Vite dev trong container, Database mini_apartment/account mini_apartment@%. Không đổi sang DB test để rồi gọi là dev. Chrome dùng profile mới riêng, không đụng phiên cá nhân.
+
+**Quy trình và bằng chứng mới:** kiểm tra Git/AGENTS/CLAUDE/Plan/Spec/entrypoint; đọc docker compose config nội bộ (không in secrets), xác nhận RUN_MIGRATIONS=false trước `docker compose up -d --no-build app frontend nginx`; sau đó đọc lại getenv trong app và SELECT danh tính DB. Compose tái tạo container, giữ volume MySQL; metadata/data được chụp trước/sau để đối chiếu, không dùng down -v/reset. Session database/HttpOnly/SameSite=lax, Sanctum có localhost:8080; Secure không bật vì HTTP localhost. Frontend startup npm install có sẵn không làm đổi package-lock, không thêm package.
+
+7/7 ca thực chạy qua browser PASS: anonymous /admin→login và me 401; đăng ký 201 tự đăng nhập user/active; F5 đọc lại cùng tài khoản qua cookie/me; khách vào /admin bị guard từ chối; logout 204 và me 401/route tài khoản bị chặn; login bằng email; login bằng SĐT. Profile chỉ đọc và Resource đúng 6 trường được kiểm tra, không runtime exception. Chi tiết ca DEV01..DEV07 tại Plan §10. Không phát hiện lỗi Auth cần sửa, không chỉnh code sản phẩm. Bộ dev được giữ đang chạy; chỉ đóng Chrome test riêng.
+
+**Tác động dữ liệu có chủ đích:** theo yêu cầu thử đăng ký thật, tạo đúng 1 tài khoản khách qua UI và giữ lại, không factory/seeder/Admin. users 0→1, sessions 11→13, cache limiter đổi; user/active, email_verified_at NULL, admin_count 0. Không tuyên bố DB hoàn toàn không đổi. Schema/index/constraints/FK/migrations giữ nguyên;13 bảng/9 migration,11pending Nhóm 2–3. Hash bảng ngoài users/sessions/cache không đổi. Không xóa dữ liệu dev; không chạy migration. Số tự tăng users tăng do INSERT không phải đổi cấu trúc. Thông tin đăng nhập tự sinh, snapshot và báo cáo ở backups/auth-dev-8080 đã gitignore; không ghi mật khẩu/cookie vào tài liệu/Git.
+
+**Git chưa commit được phân nhóm:** email nullable migration + schema tests; Artisan CreateAdminCommand + tests; 4API Auth (Controller/Requests/Resource/Service), middleware/Rules/AuthIdentity/PasswordRules và test; bootstrap/routes/AppServiceProvider; frontend feature auth, forms/profile, router/provider/layouts/package test script; tài liệu Spec/API/Plan/quyết định/học tập. Danh sách cụ thể Bước 4 xem §11.11; thay đổi Backend1–3.5 vẫn giữ nguyên. Các thư mục prototype và .claude chưa theo dõi không thuộc thay đổi Auth lượt này, không xóa hoặc đưa vào commit. Lượt AUTH-13 chỉ sửa tài liệu; script browser/snapshot riêng nằm trong backups gitignore. Không commit/push.
+
+**Giới hạn của bằng chứng:** chặn /admin là guard React; không có API quản trị tài nguyên sản phẩm để kiểm tra403 theo vai trò, không tạo endpoint thử trên dev. API me 401 sau logout là bằng chứng Backend mới; role middleware có PHPUnit lịch sử. Không tạo Admin để test dashboard. Backend 227/1267, client 8, browser 17/Pint/build/lint của Bước 4 không chạy lại, không cộng thành kết quả mới. CAT-01 chỉ có đề xuất phạm vi/điểm cần duyệt tại Plan §11, chưa Spec CAT hoàn chỉnh/triển khai nghiệp vụ.
+
+**3 kiến thức cần hiểu để bảo vệ:**
+
+1. **Cùng origin và proxy (chuyển tiếp request):** trình duyệt chỉ thấy localhost:8080; Nginx chuyển /api và /sanctum tới PHP-FPM, phần React tới Vite. Axios lib/http.ts dùng URL tương đối, cookie được gửi đúng nguồn; cookie HttpOnly được browser gửi nhưng JS không đọc được. Cookie XSRF khác cookie phiên: Axios đọc XSRF để gửi header, Laravel kiểm tra bảo vệ request.
+2. **State React khác session Backend:** AuthProvider giữ user trong bộ nhớ để vẽ UI; F5 làm mất state nhưng cookie còn, refresh gọi me để Laravel đọc sessions/users trong MySQL. Logout cần invalidate phiên ở server rồi mới xóa state/chuyển trang. Vì vậy chỉ xóa localStorage hoặc đổi role trên UI không chứng minh đã logout/có quyền.
+3. **Xác thực khác phân quyền và kiểm tra dữ liệu:** auth:sanctum xác định người đang gọi; active/role/Policy quyết định được làm gì. RequireAuth chỉ giúp điều hướng; không có API nghiệp vụ thì không được nói đã thử Policy tài nguyên. Zod giúp người nhập, FormRequest/UNIQUE là lớp kiểm tra thật; đăng ký không nhận role/status tự do. Ca dev chứng minh tài khoản mới vẫn user, không Admin, email chưa tự xác minh.
+
+### 11.13. Sprint CAT/ROOM — code thực tế và bằng chứng mới 23/10/2026
+
+**Phạm vi:** thực hiện ngay quy tắc đã có, không khảo sát lại. Đã nối 5 trang ADM-02/03/04/05/06 vào dữ liệu thật: tòa nhà, tiện nghi và phòng cơ bản. Hợp đồng/Thanh lý chưa duyệt gói cấu trúc P4/P5-B/P6/P7/P8: không tạo ALTER, không sửa migration/model/enum. P1 baseline vẫn `end_date > start_date`; P2 một lý do chênh chung theo DB-D40; P12 kiểm tra tài sản bắt buộc mọi thanh lý theo D49. Không hỏi lại các nguyên tắc này; không tự coi prototype hai ô lý do là yêu cầu. Phân loại đầy đủ quyết định thật sự thiếu ở Plan §12.2; phạm vi/API/AC CAT/ROOM ở brief §16–17.
+
+**File mới và trách nhiệm:**
+
+| Nhóm file | Nội dung cần hiểu |
+|---|---|
+| `backend/app/Http/Controllers/Api/V1/{Building,Amenity,Room}Controller.php` | Nhận request, gọi Gate/Service, trả Resource; POST trả 201, archive 204. Không tính tiền hoặc tự tạo quyền |
+| `backend/app/Http/Requests/{Building,Amenity,Room}/Store*Request.php`, `Update*Request.php`; Room thêm `IndexRoomRequest.php` | Kiểm tra quyền trước validation, chỉ dùng `validated()`; tên/mã/tầng/tọa độ/diện tích/tiền/UNIQUE. Trường ngoài quyền như status bị từ chối, không mass assign từ request |
+| `backend/app/Policies/{Building,Amenity,Room}Policy.php` | Chỉ Admin active, tự khám phá theo quy ước Laravel. Cùng middleware phiên/khóa/vai trò, đây là lớp quyền thật ở server |
+| `backend/app/Services/{Building,Amenity,Room}Service.php` | Eloquent query/pagination, allowlist trường ghi, xử lý UNIQUE race 409. Building giảm tầng phải kiểm tra phòng; Room transaction khóa tòa rồi phòng; Amenity archive giữ bản ghi/pivot |
+| `backend/app/Http/Resources/{Building,Amenity,Room}Resource.php` | Hợp đồng JSON rõ ràng; không trả Model thô. Room.area là chuỗi DECIMAL, tiền nguyên VND; không thêm thông tin hợp đồng/ảnh/chỉ số giả |
+| `backend/app/Rules/MaxTextBytes.php` | Chặn mô tả vượt 65.535 byte UTF-8 trước khi MySQL TEXT bị tràn |
+| `frontend/src/features/{buildings,amenities,room-management}/` | Mỗi feature có api.ts, types.ts, schemas.ts và Form; api.ts chỉ gọi client chung lib/http.ts; Form dùng RHF/Zod, lỗi server map đúng trường |
+| `frontend/src/lib/{apiErrors,textLimits}.ts` | Thông báo lỗi HTTP/mạng an toàn và `TextEncoder` đo byte UTF-8; không show SQL/stack trace. Field allowlist tránh gán lỗi vào trường ngoài form |
+| `backend/tests/Feature/Catalog/{CatalogTest,RoomManagementTest}.php` | Feature tests MySQL có guard, cookie/CSRF thật trong HTTP kernel; quyền/validation/UNIQUE race/dữ liệu liên quan |
+| `frontend/tests/{catalog.test.mjs,catalog.browser.mjs}` | Node tests schema/lỗi + harness Chrome CDP qua Nginx môi trường test cô lập, không cài thêm package |
+
+File có sẵn đã sửa trong nhóm này: `backend/routes/api.php`, `backend/bootstrap/app.php`; `frontend/package.json` (test glob), `AdminLayout.tsx`; 5 page `AdminBuildingsPage`, `AdminBuildingDetailPage`, `AdminAmenitiesPage`, `AdminRoomsPage`, `AdminRoomDetailPage`; Plan/brief/DB plan/học tập/inventory và các đầu mối README/AGENTS/API Auth để cập nhật trạng thái. Không ghi đè thay đổi Authentication từ các lượt trước, không đụng prototypes/.claude. Backend models/DB schema/dependencies không thay đổi trong nhóm CAT/ROOM.
+
+**Ví dụ luồng React → Laravel → MySQL:**
+
+1. Admin mở form Thêm phòng tại `AdminRoomsPage`; `RoomForm` dùng `roomSchema` kiểm tra mã, diện tích, giá nguyên, tầng trong phạm vi tòa. Zod giúp phản hồi nhanh; người gọi API trực tiếp vẫn có thể bỏ qua frontend nên Backend kiểm tra lại.
+2. `room-management/api.ts` gửi POST `/api/v1/rooms` qua Axios `http`. Cookie phiên HttpOnly do browser gửi; header XSRF bảo vệ request ghi. Không gửi role hoặc tin role ở React.
+3. Laravel middleware `auth:sanctum`/`active`/`role:admin` xác minh phiên và tài khoản đang hoạt động; FormRequest/Policy xác nhận được tạo, `ensureReady()` kiểm tra bảng đã triển khai, sau đó validate dữ liệu. Không có bảng rooms thì 503 tiếng Việt, không query gây SQL lỗi hoặc trả danh sách 0 giả.
+4. `RoomController::store()` đưa riêng `validated()` vào `RoomService::create()`. Service mở transaction (nhóm thay đổi cùng thành công/thất bại), khóa dòng tòa bằng `lockForUpdate()` rồi kiểm tra tầng theo DB, tạo phòng status available mặc định đã thiết kế. Khi sửa, khóa tòa trước phòng để tránh tranh chấp với giảm tầng; không đổi status/building_id/hợp đồng.
+5. MySQL UNIQUE `(building_id, code)` là lớp chặn cuối nếu hai request cùng vượt validation. `UniqueConstraintViolationException` được chuyển 409; không nuốt lỗi DB khác. Transaction retry tối đa 3 lần khi deadlock (hai phiên chờ khóa nhau).
+6. `RoomResource` trả đúng trường JSON, status 201; React chỉ đóng form/báo thành công sau API thành công, tải lại danh sách. F5 đọc lại DB nên dữ liệu còn; mất mạng không tạo dòng thành công giả.
+
+**Các hàm quan trọng:** `BuildingService::update()` khóa tòa rồi so tầng cao nhất trước giảm tầng; thiếu bảng phòng thì 409 đúng thao tác này. `AmenityService::archive()` gọi soft delete nên tên UNIQUE và liên kết còn nguyên; không hard-delete. `RoomService::ensureReady()/create()/update()` tách kiểm tra triển khai, ghi an toàn và sửa metadata khỏi nghiệp vụ hợp đồng. `applyApiErrors()` chỉ ánh xạ errors vào field được phép; 401/403/409/503/mạng có thông báo an toàn. Chi tiết không tồn tại trả 404, không dùng phòng/tòa đầu tiên thay thế.
+
+**Lỗi kỹ thuật tìm được khi rà soát:** ban đầu string validation cho phép mô tả ASCII 65.536 byte hoặc tiếng Việt vượt byte limit; MySQL TEXT có thể lỗi 1406. Đã thêm `MaxTextBytes` và `fitsTextColumn`, không nới cột hoặc cắt mất dữ liệu. Ví dụ `ế` chiếm 3 byte UTF-8: 21.845 ký tự = 65.535 byte được lưu, 21.846 bị 422; thêm 12 ca backend kiểm tra tạo/sửa không dở dang và ngưỡng chính xác. Frontend có test cùng ngưỡng. Tiền > `Number.MAX_SAFE_INTEGER` bị từ chối rõ ràng vì JSON number/JavaScript không giữ chính xác; không tự làm tròn. Đây là giới hạn kỹ thuật, không thay đổi giá/tiền hợp đồng hoặc schema BIGINT.
+
+**Kiểm thử mới thực chạy:** trước DB tests, guard 7/7 và TestEnvironment 6/14 PASS. Sau code CAT đã có 336/2211; sau ROOM 416/2966; sau bổ sung TEXT, **toàn bộ 428 test/3080 assertion PASS**, Pint `--test` PASS 140 file. Đây là các lần chạy trong nhóm này, không cộng dồn thành số lượng test duy nhất. Chỉ dùng MySQL 8.4 qua mysql_test, DB/account mini_apartment_test; `mysql` bị trỏ lại test bởi guard. Guard/phpunit/quyền account không bị làm yếu. Frontend **19 Node tests PASS**, build PASS, lint 0 lỗi/9 cảnh báo có sẵn; bundle còn cảnh báo >500 kB. Không cần package mới.
+
+**16 ca browser mới:** Chrome headless thật, bản build Vite preview cổng 5175 → Nginx 8081 → PHP-FPM test riêng → DB test; APP_ENV local nên không bỏ CSRF theo cơ chế testing. Đã kiểm tra DB/account/session/cache trước fixture, RUN_MIGRATIONS=false và bypass entrypoint, không chạy migrations lúc dựng app test. Harness yêu cầu biến xác nhận môi trường test, không dùng biến này thay cho kiểm tra server. `localhost` trên máy có dịch vụ khác ở IPv6 ::1:8081; Chrome riêng map localhost→127.0.0.1, giữ cùng origin cho Sanctum, không đụng dịch vụ khác.
+
+| Ca | Kết quả PASS |
+|---|---|
+| CAT01 | Chưa đăng nhập: API 401 và UI về login |
+| CAT02–04 | Tạo tòa, client validation, F5/chi tiết/sửa/tọa độ, tên trùng 422 theo trường |
+| CAT05 | ID không tồn tại: 404, không fallback mock |
+| CAT06–08 | Tạo/sửa tiện nghi, F5, mobile390px không overflow, archive204/404 và tên không tái dùng422 |
+| CAT09–10 | Tài khoản không Admin gọi API nhận403 thật; mất mạng không có lưu thành công giả |
+| ROOM01–03 | Tạo phòng/F5/DECIMAL/tiền/status mặc định, mã trùng422, sửa giữ tòa/status |
+| ROOM04–06 | Query lọc thật, Backend từ chối non-Admin403, chi tiết không tồn tại404 |
+
+Không có runtime exception trong 16 ca; ảnh mobile và kết quả JSON ở `backups/catalog-sprint-20261023/` đã gitignore. Biên TEXT được PHPUnit/Node kiểm tra, chưa thao tác chuỗi dài trên browser. Không coi 16 ca này là lượt chạy lại 17 ca Auth lịch sử hoặc 7 ca Auth dev. Đã dọn đúng 3 dữ liệu nghiệp vụ + 5 tài khoản browser test theo ID/tên/mã lượt, chỉ DB test; dừng đúng Chrome/Vite preview và app/Nginx test, giữ 4 container dev. Không xóa dữ liệu dev.
+
+**DB dev và giới hạn thật:** snapshot trước/sau khớp toàn bộ columns/indexes/FK/objects/migrations và hash từng bảng: 13 bảng/9 migrations/1 user, không Admin. Không migration hoặc ghi dữ liệu dev; 11 file Nhóm 2–3 vẫn pending. ROOM có code/UI/test đầy đủ trong lát cắt, chưa vận hành trên DB dev vì thiếu bảng rooms; không tạo Admin dev để thử. CAT chưa tích hợp dịch vụ/settings/giá/pivots, chưa public room API/ảnh, trạng thái/xóa/chuyển tòa và các module ngoài phạm vi. Các trang khác giữ nhãn mock; không lấy ID dữ liệu thật đi mở trang public mock. Gói schema Thanh lý chưa duyệt không chặn tiếp CAT-02b/03b độc lập. Không commit/push.
+
+**5 câu giảng viên có thể hỏi:**
+
+1. Vì sao FormRequest + UNIQUE cùng tồn tại? Validation trả lỗi dễ hiểu; hai request có thể cùng vượt validation, nên UNIQUE ngăn trùng tại DB và Service trả 409 cho cuộc đua đó.
+2. Khóa tòa trước phòng để làm gì? Tạo/sửa phòng và giảm tầng phải nhìn cùng trạng thái tòa; khóa theo cùng thứ tự giảm nguy cơ deadlock và tránh phòng ở tầng vượt số tầng vừa giảm.
+3. Soft delete khác xóa thật thế nào? Gán deleted_at, query mặc định không thấy nhưng dữ liệu/pivot/tên UNIQUE còn; chưa có API khôi phục hoặc xóa vĩnh viễn.
+4. React đã có guard sao cần Policy? Client có thể bị sửa/bỏ qua. Cookie xác định danh tính, middleware/Policy ở Laravel mới quyết định quyền; browser đã thử gọi API bằng non-Admin nhận403.
+5. Vì sao test chạy được mà dev chưa dùng Phòng? DB test có schema đã kiểm thử; dev chỉ chạy migration đã duyệt. Việc triển khai code không tự cấp quyền nâng schema dev; thiếu bảng phải báo chưa sẵn sàng và xin duyệt migration riêng, không giả dữ liệu.
+
+### 11.14. CAT-02b/03b — Dịch vụ, Giá điện nước và cấu hình ngày (23/10/2026)
+
+Phạm vi từ DB09 §3.10/3.12/3.20 và brief §18. Không khảo sát lại, không tạo Spec mới, migration/model/enum/dependency mới. Chủ dự án duyệt **CAT-D01/DB-D54: cả hai cấu hình ngày nhận1–365**, đã cập nhật quyết định/thiết kế; không suy ra phê duyệt gói Thanh lý P4–P8 hoặc chạy migrations dev.
+
+**Các file cần hiểu:**
+
+| Nhóm | Chức năng |
+|---|---|
+| Backend `ServiceController`, `ServiceCatalogService`, `ServicePolicy`, `ServiceResource`, Requests/Service | API danh mục dịch vụ. Tạo chỉ3kiểu thường, code trim/chữ hoa; tên/code UNIQUE. Sửa name/description/giá niêm yết thường; không đổi hợp đồng hoặc snapshot. Không endpoint xóa/ngừng/đổi kiểu/đơn vị trong lát cắt này |
+| Backend `UtilityPriceController`, `UtilityPriceService`, `UtilityPricePolicy`, `UtilityPriceResource`, Requests/UtilityPrice | Đọc lịch sử/lọc/phân trang và thêm giá metered. Validate ngày01, số nguyên VND>0, kỳ hiệu lực sau mọi meter_readings.period theo D33. Chưa API sửa/xóa giá |
+| Backend `SettingController`, `SettingService`, `SettingPolicy`, `SettingResource`, Requests/Setting/UpdateDaysSettingRequest | GET chỉ8key, missing_keys khi chưa có; PUT chỉ2key số ngày đã duyệt, không ghi ngân hàng/hệ thống tùy ý. value TEXT trả chuỗi theo hợp đồng hiện tại. Đọc trực tiếp DB, chưa cache nên không có cache stale cần xóa |
+| `database/seeders/SystemCatalogSeeder.php`, `DatabaseSeeder.php` | Tạo2dịch vụ hệ thống metered/priceNULL và8key. Chạy lặp không ghi đè thông tin đã cấu hình; mã hệ thống xung đột thì dừng/rollback, không tự sửa. Không user/giá điện nước mẫu. Chỉ thực thi trên DB test trong lượt này |
+| `app/Rules/NotBoolean.php` | Chặn JSON true bị Laravel integer xem thành1; áp dụng giá Service, UtilityPrice và giá/cọc Room. Rule integer/min/max vẫn giữ, không làm tròn, không đổi schema |
+| Frontend `features/services/` và `features/utility-prices/` | api.ts/types.ts/schemas.ts + form RHF/Zod; API qua http chung. Types giữ snake_case; tiền số nguyên an toàn JS, DATE giữ chuỗi, mô tả kiểm tra byte UTF-8 |
+| `AdminServicesPage.tsx`, `AdminUtilityPricesPage.tsx`, `AdminLayout.tsx` | Hai trang Antigravity hiện có nối dữ liệu thật, banner phân biệt mock; không có ID/giá/nhãn đã tính hóa đơn giả. Không thêm trang Settings còn thiếu |
+| `tests/Feature/Catalog/{ServiceCatalogTest,UtilityPriceCatalogTest,SystemCatalogSeederTest,SettingsDaysTest}.php`; `RoomManagementTest.php` | Test quyền/CSRF, validation/unique-race, snapshot, ngày/kỳ đã dùng, schema thiếu, seeder, settings1–365 và boolean tiền |
+| `frontend/tests/catalog-next.test.mjs`, `catalog-next.browser.mjs` | 8 Node tests mới và harness browser kiểm tra 2 trang + Settings API trên DB test cô lập |
+
+Root tích hợp `backend/routes/api.php`, không ghi đè Auth/CAT/ROOM trước đó. API và AC chính thức xem brief §18. File tài liệu cập nhật gồm Plan, DB plan§17, DB decisions/DB09 (chỉ quyết định ngày đã duyệt), học tập/inventory và đầu mối README/AGENTS. Chưa commit/stage/push, không sửa package-lock/composer.lock/guard/phpunit hay migration đã commit.
+
+**Luồng ví dụ thêm giá:** `AdminUtilityPricesPage` mở `UtilityPriceForm` → Zod kiểm tra service_id thật, unit_price nguyên>0, effective_from ngày01 → Axios gửi POST `/api/v1/utility-prices` cùng cookie/XSRF → Laravel auth/active/role/Policy xác minh Admin → `StoreUtilityPriceRequest` kiểm tra input → `UtilityPriceService::create()` transaction khóa dòng Service, đọc kỳ chỉ số lớn nhất, chặn giá làm thay đổi kỳ đó → INSERT utility_prices, UNIQUE(service_id,effective_from) bảo vệ race → Resource trả201 → React tải lại lịch sử. F5 vẫn thấy bản ghi vì đọc MySQL. Không tính tiền hóa đơn trong React.
+
+**Vì sao khóa Service:** hai Admin thêm giá cùng dịch vụ được tuần tự hóa; MTR tương lai phải dùng cùng khóa khi lấy/snapshot giá và ghi reading, sau rooms/users/contracts/contract_services và trước meter_readings theo thứ tự cha–con. Không tuyên bố đã có MTR Service hoặc test cạnh tranh giá–reading khi module đó chưa code. Test hiện tại chứng minh UNIQUE race và quy tắc lịch sử; khóa dòng được đối chiếu trong source, chưa có test cạnh tranh với luồng nhập chỉ số thực tế. Thiếu utility_prices thì đọc503, thiếu meter_readings thì thêm giá503 để không bỏ kiểm tra D33. Nhóm2 chỉ đủ bảng giá, không đủ kiểm tra ghi giá trên dev nếu Nhóm3 chưa áp dụng.
+
+**Cấu hình ngày:** PUT `/settings/invoice.due_days` với `{"value":5}` chỉ Admin active, CSRF và Policy; `UpdateDaysSettingRequest` nhận1–365 và từ chối boolean/field key/type/group. Service khóa cấu hình có sẵn, tạo key chỉ khi Admin nhập thật nếu chưa có; không nhận key tùy ý. UNIQUE race409. Lượt test đầu phát hiện Resource tự trả201 khi Model mới tạo; đã sửa Controller trả200 tường minh theo hợp đồng PUT, không đổi test để che lỗi. Không sửa hóa đơn/hợp đồng cũ khi đổi giá trị cấu hình.
+
+**Giới hạn dữ liệu kỹ thuật:** MySQL DATE hỗ trợ1000–9999, validate cả Laravel/Zod; không tự đặt khoảng năm nghiệp vụ hoặc giới hạn chỉ cho tương lai. `true` từng vượt Laravel integer thành1VND, đã chứng minh qua Validator rồi sửa NotBoolean, thêm test cả tạo/sửa Room và CAT mới. Giá vượt Number.MAX_SAFE_INTEGER bị từ chối thay vì làm tròn; mô tả TEXT vẫn65.535byte. Đây là bảo vệ kiểu/giao tiếp, không tự đặt chính sách tài chính.
+
+**Kiểm thử tự động mới:** guard7/7, TestEnvironment6/14 trước DB tests. Lượt đầu cả nhóm CAT-B **555 test/3932 assertion PASS**. Sau thêm hai cấu hình ngày đã duyệt, lượt test riêng ban đầu6failed/11passed vì201/200 nêu trên; sau sửa, chạy **toàn bộ572 test/4134 assertion PASS**, Pint `--test` PASS164file. Không cộng555 và572 thành số test. DB chỉ mysql_test/mini_apartment_test và account test riêng, guard giữ nguyên. Frontend **27 test PASS** (19 trước +8 mới), build PASS, lint0lỗi/9cảnh báo có sẵn; bundle vẫn cảnh báo>500kB. Ma trận browser CATB01–12: anonymous401; dịch vụ tạo/validate/F5/sửa/duplicate/metered protection; giá ngày01/tạo/F5/lọc/duplicate; non-Admin403 thật; offline không lưu giả; Settings365thành công/0bị422; mobile390px. Kết quả browser và so sánh dev cuối lượt cập nhật ở Plan§12.4.
+
+**Phương án dev/checkpoint:** DB plan§17 có đủ7tênfile, FK/index/generated columns, backup mới ngoài repo + restore đúng utf8mb4/utf8mb4_unicode_ci trên volume/container riêng, đúng7--path/pretend, kiểm tra trước–sau và rủi ro DDL tựcommit. Không chạy dù code đã test; không dùng backup cũ thiếu khách mới. Không rollback DROP bảng/restore dev tự động khi có bất thường. Nhóm2 baseline không chứa ALTER P4–P8; chưa duyệt Nhóm3/seeder/Admin. Plan§12.5 đề xuất7checkpoint theo phụ thuộc, stagehunk có chủ đích, chưa commit/push.
+
+**Câu hỏi bảo vệ:** (1) Danh mục price khác unit_price hợp đồng thế nào? Price là niêm yết, contract_services lưu snapshot nên sửa niêm yết không sửa lịch sử. (2) Vì sao utility_prices riêng? Giá thay theo kỳ, chọn theo ngày01 và snapshot khi ghi chỉ số, không đổi hóa đơn cũ. (3) Seeder khác migration? Seeder ghi dữ liệu hệ thống, migration tạo cấu trúc; duyệt một loại không tự duyệt loại kia. (4) Vì sao giá dev503 dù UI đã code? Cần đúng bảng để kiểm tra quy tắc đã dùng; không giả định lịch sử rỗng. (5) Vì sao Group2 không chờ P4–P8? Group2 tạo baseline7bảng đã thiết kế/test, P4–P8 là điều chỉnh cấu trúc thanh lý tương lai; vẫn cần duyệt vận hành dev riêng.
+
+**Kết quả browser cuối CAT-B:** 12/12 PASS, không runtime exception; ảnh mobile đã xem trực tiếp. Lượt đầu lỗi harness điền DATE, lượt kế tiếp cần chờ dropdown tải xong; đã sửa harness và chạy lại toàn bộ, không nới validation sản phẩm. Đã dọn đúng fixtures test (giá/dịch vụ/settings hệ thống +5user test), dừng môi trường riêng; snapshot dev trước/sau khớp hoàn toàn. Bằng chứng ignored: backups/catalog-next-20261023; không đưa credential vào Git.
+
+### 11.15. Nâng schema dev Nhóm 2 an toàn — 23/10/2026
+
+Chủ dự án duyệt **riêng7file200006–200012** theo DBplan§17. Biên bản đầy đủ/đường dẫn backup và câu lệnh thật ở DBplan§18; không gộp Nhóm3, cấu trúc Thanh lý P4–P8, seeder hoặc Admin.
+
+**Kết quả thực tế:** dev13→20bảng, migrations9→16dòng,7fileđúngtên ởbatch4; chỉ7bảng mới rỗng. Cấu trúc/hash dữ liệu13bảng cũ giữ nguyên, ngoại lệ có chủ đích bảng migrations thêm7dòng và tăngAUTO_INCREMENT tương ứng. users vẫn1khách/0Admin; emailnullable/UNIQUE và phoneNOTNULL/UNIQUE còn nguyên. Bốn file Nhóm3 vẫn pending. Không sửa file migration đã commit hoặc tạo dữ liệu nghiệp vụ.
+
+**Bảo toàn dữ liệu được chứng minh thế nào:**
+
+1. Tạm dừng ingress nginx/frontend để không phát sinh ghi qua web; giữ MySQL/app. RUN_MIGRATIONS=false được xác nhận cả Compose và container, không recreateapp. SnapshotPDOchỉ đọc xác minh chính xác DB/accountdev; không in thông tin tài khoản cá nhân.
+2. Backup mới `D:\MaNguonMo\mini-apartment-backups\group2-20261023T031015Z\mini_apartment.sql`, toàn DB/các đối tượng, SHA-256 kiểm tra lại. Không dùng backup cũ trước tài khoản khách. Dữ liệu nhạy cảm chỉ nằm ngoài repository/Git.
+3. Restore lên container cùngimageMySQL8.4.11, networknone/khôngport, volume data/socket hoàn toàn mới. Đặt đúng utf8mb4/utf8mb4_unicode_ci trước import. PHPcontainercũngnetworknone đọcMySQL qua socket mới; serverUUIDkhác chứng minh không trỏ dev.
+4. Đối chiếu schema/columns/index/FK/delete rules/constraints/objects, migrations, số dòng và SHA-256 nội dung từng bảng theo PRIMARYKEY; AUTO_INCREMENTcũng khớp. SHOWCREATEbản restore có thêm chữ CHARACTERSETutf8mb4 ở cột chữ, nhưng metadatacharset/collation và SQL chuẩn hóa giống hệt; đây là biểu diễn tường minh, không lỗi collation.
+5. `--pretend` đúng7path có33DDL chỉ CREATE7bảng và ALTERFK/index trên bảng mới. Chạy thử cùng7file trên bản restore, kiểm tra20bảng/16migration/7bảng rỗng/không mất dữ liệu cũ. Snapshotdev trướcapply vẫn khớp backup; hash7filekhông đổi.
+6. Chạy thật cùng7path trên dev; sau chạy so với bản diễn tập và baseline đều đúng phạm vi. Không tự rollback nếu bất thường; lần này không có bất thường cấu trúc/dữ liệu. Mở lạifrontend/nginx, giữRUN_MIGRATIONSfalse; dừngcontainerrestore, giữbackup/volumeđể đối chiếu.
+
+**Lệnh và khái niệm cần giải thích:** `migrate` thường xét tất cả file chưa ghi trong bảng migrations; nhiều `--path` giới hạn đúng7file; bảng migrations ghi tên/batch để không chạy lại. `--pretend` inSQL dự định, không thay thếbackup/restore hoặc kiểm tra thực tế. MySQL DDL thường tựcommit, nên cả7filekhông là một transaction chung; khi lỗi giữa chừng phải dừng và đối chiếu, không xóa bảng/rerun mù. Backup là bản sao có khả năng phục hồi, migration là thay đổi cấu trúc có phiên bản; migrationCREATEtrong lượt này không xóa dòng ở bảng cũ.
+
+**Mức kết nối Dockerdev:** GETHTML `/`, `/admin/rooms`, `/admin/buildings`, `/admin/services`, `/admin/utility-prices`200 và trảReactentry; health200; APIkhông phiên401. LaravelServicechỉ đọc xác nhậnrooms/utility_prices rỗng hợp lệ, không còn thiếu bảng. GETtrangReactcầnAccepttext/html như browser; thửAcceptapplication/json với Vite trả404 không phải lỗi route ứng dụng. Chưa có Admin và chủ dự án cấm tạo, nên chưa thử thao tác quản trị thực tế trên dev; không đổi role hoặc tạo session giả để thử. Điện/Nước chưa seed; thêmgiá vẫn503 do meter_readings Nhóm3 thiếu, không bỏ D33 để làm UI báo thành công.
+
+**Câu hỏi giảng viên:** Vì sao phải restore thử dù dump thành công? Dump có thể thiếu đối tượng/khác collation hoặc lỗi import, chỉ restore+đối chiếu mới chứng minh khả năng phục hồi. Vì sao không rollback ngay nếu lỗi? Down của nhóm này DROPtable có thể xóa dữ liệu vừa phát sinh; phải đánh giá trạng thái hiện tại trước. Vì sao7bảng còn rỗng? Migration tạo cấu trúc; seeder/dữ liệu/Admin là quyền thao tác khác, không được tự gộp. Vì sao Phòng dùng được schema nhưng chưa chứng minh UIAdmindev? Cần tài khoản đúng vai trò; kiểm tra HTTPentry/API401 và Servicechỉ đọc khác với người dùng thật thực hiệnCRUD.
+
+### 11.16. Gán tiện nghi — API và panel trên trang chi tiết
+
+**Phạm vi CAT-02b.4/03b.4:** dùng hai bảng liên kết đã có; tiện nghi không sinh tiền. CAT-D02/DB-D55 được chủ dự án xác nhận: tiện nghi đã lưu trữ còn liên kết vẫn hiện kèm nhãn **Đã lưu trữ**. Chỉ sửa tập tiện nghi đang hoạt động, chưa khôi phục/gỡ riêng liên kết đã lưu trữ. Không thay schema hoặc quyền.
+
+**File và trách nhiệm:**
+
+| File | Nhiệm vụ |
+|---|---|
+| `backend/routes/api.php` | Thêm GET/PUT tiện nghi cấp tòa/phòng; dùng middleware (lớp kiểm tra trước Controller) xác thực, trạng thái và quyền Admin, cùng CSRF khi ghi |
+| `app/Http/Controllers/Api/V1/AmenityAssignmentController.php` | Nhận yêu cầu, kiểm tra Policy (quy tắc quyền), gọi Service, trả Resource |
+| `app/Http/Requests/AmenityAssignment/UpdateAmenityAssignmentRequest.php` | Kiểm tra danh sách ID hợp lệ, không trùng, còn hoạt động; từ chối trường điều khiển tiền/quyền/trạng thái |
+| `app/Services/AmenityAssignmentService.php` | Đọc/gán tiện nghi, khóa dữ liệu và giữ liên kết lưu trữ; tính tập hợp tại Backend |
+| `app/Http/Resources/AmenityAssignmentResource.php` | Chỉ trả id/name/description/is_archived trong direct/inherited/effective |
+| `frontend/src/features/amenity-assignment/{api,types,schemas}.ts` | Gọi API thật bằng http chung, khai báo dữ liệu và kiểm tra biểu mẫu bằng Zod |
+| `AmenityAssignmentPanel.tsx` | Biểu mẫu React Hook Form, trạng thái tải/lưu/lỗi/thử lại; hiển thị dữ liệu server |
+| `AdminBuildingDetailPage.tsx`, `AdminRoomDetailPage.tsx` | Ghép panel vào trang hiện hữu với archivedVisibility="show"; giữ Antigravity |
+
+**Luồng React → Laravel → MySQL:** người dùng chọn checkbox → React gửi `{amenity_ids:[...]}` qua cookie và XSRF → Laravel xác minh Admin active, Policy và input → Service ghi đúng bảng liên kết → Resource trả tập trực tiếp, kế thừa và hợp nhất → React hiển thị kết quả thực. Không import mock, không báo lưu thành công trước phản hồi API. Lỗi 422 được đặt tại trường amenity_ids, kể cả server trả amenity_ids.0.
+
+**Hàm quan trọng:** `ensureReady()` kiểm tra đủ bảng trước truy vấn, trả 503 nếu thiếu. `findBuilding()/findRoom()` tìm đúng ID, không có thì 404. `update()` dùng transaction (nhóm thao tác ghi cùng thành công hoặc cùng hủy), khóa Building → Room nếu cần → các liên kết hiện tại theo ID → Amenity theo ID tăng dần. Khóa cả ID cũ và mới để đọc lại trạng thái lưu trữ, tránh xóa nhầm liên kết vừa được lưu trữ. `sync()` chỉ đồng bộ tập hoạt động được chọn cộng liên kết lưu trữ phải giữ. `forRoom()` hợp hai tập theo ID, không tạo bản sao tiện nghi tòa vào bảng liên kết phòng. Các hàm `buildingIndex/buildingUpdate/roomIndex/roomUpdate` trong Controller giữ trách nhiệm ngắn, không chứa nghiệp vụ.
+
+**Kiểm thử mã nguồn mới:** toàn Backend **650 test / 4.667 assertion PASS**, Pint **169 file PASS**; 78 ca mới trong `tests/Feature/Catalog/AmenityAssignmentTest.php`. Bao phủ 401/403/locked/CSRF, gán/gỡ/danh sách rỗng, ID sai/trùng/lưu trữ, hợp không trùng và không sao chép, không sửa tiền/hợp đồng/quyền, thiếu schema 503, không tìm thấy 404. Hai ca đổi trạng thái giữa validation và ghi mô phỏng đúng ranh giới này; chưa tuyên bố là test hai process gán đồng thời. Guard trước test 7/7; full suite kiểm tra tài khoản test không đọc dev và kết nối mysql được chuyển về test. Không sửa guard/phpunit.
+
+Frontend **32 test PASS** (27 trước + 5 schema mới); build PASS, lint 0 lỗi/9 cảnh báo có sẵn, bundle còn cảnh báo trên 500 kB. Các test này không thay thế kiểm tra biểu mẫu thật trên trình duyệt.
+
+**Kiểm thử trình duyệt mới: 14/14 ca PASS**, không runtime exception, Nginx 8081 + DB/account mini_apartment_test, không ghi dev. Đã trực tiếp xem ảnh desktop/mobile 390 px: nhãn rõ, không tràn ngang, giữ Antigravity. Bao phủ gán/gỡ/danh sách rỗng, tải lại giữ dữ liệu, kế thừa không sao chép, union không trùng, archive thật có nhãn/giữ liên kết, lỗi mạng/thử lại, Backend403/CSRF419 và 422 thật khi ID bị archive trước PUT. Lượt đầu chưa vào được trang vì localhost IPv6 trỏ ứng dụng khác; xác định đúng Nginx test ở IPv4 và chỉnh riêng Chrome/harness. Không sửa sản phẩm hoặc làm yếu validation để vượt test. Ma trận và kết quả tại Plan §12.7; 12 ca CAT-B và 16 ca CAT/ROOM trước là lịch sử.
+
+**Câu hỏi bảo vệ và hướng trả lời:**
+
+1. Tiện nghi có thu tiền không? Không; Services mới là khoản thu. Gán tiện nghi không sửa giá hoặc hợp đồng.
+2. Vì sao có hai bảng liên kết? Một bảng dành cho tòa, một bảng dành cho lựa chọn riêng của phòng; khi đọc mới hợp theo ID.
+3. Vì sao giữ liên kết đã lưu trữ? Lưu trữ không phải xóa lịch sử; biểu mẫu hiện chỉ sửa tập hoạt động theo quyết định đã duyệt.
+4. Vì sao kiểm tra ID lần nữa sau khi khóa? ID có thể bị lưu trữ giữa lúc kiểm tra input và lúc ghi; trạng thái sau khóa mới đủ tin cậy để quyết định.
+5. Vì sao build PASS chưa đủ? Build kiểm tra biên dịch; trình duyệt mới chứng minh chọn/lưu/tải lại và nhận dữ liệu API thật qua cookie/CSRF.
+
+
+**An toàn sau kiểm thử:** đã dọn đúng fixture của lượt trong DB test và dừng tiến trình/container test riêng. Snapshot dev cuối khớp mọi phần JSON với sau migration đã duyệt; không thêm thay đổi dữ liệu dev. So sánh chuỗi thô từng báo khác do Windows dùng CRLF còn đầu ra container dùng LF; đối chiếu nội dung JSON mới xác nhận cấu trúc/dữ liệu bằng nhau. Không bỏ qua khác biệt chưa rõ; phải xác định nguyên nhân trước khi kết luận. Dev giữ 20 bảng/16 migration, RUN_MIGRATIONS=false; chưa Admin/seeder/CRUD quản trị dev.
+
+
+### 11.17. Bản đồ code USR-A — quản trị tài khoản chỉ đọc
+
+| Mở file tại vị trí này | Tìm hàm/điểm xử lý |
+|---|---|
+| `frontend/src/pages/admin/AdminUsersPage.tsx:22` | AdminUsersPage: submit dòng52 gửi bộ lọc, changePage dòng51 đổi trang, clearFilters dòng54 xóa lọc; useEffect dòng36 gọi API và hiển thị result.data/meta |
+| `frontend/src/pages/admin/AdminUserDetailPage.tsx:18` | AdminUserDetailPage: lấy userId từ URL, useEffect dòng32 tải đúng hồ sơ; không có tài khoản thì 404, không dùng tài khoản mẫu |
+| `frontend/src/features/user-management/api.ts:7` | getUsers(page,filters,signal); getUser(id,signal) dòng13. http.get gửi query, không body; http.ts dòng11 có withCredentials=true để gửi cookie phiên |
+| `backend/routes/api.php:38` | GET /api/v1/users → AdminUserController::index; dòng39 GET /api/v1/users/{user} → show. Middleware auth:sanctum → active → role:admin; UserPolicy::viewAny/view kiểm tra Admin active |
+| `backend/app/Http/Requests/User/IndexUserRequest.php:34` | rules: role/status/has_active_contract/q/page; chỉ validated() tới Service; q được trim |
+| `backend/app/Services/AdminUserService.php:31` | paginate: AND các bộ lọc, nhóm OR tìm full_name/email/phone bằng LOCATE có binding (tham số tách khỏi SQL), 20 dòng/trang theo ID; find dòng59 đọc hồ sơ thật |
+| `backend/app/Models/User.php:71` | activeContract: contracts.status=active, SoftDeletes loại hợp đồng lưu trữ; đọc tiếp rooms và buildings. Eager loading (tải trước quan hệ theo nhóm) tránh mỗi người lại chạy query riêng |
+| `backend/app/Http/Resources/AdminUserResource.php:10`, `AdminUserDetailResource.php:9` | toArray: JSON data; list chỉ thông tin liên hệ/trạng thái/đang thuê, detail thêm 4 trường hồ sơ pháp lý. Không đổi hidden của User hoặc Resource /auth/me |
+
+**API thực hành ngắn:** ví dụ tham số `GET /api/v1/users?role=resident&status=active&has_active_contract=1&q=Nguyen&page=1` chỉ lấy cư dân hoạt động đang thuê có tên/email/SĐT chứa Nguyen. Bỏ q để bỏ tìm kiếm, đổi has_active_contract=0 để lấy người không đang thuê; tăng page để xem trang kế tiếp. Kết quả tùy dữ liệu thật, không bảo đảm có dòng. DevTools → Network → chọn request users → xem Query String Parameters, Request Headers/Cookie, Response data/links/meta; không chia sẻ cookie hoặc thông tin pháp lý thật. Không có API ghi người dùng trong lát cắt này.
+
+**Luồng/lỗi:** submit React → getUsers → route/middleware/Policy → FormRequest → AdminUserService → users/contracts/rooms/buildings → Resource → bảng hoặc hồ sơ. 401 yêu cầu đăng nhập, 403 không có quyền/khóa, 404 hồ sơ không tồn tại, 422 hiện lỗi bộ lọc, 503 thiếu schema; lỗi mạng có Thử lại. Đổi bộ lọc trong submit/api.ts; đổi điều kiện truy vấn trong paginate; đổi trường trả về trong Resource rồi đồng bộ types/page và test. Không sửa Model hidden để lộ CCCD ở mọi API.
+
+**Câu hỏi bảo vệ:** (1) Resident có luôn đang thuê? Không, phải có hợp đồng active; không tự coi quá ngày kết thúc dự kiến là đã thanh lý. (2) Vì sao CCCD chỉ ở detail Admin? Resource và Policy giới hạn đúng mục đích đọc hồ sơ. (3) Vì sao OR phải nằm trong nhóm? Để tìm kiếm không vượt qua điều kiện vai trò/trạng thái. (4) React ẩn nút có bảo vệ được API? Không; Laravel kiểm tra cookie, trạng thái và Policy. (5) Vì sao eager loading? Số query giữ ổn định khi trang tăng từ1 lên20 tài khoản.
+
+
+**Bằng chứng USR-A mới:** Backend 699 test/5.053 assertion PASS (49 ca mới), Pint176 file PASS; frontend39 test PASS (7 ca mới), build PASS, lint0 lỗi/9 cảnh báo cũ. Guards/config PHPUnit không đổi; đã xác minh SQL kết nối/tài khoản test và bị từ chối đọc dev trước test. Browser mới **16/16 ca PASS**, 0 runtime exception trên DB/account test riêng; ma trận tại Plan §12.8, không dùng kết quả lịch sử thay cho USR. Khởi đầu lượt 4 container dev đang dừng; đã kiểm tra RUN_MIGRATIONS=false cả Compose/container cũ trước khi start, không recreate hoặc chạy migration.
+
+
+**Đóng lượt USR:** dọn đúng23 tài khoảnUSR+2 hợp đồng/1phòng/1tòa và5 tài khoảnAuth fixture trên DB/account test, không đụng dữ liệu dev; đóng Chrome/Vite riêng, dừng2container test. Snapshot dev-before/dev-after trong backups/usr-read-20261023 khớp mọi phần metadata/index/constraints/lịch sử/count/hash:20 bảng/16 migration/1khách, không thêm Admin/seed/migration. Bốn container dev đang chạy, MySQL healthy, RUN_MIGRATIONS=false. Nhóm3 vẫn4file pending; không commit/push. Bản đồ code trên đã đối chiếu số dòng hiện tại; khi code thay đổi phải kiểm tra lại vị trí trước khi hướng dẫn.
+
+### 11.18. Bản đồ code USR-B — Admin cấp nhân viên
+
+DB-D56/USR-D01 đã duyệt: chỉ tạo mới Kỹ thuật viên/Bảo vệ, email tùy chọn NULL; Admin đặt mật khẩu ẩn và bàn giao thủ công. Chưa khóa tài khoản, sửa hồ sơ, gửi lời mời hoặc ép đổi mật khẩu lần đầu.
+
+| Mở file | Hàm/điểm xử lý |
+|---|---|
+| `frontend/src/pages/admin/AdminUsersPage.tsx:53` | closeStaffModal chặn đóng khi bận; onCreated dòng113 đóng modal, thông báo an toàn, về trang1 và GET lại danh sách |
+| `frontend/src/features/user-management/StaffUserForm.tsx:33` | submit nhận dữ liệu RHF/Zod, dùng ref chặn gửi lặp, gọi API, reset khi thành công, applyApiErrors khi lỗi; hủy/unmount xóa state mật khẩu |
+| `frontend/src/features/user-management/api.ts:17` | createStaffUser gọi fetchCsrfCookie rồi http.post('/users'); gửi full_name/phone/email/role/password/password_confirmation, email rỗng thành NULL |
+| `frontend/src/lib/accountSchemas.ts:14` | registrationFields dùng chung với đăng ký; passwordsMatch dòng21, passwordFitsBcrypt dòng4 kiểm tra byte UTF-8. Không trim mật khẩu |
+| `backend/routes/api.php:53` | POST /api/v1/users → AdminUserController::store; auth:sanctum + active + role:admin + spa. UserPolicy::createStaff tại app/Policies/UserPolicy.php:20 kiểm tra Admin active |
+| `backend/app/Http/Requests/User/StoreStaffUserRequest.php:28` | prepareForValidation chuẩn hóa email/SĐT; rules dòng37 kiểm tra dữ liệu, 2 vai trò, từ chối trường do server quản lý |
+| `backend/app/Http/Controllers/Api/V1/AdminUserController.php:39` | store chỉ chuyển validated() tới Service, trả AdminUserResource với HTTP201 |
+| `backend/app/Services/AdminUserService.php:66` | createStaff: tạo User mới trong transaction (cùng thành công hoặc cùng hủy), gán active/email chưa xác minh; UNIQUE race409, lỗi DB khác500 với log đã bỏ SQL/bindings/dữ liệu cá nhân |
+| `backend/app/Models/User.php:43` | casts có password=hashed: băm mật khẩu trước lưu; role/status không nhận mass assignment (gán hàng loạt từ dữ liệu nhập) |
+
+**Luồng:** bấm Tạo tài khoản → submit → POST cùng cookie phiên + X-XSRF-TOKEN → middleware/Policy → FormRequest → Service INSERT users và đọc lại trường tối thiểu → Resource `{data:...}` → React GET lại danh sách. contracts/rooms/buildings chỉ được đọc để xác định đang thuê. Không gọi Auth::login hoặc API register nên /auth/me vẫn Admin. DevTools → Network → users cho thấy POST201 và GET sau đó; không chia sẻ mật khẩu/cookie trong ảnh chụp.
+
+**Muốn sửa:** validation ở Request + schema tương ứng; response ở AdminUserResource + types.ts; lưu dữ liệu ở createStaff; giao diện/lỗi ở submit/onCreated. Thay chính sách quyền/tài khoản phải được duyệt, không chỉ sửa option React.
+
+**Kiểm thử:** StaffUserCreateTest kiểm tra input/quyền/CSRF/hash/NULL/trùng/giữ phiên và transaction; staff-user.test.mjs kiểm tra schema; staff-user.browser.mjs thao tác modal/API thật. So sánh dữ liệu cũ phải đọc từ MySQL cả trước và sau: model mới factory-create chưa có đủ cột NULL mặc định; khác cấu trúc mảng không đồng nghĩa dữ liệu bị sửa.
+
+**Lưu ý Laravel13 thực tế:** `PreventRequestForgery::handle/hasValidOrigin` trong framework đang cài cho qua request có `Sec-Fetch-Site: same-origin`, bên cạnh cơ chế so khớp token. Vì vậy gắn token sai bằng fetch ngay trên trang cùng origin chưa phải ca giả mạo cross-site. Browser test gửi request cross-site + token sai và nhận419; ứng dụng vẫn gửi XSRF đúng, không tắt hoặc sửa middleware để test qua.
+
+**Câu hỏi bảo vệ:** (1) Vì sao không gọi register? Register tạo khách và tự đăng nhập, còn cấp nhân viên phải giữ phiên Admin. (2) Sửa role=admin trong request được không? Laravel từ chối422, không nâng quyền người cũ. (3) Admin biết mật khẩu ban đầu không? Có theo cách bàn giao đã duyệt; DB chỉ lưu hash, API không trả lại. (4) Trùng email đồng thời? UNIQUE chặn, transaction hủy và trả409. (5) Input password ẩn đã đủ chưa? Còn cần CSRF/cookie, quyền Backend, HTTPS khi triển khai và không đưa mật khẩu vào response/log/storage.
+
+
+**Bằng chứng USR-B:** Backend771 test/5806assertion và Pint179file PASS; frontend46/build/lint PASS (9cảnh báo cũ). Browser14ca đạt trên DBtest/Nginx8081:13lượt chính +ca14 chạy lại riêng, cùng build,0runtimeexception; xem Plan§12.9 cho matrix/lỗi harness đã xác định. Đã xem ảnhdesktop/mobile; mobilecao615pxform vừa khung, mobilethấp cuộn tới nút thao tác. Dev snapshot12phần JSON khớp,20bảng/16migration/1khách/0Admin; RUN_MIGRATIONS=false/Nhóm3pending, không ghi/migrate/seeder/Admin dev. Chưa kiểm thử quản trị bằng Admin trên8080. Tham khảo đúng số dòng hiện tại; khi sửa code phải đối chiếu lại.
+
+**Đóng lượt USR-B:** dọn đúng4 nhân viên+5 tài khoảnAuth test cùng phiên liên quan sau guard, đóng tiến trình/container test riêng; giữ4container dev/MySQLhealthy. Không resetDB, ghi/xóa dev, stage/commit/push.
+
+
+### 11.19. Bản đồ code USR-C — khóa/mở khóa
+
+Theo DB-D57/USR-D02, chỉ Admin active được đổi status của user/resident/technician/guard; cấm mọi Admin và chính mình. Không đổi schema, xóa lịch sử hay sửa mật khẩu/role.
+
+| Mở file | Điểm xử lý |
+|---|---|
+| `frontend/src/pages/admin/AdminUserDetailPage.tsx:64` | Ghép UserStatusAction; onChanged nhận kết quả thật, đặt thông báo và GET lại detail qua revision/useEffect dòng32 |
+| `frontend/src/features/user-management/UserStatusAction.tsx:13` | Nút theo status; confirm dòng23 gọi API với trạng thái đích, ref chặn gửi lặp/đóng khi bận; lỗi dùng apiErrorMessage. Không có nút cho Admin |
+| `frontend/src/features/user-management/api.ts:26` | changeUserStatus: fetchCsrfCookie → PATCH /users/{id}/status, body chỉ status; http gửi cookie/X-XSRF-TOKEN. userStatusSchema ở schemas.ts:19 |
+| `backend/routes/api.php:54` | PATCH /api/v1/users/{user}/status; auth:sanctum → active → role:admin → spa, chỉ ID số |
+| `backend/app/Http/Requests/User/UpdateUserStatusRequest.php:24` | rules chỉ active/locked và cấm trường hồ sơ/quyền/mật khẩu; validated('status') tới Controller |
+| `backend/app/Http/Controllers/Api/V1/AdminUserController.php:46` | updateStatus tìm ID, authorize Policy, gọi Service rồi AdminUserResource tối thiểu; không trả legal/password/hash |
+| `backend/app/Policies/UserPolicy.php:25` | changeStatus kiểm tra người gọi Admin active, khác ID, target thuộc4role được phép |
+| `backend/app/Services/AdminUserService.php:98` | changeStatus dùng transaction + lockForUpdate dòng users; kiểm tra Policy lại sau khóa, chỉ save khi khác trạng thái, gửi lặp không toggle. Không ghi contracts/invoices/payments hoặc xóa session hàng loạt |
+| `backend/app/Http/Middleware/EnsureActiveAccount.php:12` | handle kiểm tra trạng thái tài khoản trên request xác thực; locked thì logout, invalidate session và trả403. Request sau không còn phiên sẽ401. AuthService::login chặn tài khoản locked trước khi đăng nhập |
+
+**Luồng thực hành:** mở ADM-10 → Khóa tài khoản → xác nhận → Network thấy PATCH /api/v1/users/ID/status với {status:"locked"}, cookie phiên và XSRF → Controller/Policy/Service UPDATE users.status → JSONdata tối thiểu → React GET lại detail và hiển thị Đã khóa/Mở khóa. Hủy không gửi PATCH. Mở khóa gửi active, giữ mật khẩu cũ. Muốn xem lại trong danh sách: GET users?q=...&status=locked&page=1 (bộ lọc cũ đã có).
+
+**Khi sửa code:** đổi thông báo/nút ở UserStatusAction; đổi payload ở api.ts/schema và Request đồng bộ; đổi quyền chỉ ở Policy sau duyệt; đổi thao tác ghi ở changeStatus. Không thêm quyền vào React để thay thế Backend. 401/403/419/500/mất mạng dùng thông báo thật, không tự đổi badge khi API thất bại. Trạng thái có thể khác ở thời điểm ghi, nên Service phải đọc lại dưới khóa dòng (ngăn hai transaction sửa cùng dòng cùng lúc).
+
+**5 câu hỏi bảo vệ:** (1) Khóa khác xóa thế nào? Chỉ đổi users.status, mọi khóa ngoại và lịch sử giữ nguyên. (2) Phiên đang đăng nhập có còn dùng được? Request tiếp đọc trạng thái từ DB và middleware chặn/hủy phiên. (3) Bấm mở khóa có đổi password/role không? Không, chỉ PATCHstatus và login lại bằng mật khẩu cũ. (4) Vì sao vừa Policy ở Controller vừa kiểm tra sau row lock? Quyền hiển thị không đủ và target đọc trước có thể đã thay đổi. (5) Gửi yêu cầu khóa2lần có mở lại không? Không; API đặt trạng thái đích explicit, không toggle. Tests còn so toàn bộ dữ liệu/hợp đồng/hóa đơn/payment trước/sau.
+
+
+### 11.20. Bản đồ code USR-D — sửa duy nhất họ tên
+
+DB-D58/USR-D03 đã duyệt. Admin sửa full_name của tài khoản đang xem; không mở tự sửa cho vai trò khác. Giữ nguyên mọi trường định danh, mật khẩu, role/status và pháp lý; không schema/migration.
+
+| Mở file | Hàm/điểm xử lý |
+|---|---|
+| `frontend/src/pages/admin/AdminUserDetailPage.tsx:98` | UserNameForm trong Modal có sẵn; onSaved đóng, GET lại detail qua revision. Nếu sửa chính mình thì auth.refresh() gọi /auth/me để navbar đổi tên thật |
+| `frontend/src/features/user-management/UserNameForm.tsx:24` | submit: RHF/Zod, ref chặn gửi lặp, API thành công mới onSaved; lỗi422 tại full_name. Hủy/unmount bỏ thay đổi chưa lưu |
+| `frontend/src/features/user-management/api.ts:32` | updateUserName gửi PATCH /users/{id}, body chỉ full_name; fetchCsrfCookie/http.withCredentials dùng cookie+XSRF; schema tái dùng quy tắc họ tên đã có |
+| `backend/routes/api.php:55` | PATCH /api/v1/users/{user} → updateName; cùng middleware bảo vệ như status, không mở PUT/DELETE |
+| `backend/app/Http/Requests/User/UpdateUserNameRequest.php:22` | rules: required/string/max120; mọi trường status/role/email/phone/password/legal đều missing. Laravel trim tên trước validation |
+| `backend/app/Http/Controllers/Api/V1/AdminUserController.php:53` | updateName: tìm/authorize, chỉ validated('full_name') tới Service, trả Resource tối thiểu |
+| `backend/app/Policies/UserPolicy.php:32` | updateName chỉ Admin active; khác changeStatus dòng25 cấm targetAdmin/self |
+| `backend/app/Services/AdminUserService.php:120` | updateName: transaction, row lock, kiểm tra Policy lại; chỉ gán full_name khi khác, không chạm bảng liên quan. QueryException được báo lỗi an toàn, không SQL/bindings/tên riêng |
+
+**Luồng:** Sửa họ tên → form nhận tên thật → nhập tên mới → submit → PATCH {full_name:"..."} → Laravel kiểm tra quyền/input → UPDATE users.full_name/updated_at → JSONdata tối thiểu → GET detail và /me nếu cần. Tìm lại bằng GET users?q=tên mới&page=1; tên hiển thị ở nơi đọc quan hệ User có thể thay đổi theo tên mới, nhưng không sửa dữ liệu/tệp hợp đồng.
+
+**Cách kiểm tra/sửa:** DevTools Network lọc users; xem PATCHbody chỉ1trường, HTTP200 rồi GET. Đổi validation tại schema+UpdateUserNameRequest; đổi lưu tại updateName; đổi lỗi/nút tại UserNameForm và onSaved. API/Spec cùng đổi nếu mở thêm trường sau duyệt. Profile API không thay được status; statusAPI vẫn không khóaAdmin, dù Admin được sửa tên.
+
+**Câu hỏi bảo vệ:** (1) Vì sao tên trùng được? full_name không có UNIQUE, định danh đăng nhập là email/SĐT. (2) Vì sao không dùng request.all()? Chỉ validated và một trường explicit ngăn đổi lén role/password. (3) Vì sao cần /me sau tự sửa? Navbar dùng AuthContext riêng, phải đọc dữ liệu mới từ server. (4) Tên hợp lệ nhưng DB lỗi? Transaction hủy, lỗi500 an toàn, không báo lưu thành công giả. (5) Sửa tên có đổi quyền hoặc lịch sử không? Không; Policy kiểm tra Admin, chỉ1trường được ghi và test đối chiếu toàn bộ quan hệ trước/sau.
+
+
+**Kiểm chứng tích hợp USR-C/D (24/10):** Backend867test/6970assertion PASS/Pint183file; frontend52test/build/lint PASS (9cảnh báo cũ). Browser13status(CKr0QSXf) +12họ tên/hồi quy(CldKYjey) đạt,0runtimeexception; NAME07 chứng minh tựsửa tên cập nhật/me/navbar và vẫnkhôngkhóaAdmin, NAME11 kiểm traStatus sauName. Chi tiết/ma trận/file tại Plan§12.10–11; đãxem ảnhmobile/desktop. Snapshotdev12phần JSON khớp:20bảng/16migration, RUN_MIGRATIONS=false/Nhóm3pending; chưaCRUDAdmindev. Dọn đúngfixture/phiêntest và dừngtestriêng, giữ4containerdev/MySQLhealthy. Khôngschema/migrate/ghi/xóa dev/stage/commit/push. Chỉfull_name được sửa; các trường địnhdanh/pháp lý vẫn chỉđọc.

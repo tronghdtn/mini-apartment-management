@@ -7,7 +7,7 @@ File này là **nguồn quy tắc dùng chung duy nhất** cho mọi agent (Code
 - **Mini Apartment Management** — hệ thống quản lý chung cư mini, bài tập lớn môn Lập trình mã nguồn mở.
 - Một chủ sở hữu quản lý nhiều tòa chung cư mini; mỗi tòa có nhiều phòng.
 - **5 actor** (quyết định 14/10/2026, DB-D02): Khách, Cư dân, Quản trị viên, Nhân viên sửa chữa, Bảo vệ. Giá trị `users.role`: `user` (khách đã đăng ký), `resident`, `admin`, `technician`, `guard`; khách vãng lai không có tài khoản.
-- Trạng thái (18/10/2026): Backend mới có `GET /api/v1/health` — **chưa có API nghiệp vụ**, chưa có đăng nhập thật. `frontend/` là **ứng dụng React chính thức duy nhất** (giao diện Antigravity, chuyển vào 17/10/2026); mọi màn hình hiện chạy trên **dữ liệu giả** trong `frontend/src/mocks/`. Các thư mục `public-ui-concept/`, `ui-antigravity-full/` chỉ là bản prototype cũ để đối chiếu — không sửa, không phát triển tiếp ở đó. Tiến độ chi tiết: `docs/PROJECT_STATUS_AND_LEARNING.md`. Thiết kế CSDL **21 bảng đã duyệt 14/10/2026**. Migrations **Nhóm 1** (`users` ALTER, `buildings`, `amenities`, `services`, `settings`) đã chạy trên DB dev và DB test; **Nhóm 2** (`rooms`, pivot tiện nghi, `contracts`, `contract_occupants`, `contract_services`, `utility_prices`) và **Nhóm 3** (`invoices`, `meter_readings`, `invoice_items`, `payments`) **chỉ chạy trên DB test**; 14 Model cho 16 bảng. Trạng thái từng nhóm ở `docs/DATABASE_IMPLEMENTATION_PLAN.md`.
+- Trạng thái (24/10/2026): Auth và9trang CAT/ROOM/USR đã nối API. USR đọc/cấp nhân viên + khóa/mở khóa tài khoản khôngAdmin + chỉ sửa full_name đã tích hợp DBtest (DB-D56/57/58). Backend867test/6970assertion, frontend52, Pint183file, build/lintPASS (9cảnh báo cũ). Browser mới13status trênCKr0QSXf +12họ tên/hồi quy trênCldKYjey PASS,0runtimeexception; các nhóm trước là lịch sử. Dev20bảng/16migration/1khách/0Admin/chưaseed; snapshot12phần cấu trúc/count/hash khớp trước/sau, RUN_MIGRATIONS=false, Nhóm3 vẫn4filepending/P4–P8chưaduyệt. Chưa kiểm thử quản trị bằng Admin dev8080. Không schema/migrate/ghi/xóa dev/commit/push. Plan§12.10–11; học tập§11.19–20; phần chưa nối còn nhãn mock. Không suy tiến độ từ Model/UI.
 - Giao diện và thông báo cho người dùng: **tiếng Việt**. Code (biến, hàm, class, bảng, cột, route): **tiếng Anh**.
 
 **Nguồn sự thật — thứ tự ưu tiên khi mâu thuẫn:**
@@ -16,6 +16,8 @@ File này là **nguồn quy tắc dùng chung duy nhất** cho mọi agent (Code
 3. `docs/02_SYSTEM_DISCOVERY.md` v0.10, `PROJECT_CONTEXT.md`, docs `03`–`08` — chỉ ở phần **không** xung đột với (1)(2). *(Hiện chưa có trong repo.)*
 
 Tài liệu cũ hoặc sơ đồ còn ghi 20 bảng / 3 actor / tiền DECIMAL / dịch vụ trọn tháng / cột `type` điện nước là **lỗi thời** — không dùng để lập migration.
+
+Spec module đã được duyệt quy định hành vi trong phần không mâu thuẫn quyết định CONFIRMED mới nhất; hợp đồng HTTP quản lý trong tài liệu API. `docs/IMPLEMENTATION_PLAN.md` quản lý Tasks/trạng thái, không ghi đè nghiệp vụ. Prototype và code đã có không tự trở thành yêu cầu được duyệt.
 
 ## 2. Công nghệ
 
@@ -44,6 +46,24 @@ Tài liệu cũ hoặc sơ đồ còn ghi 20 bảng / 3 actor / tiền DECIMAL /
 2. Trình bày: thay đổi gì, lý do, **tác động** (bảng/cột, endpoint, màn hình frontend, dữ liệu hiện có, test cần sửa), phương án thay thế nếu có.
 3. Chờ người dùng phê duyệt rồi mới thực hiện.
 
+### 3.1 Quy trình Spec → Plan → Tasks (áp dụng từ 22/10/2026)
+
+1. Trước module/thay đổi nghiệp vụ đáng kể: đọc Plan, Spec hiện có và quyết định mới nhất; kiểm tra Git và thay đổi sẵn có. Thiếu Spec thì đề xuất/cập nhật vào file đang sở hữu nội dung trước, không tạo bản trùng.
+2. Điểm chưa rõ: nêu phương án, tác động, ưu/nhược và đề xuất; hỏi chủ dự án trước khi code phần phụ thuộc. Phần độc lập đã đủ thông tin/được giao có thể tiếp tục. Không tự duyệt Spec hoặc coi UI/test PASS là phê duyệt.
+3. Sau phê duyệt: dùng Task ID có thứ tự/phụ thuộc/tiêu chí nghiệm thu trong `docs/IMPLEMENTATION_PLAN.md`; không tạo thêm file Tasks/Plan song song, không lập lại kế hoạch khi yêu cầu không đổi.
+4. Khi chủ dự án yêu cầu tiếp tục task đã duyệt: thực hiện trong phạm vi đó, kiểm thử theo Spec/AC, không hỏi lại cùng phê duyệt hoặc tự mở rộng module. Quyền sửa tài liệu/duyệt Plan không tự cho phép migration dev, tạo dữ liệu thật, xóa dữ liệu, commit/push.
+5. Sau mỗi lượt: cập nhật trạng thái/bằng chứng trong Plan; bổ sung bản đồ code ngắn theo §3.2 vào `PROJECT_STATUS_AND_LEARNING.md`, hướng dẫn thực hành chi tiết khi chủ dự án yêu cầu. Chat chỉ tóm tắt task xong, file đổi, test, quyết định cần duyệt và task tiếp theo.
+6. Sửa lỗi kỹ thuật nhỏ không đổi yêu cầu: ghi task/AC liên quan, không tạo Spec mới không cần thiết. Nếu phát hiện yêu cầu đổi thì quay lại bước 1–2.
+
+Trạng thái: **Chưa làm / Đang làm / Bị chặn / Đã code / Đã kiểm thử / Đã tích hợp**; định nghĩa và mức bằng chứng ở Plan §2. Không báo phần trăm tự ước lượng. Luôn phân biệt code, test tự động, kiểm tra thực tế và phê duyệt.
+
+### 3.2 Học và giải thích dựa trên code thật
+
+- Khi được hỏi “Giải thích code chức năng X”: đọc code hiện tại rồi hướng dẫn từng bước mở file, tìm đúng hàm/sự kiện và vị trí dòng; không đoán tên file/hàm hoặc endpoint.
+- Truy vết đủ React → hàm sự kiện → client API (method/URL/query/body/cookie) → route/middleware/Policy → Controller/Service/Model → bảng và điều kiện query → Resource/response → React hiển thị/lỗi/quyền. Chỉ rõ chỗ cần sửa để thay hành vi, cách thay tham số và kiểm chứng bằng DevTools Network hoặc công cụ phù hợp. Ví dụ dữ liệu phải ghi rõ là minh họa, chỉ dùng endpoint đã tồn tại; không đưa dữ liệu cá nhân/secrets thật vào tài liệu.
+- Sau mỗi module chỉ bổ sung bản đồ code ngắn vào PROJECT_STATUS_AND_LEARNING.md: chức năng, file/hàm/vị trí quan trọng, API, bảng, luồng và 3–5 câu hỏi bảo vệ. Tiếng Việt dễ hiểu, giải nghĩa thuật ngữ khi dùng lần đầu; không lặp lý thuyết hoặc làm chậm code. Phần hướng dẫn thực hành chi tiết chỉ viết khi chủ dự án yêu cầu.
+- Ưu tiên Full MVP theo Plan và quyết định CONFIRMED; không khảo sát lại/làm lại phần đã xong. Tài liệu học tập không là cổng chặn các task triển khai đã đủ điều kiện.
+
 ## 4. Kiến trúc
 
 ### Backend — `Route → Controller → Service → Model`
@@ -63,11 +83,11 @@ Tài liệu cũ hoặc sơ đồ còn ghi 20 bảng / 3 actor / tiền DECIMAL /
 
 | Thư mục | Nội dung |
 | --- | --- |
-| `src/app/` | `App.tsx` (bọc `AppProvider` + `RouterProvider`), `router.tsx` — khai báo toàn bộ route. Layout được chọn theo **tiền tố URL** (`/` → `PublicLayout`, `/admin` → `AdminLayout`), không theo vai trò. |
+| `src/app/` | `App.tsx` (bọc `AuthProvider` + mock `AppProvider` + `RouterProvider`), `router.tsx` — khai báo toàn bộ route. Layout được chọn theo **tiền tố URL** (`/` → `PublicLayout`, `/admin` → `AdminLayout`), không theo vai trò. |
 | `src/components/layouts/` | `PublicLayout` (+ `PublicNavbar`, `PublicFooter`), `AdminLayout` — đang dùng. `ResidentLayout`, `StaffLayout` (technician/guard, DB-D10) — có sẵn nhưng **chưa gắn route**. |
 | `src/components/ui/` | Component giao diện dùng chung, không chứa nghiệp vụ (`Badge`, `Button`, `Modal`, `Tabs`, `Toast`, `Lightbox`, `StatCard`). |
-| `src/features/<feature>/` | Một module nghiệp vụ: `api.ts`, `types.ts`, `schemas.ts` (Zod), component riêng. Feature không import lẫn nhau; phần dùng chung đưa lên `components/ui`, `hooks`, `lib`, `types`. Hiện có `rooms/` (component), `auth/` (schema), `system/` (mẫu gọi API thật `/health`). |
-| `src/mocks/` | **Dữ liệu giả tạm thời** (`data.ts`, `types.ts`, `AppContext.tsx` = "backend giả" trong bộ nhớ, `RoleSwitcher.tsx` = công cụ demo). Không phải nghiệp vụ chính thức; xem `src/mocks/README.md`. |
+| `src/features/<feature>/` | Một module nghiệp vụ: `api.ts`, `types.ts`, `schemas.ts` (Zod), component riêng. Feature không import lẫn nhau; phần dùng chung đưa lên `components/ui`, `hooks`, `lib`, `types`. Hiện có `rooms/` (component), `auth/` (API/types/schema, AuthProvider/useAuth, guard, AccountActions), `system/` (mẫu gọi API thật `/health`). |
+| `src/mocks/` | **Dữ liệu giả tạm thời** (`data.ts`, `types.ts`, `AppContext.tsx` = "backend giả" trong bộ nhớ, `RoleSwitcher.tsx` = công cụ demo chỉ còn trong layout chưa gắn route). Danh tính Auth đã tách khỏi mock; luồng Admin/public đang chạy không có đổi vai trò demo. Không phải nghiệp vụ chính thức; xem `src/mocks/README.md`. |
 | `src/pages/<area>/` | Trang theo khu vực `public/`, `admin/` (sau này `resident/`, `staff/`), cùng `NotFoundPage`, `RouteErrorPage`; ghép component từ `features/`. Lời gọi API, type và schema đặt trong feature, không viết trong page. |
 | `src/hooks/`, `src/lib/`, `src/types/` | Hook, tiện ích (`lib/http.ts` — client API duy nhất; `lib/format.ts` — định dạng tiền/ngày, giờ VN), kiểu dùng chung (`types/api.ts`). |
 
@@ -158,7 +178,9 @@ docker compose exec app php artisan <lệnh>
 docker compose logs -f app
 ```
 
-**Bắt buộc chạy trước khi báo hoàn thành** (đọc kết quả, không đoán):
+**Lượt chỉ sửa tài liệu:** kiểm tra `git diff --check`, liên kết/file tham chiếu và tính nhất quán Spec/Task/trạng thái; không cần build/test ứng dụng, không chạy test DB có thể gọi migrations. Ghi rõ kết quả test ứng dụng trước đó là lịch sử, chưa chạy lại.
+
+**Khi sửa code, bắt buộc chạy trước khi báo hoàn thành** (đọc kết quả, không đoán; theo phạm vi được phép):
 - `cd frontend && npm run build && npm run lint` — kiểm tra kiểu (`tsc -b`), build, oxlint.
 - `cd backend && php artisan test && vendor/bin/pint --test` — PHPUnit trên **MySQL `mini_apartment_test`** (cần `docker compose up -d mysql`; lần đầu chạy `sh scripts/create-test-db.sh`), code style.
 
@@ -217,6 +239,9 @@ Tóm tắt để code đúng hướng; khi cần chi tiết hoặc có nghi ng�
 
 | Ngày | Thay đổi |
 | --- | --- |
+| 23/10/2026 | Bổ sung §3.2: hướng dẫn thực hành dựa trên code thật, xác minh file/hàm/dòng/API, bản đồ học tập ngắn; không lấy tài liệu học tập làm cổng chặn triển khai. USR-A chỉ đọc đã tích hợp DB test. |
+| 22/10/2026 (Bước 4) | AUTH-D01/D02/D03 CONFIRMED; React Auth thật, hồ sơ chỉ đọc, bỏ đổi quyền demo khỏi luồng đang chạy; 17 ca browser test cô lập, DB dev không đổi. |
+| 22/10/2026 | Chuẩn hóa Spec → Plan → Tasks và báo cáo ngắn; cập nhật hiện trạng Auth/nullable dev; kiểm tra riêng cho lượt chỉ tài liệu. |
 | 12/10/2026 | Khởi tạo quy tắc chung. |
 | 18/10/2026 | `frontend/` = giao diện Antigravity chính thức (chủ dự án duyệt); thêm `lucide-react`; mô tả lại cấu trúc frontend (bỏ `DashboardShell`, thêm `src/mocks/` và quy tắc ranh giới dữ liệu giả); trạng thái dự án trỏ tới `docs/PROJECT_STATUS_AND_LEARNING.md`. |
 | 14/10/2026 (6) | Áp dụng DB-D43..DB-D50: đảo O7 (`end_date` inclusive, đúng hạn = `end_date + 1`); mã thanh lý; bồi thường trước hạn, miễn trừ, kiểm tra tài sản (nguyên tắc — cấu trúc chờ duyệt P1–P12); Nhóm 4 + index O11. |

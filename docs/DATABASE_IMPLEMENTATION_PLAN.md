@@ -3,7 +3,7 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Phiên bản | 6 — 14/10/2026 (v5: Nhóm 3 + O7–O9; v4: Nhóm 2 + O1–O6; v3: Nhóm 1 + E1–E5; v2: P1–P4 + Q1–Q12; v1: lập kế hoạch) |
-| Trạng thái | **Nhóm 1:** dev + test. **Nhóm 2** và **Nhóm 3:** chỉ `mini_apartment_test`. **Đợt điều chỉnh hợp đồng/thanh lý** (DB-D43..DB-D50): tài liệu đã cập nhật, **schema chưa sửa — chờ duyệt đề xuất P1–P12 (§14)**. **Nhóm 4:** kế hoạch đã duyệt (DB-D50), triển khai sau khi chốt P6/P8 |
+| Trạng thái | **Nhóm 1:** dev + test. **Nhóm 2:** dev + test (dev23/10 batch4, §18). **Nhóm 3:** chỉ `mini_apartment_test`. **Đợt điều chỉnh hợp đồng/thanh lý** (DB-D43..DB-D50): tài liệu đã cập nhật, **schema chưa sửa — chờ duyệt đề xuất P1–P12 (§14)**. **Nhóm 4:** kế hoạch đã duyệt (DB-D50), triển khai sau khi chốt P6/P8 |
 | Căn cứ | `docs/DB_DECISIONS_20261014.md` (ưu tiên 1, mục A–I), `docs/09_DATABASE_DESIGN.md` v1.5 (ưu tiên 2) |
 | Repo | Laravel 13.35, PHP 8.3, MySQL 8.4.11, Sanctum SPA, `QUEUE_CONNECTION=sync`, `RUN_MIGRATIONS=false` (cục bộ) |
 
@@ -15,10 +15,11 @@
 |---|---|---|---|
 | Framework `0001_01_01_000000…000002` | `users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` | Ran (batch 1) | Ran |
 | Nhóm 1: M01–M05 `2026_10_14_1000xx` | `users` (ALTER), `buildings`, `amenities`, `services`, `settings` | **Ran (batch 2)** | Ran |
-| Nhóm 2: M06–M12 `2026_10_14_2000xx` | `rooms`, `building_amenities`, `room_amenities`, `contracts`, `contract_occupants`, `contract_services`, `utility_prices` | Pending | Ran |
+| Nhóm 2: M06–M12 `2026_10_14_2000xx` | `rooms`, `building_amenities`, `room_amenities`, `contracts`, `contract_occupants`, `contract_services`, `utility_prices` | **Ran riêng batch4 (23/10/2026), §18** | Ran |
 | Nhóm 3: M13–M16 `2026_10_14_3000xx` | `invoices`, `meter_readings`, `invoice_items`, `payments` | Pending | Ran |
+| DB-D51: `2026_10_22_100001_make_users_email_nullable` | `users.email` ALTER | **Ran riêng, batch 3 (22/10/2026)** | Đã kiểm thử; xem §15 |
 
-DB dev sau đợt này: checksum 7 bảng framework, `users` = 0, 8 dòng `migrations`, 13 bảng — **không đổi** so với ngay sau khi chạy Nhóm 1. `RUN_MIGRATIONS=false` giữ nguyên; nếu bật lại, `docker compose up` sẽ tự chạy M06–M16 trên DB dev.
+Baseline sau Nhóm 1: 8 dòng `migrations`, 13 bảng. **Mốc lịch sử sau bước 3.5:9dòng migrations, 13 bảng,users 0,sessions 11; dữ liệu ngoài migrations giữ nguyên tại mốc đó, xem §16. Sau AUTH-13 kiểm thử dev: schema/migrations không đổi, users 1 (khách test), sessions 13 và cache Auth đổi; bằng chứng mới ở IMPLEMENTATION_PLAN §10.** `RUN_MIGRATIONS=false` giữ nguyên; hiện sauGroup2 (§18), nếu bật lại docker compose up sẽ chạy các file còn chờ M13–M16 ngoài phạm vi được phép.
 
 **Biên bản chạy Nhóm 1 trên DB dev:** xem v4 §1.1 (pretend 22 lệnh, backup đã thử khôi phục, bản sao ngoài repo, schema dev = test).
 
@@ -30,6 +31,14 @@ DB dev sau đợt này: checksum 7 bảng framework, `users` = 0, 8 dòng `migra
 
 ## 2. Môi trường và bảo vệ DB test (không đổi)
 
+### Bổ sung đã duyệt 22/10/2026 — email tùy chọn (DB-D51)
+
+- Migration mới: `2026_10_22_100001_make_users_email_nullable.php`; không sửa M01 đã commit. Chỉ đổi `users.email` thành nullable, giữ `VARCHAR(191)`, UNIQUE email/SĐT và mọi dữ liệu hiện có.
+- **Bước 1 ban đầu chỉ kiểm thử trên DB test. Sau phê duyệt riêng bước 3.5, migration email đã chạy trên dev (batch 3), xem §16.** Không cho phép chạy migration dev khác. Guard DB-D30 cho kiểm thử không đổi.
+- Rollback bị chặn nếu còn email NULL; không tự xóa/điền email. Khi cần bắt buộc email trở lại: thu thập email thật theo quy trình đã duyệt, backup, tạm dừng ghi tài khoản rồi kiểm tra + ALTER.
+- Phạm vi chỉ CSDL, kiểm thử và tài liệu; chưa làm API đăng ký/đăng nhập, Artisan tạo Admin hoặc frontend. Chưa có email thì lưu NULL, không dùng email giả/chuỗi rỗng; việc chuẩn hóa input sẽ thuộc API sau này.
+- Trạng thái/kết quả chạy thực tế của đợt này ghi ở §15; số liệu 133 test ở §7 là kết quả lịch sử, không tự coi là kết quả mới.
+
 Tài khoản MySQL riêng `mini_apartment_test`, kết nối `mysql_test` gán cứng DB + tài khoản, `phpunit.xml` đặt bằng `<server>` + `<env force>`, guard so khớp chính xác trong `tests/TestCase.php`. UTC, `Money` (BCMath HALF_UP), morph map `user`, queue `sync`.
 
 ---
@@ -39,9 +48,9 @@ Tài khoản MySQL riêng `mini_apartment_test`, kết nối `mysql_test` gán c
 | Nhóm | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | M01–M05 | ✔ dev + test |
-| 2 | M06–M12 (M09 thêm `meter_gap_reason`, `meter_gap_confirmed_by` — DB-D40) | ✔ test |
+| 2 | M06–M12 (M09 thêm `meter_gap_reason`, `meter_gap_confirmed_by` — DB-D40) | ✔ dev + test; dev batch4 theo §18 |
 | 3 | M13–M16 | ✔ test |
-| 4 | M17 `maintenance_requests`, M18 `viewing_appointments`, M19 `attachments`, M20 `notifications` | **Chờ duyệt** (§9) |
+| 4 | M17 `maintenance_requests`, M18 `viewing_appointments`, M19 `attachments`, M20 `notifications` | Kế hoạch đã duyệt DB-D50; chưa triển khai, chi tiết P6/P8 còn chờ (§9/14) |
 | 5 | Seeder hệ thống `ELECTRICITY`/`WATER`, khóa `settings` | Chưa |
 
 ---
@@ -234,19 +243,22 @@ Hệ quả nghiệp vụ cần lưu ý: cảnh báo "sắp hết hạn" (`contra
 
 | Thành phần | Tác động | Cách sửa (sau khi duyệt) |
 |---|---|---|
-| **M09 `contracts`** | Thêm cột cho P2, P4, P5, P6 | **Sửa trực tiếp M09** — chưa chạy trên DB dev, chưa commit (AGENTS §5 chỉ cấm sửa migration đã commit); chạy lại trên DB test |
+| **M09 `contracts`** | Thêm cột cho P2, P4, P5, P6 | **Tạo migration ALTER mới sau phê duyệt**. M09 đã commit trong T1, không sửa/viết lại; kiểm thử nâng cấp/rollback trên DB test. Việc dev chưa chạy M09 không làm mất quy tắc giữ lịch sử |
 | M13 `invoices` | Không đổi | — |
 | M14 `meter_readings` | Không đổi (P2 không chuyển chỉ số đầu vào bảng này) | — |
 | M15 `invoice_items` | **Không đổi schema**; `item_type VARCHAR(20)` đủ cho giá trị mới | Enum (P7) |
 | M16 `payments` | Không đổi; tiền cọc vẫn đối soát bằng payment `deposit` | — |
 | M19 `attachments` (Nhóm 4) | Thêm alias/collection | P8 |
-| Enum mới | `ContractClosureReason` (`on_time`, `early_termination`, `same_day` + P3), `EarlyTerminationFeeType` (P4), `InspectionResult` (P6) | Tạo khi sửa M09 |
+| Enum mới | `ContractClosureReason` (`on_time`, `early_termination`, `same_day` + P3), `EarlyTerminationFeeType` (P4), `InspectionResult` (P6) | Tạo cùng đợt ALTER mới đã được duyệt |
 | Enum sửa | `InvoiceItemType` + `termination_fee`, `damage` (P7); `AttachmentCollection` (Nhóm 4) + P8 | |
 | `Contract` Model | Cast/quan hệ mới; điều khoản bồi thường mass-assign **chỉ khi draft** (FormRequest), các trường miễn trừ/kiểm tra/xác nhận **không** mass-assign | |
 | `App\Support\Money` | Thêm `multiply(int $amount, string $factor): int` (HALF_UP) cho phí = hệ số × tiền thuê | Unit test (DB-38) |
 | Test | Schema/constraint/relationship M09 mới; Enum; DB-37..DB-41 ở mức DB/Model; dữ liệu O7 | |
 
 ### 14.4 Đề xuất chờ duyệt
+
+**Đối chiếu Sprint23/10:** không phải mọi P là blocker MVP. P1 giữ baseline end_date>start_date; chỉ phương án mở1ngày mới cần duyệt. P2 giữ một lý do chung đã chốt D40; tách cột là mở rộng. P10 đã gộpP3. P12 đã CONFIRMED theo D49 (bắt buộc mọi thanh lý), không hỏi lại; cấu trúc lưu P6 vẫn chưa duyệt. Chủ dự án CHƯA DUYỆT gói P4/P5-B/P6/P7/P8 trong lượt Sprint; không tự ALTER. Không để các mục này chặn Tòa/Tiện nghi/Phòng cơ bản.
+
 
 **P1 — Validation `end_date`.** Với `end_date` inclusive, `end_date > start_date` nghĩa là hợp đồng tối thiểu 2 ngày. *Đề xuất:* **giữ `end_date > start_date`** như thiết kế gốc (nhận–trả cùng ngày đã có `same_day` qua `actual_end_date`); thêm `actual_end_date ≥ start_date`. *Phương án khác:* `end_date ≥ start_date` (cho hợp đồng 1 ngày).
 
@@ -297,7 +309,7 @@ Câu hỏi kèm: miễn **toàn bộ** hay cho phép **miễn một phần** (gi
 
 **P11 — Số tiền bồi thường tài sản:** do Admin nhập từng hạng mục kèm căn cứ (bắt buộc `basis` + ít nhất 1 ảnh); MVP **không** yêu cầu người thuê ký xác nhận trong hệ thống. Cần xác nhận.
 
-**P12 — Kiểm tra tài sản áp dụng cho mọi mã thanh lý** (kể cả `same_day`, `on_time`). Đề xuất: **có** (đúng chữ "bắt buộc" của DB-D49).
+**P12 — Đã chốt nguyên tắc DB-D49:** kiểm tra tài sản bắt buộc với mọi mã thanh lý (kể cả `same_day`, `on_time`). Không còn là câu hỏi cần duyệt; chỉ cách lưu P6 chưa duyệt.
 
 ### 14.5 Quy trình thanh lý mục tiêu (để đối chiếu khi viết Service)
 
@@ -310,10 +322,116 @@ Câu hỏi kèm: miễn **toàn bộ** hay cho phép **miễn một phần** (gi
 
 ### 14.6 Kế hoạch sửa sau khi duyệt (chỉ DB test)
 
-1. O7: sửa dữ liệu test/factory về `2027-09-30`, sửa docblock M09 và `Contract`.
-2. Sửa M09 theo P2, P4, P5, P6 đã duyệt; tạo/sửa Enum (P3, P4, P6, P7); `Money::multiply`.
+1. O7: sau khi task được giao, sửa dữ liệu test/factory và docblock `Contract` theo DB-D43; không sửa M09 đã commit. Chú thích cũ trong migration được hiểu theo lịch sử; thiết kế/ALTER mới mô tả quy tắc hiện hành.
+2. Tạo ALTER migration mới cho P2/P4/P5/P6 sau duyệt; không sửa M09. Tạo/sửa Enum (P3/P4/P6/P7), `Money::multiply` trong phạm vi task được giao.
 3. Cập nhật `Contract` Model (cast, quan hệ `inspector`, `waiverConfirmer`, mass assignment theo trạng thái).
 4. Test: schema/index/FK mới (các FK users đều RESTRICT), Enum, `Money::multiply` (DB-38), mass assignment; chạy lại toàn bộ trên `mini_apartment_test` + mutation spot-check.
 5. Sau đó mới triển khai Nhóm 4 (P8 + index O11).
 
 DB dev **không** bị ảnh hưởng: M09 và M13–M16 chưa từng chạy trên `mini_apartment`.
+
+## 15. Kết quả lịch sử Authentication bước 1 — email tùy chọn (22/10/2026)
+
+> Phạm vi lượt bước 1 ban đầu; trạng thái dev mới hơn ở §16. Kết quả bên dưới không phải test chạy lại khi chuẩn hóa tài liệu.
+
+**DB-D51 đã duyệt và đã viết code.** Migration `2026_10_22_100001_make_users_email_nullable` đã chạy qua bộ test trên `mysql_test` / `mini_apartment_test`, tài khoản `mini_apartment_test`. Không chạy migration trên DB dev; không sửa migrations đã commit, Model, API hay frontend. Chỉ khởi động riêng MySQL để kiểm thử, không khởi động container app (tránh tự chạy migrations dev).
+
+| Kiểm tra đã thực hiện | Kết quả thực tế |
+|---|---|
+| `php artisan test --filter=TestDatabaseGuardTest` | 7 test / 7 assertion PASS trước khi chạy test có thao tác DB |
+| `php artisan test --filter=TestEnvironmentTest` | 6 test / 14 assertion PASS; đúng DB/tài khoản test, tài khoản test không đọc được DB dev |
+| Test liên quan (`GroupOneSchemaTest`, `OptionalUserEmailMigrationTest`, `MigrationRollbackTest`, `UserModelTest`) | 26 test / 165 assertion PASS |
+| `php artisan test` (toàn bộ) | **137 test / 486 assertion PASS** |
+| `php vendor/bin/pint --test` | PASS |
+| Frontend `npm run build` / `npm run lint` (AGENTS §8; không sửa frontend) | PASS; build cảnh báo bundle >500 kB, lint 9 cảnh báo / 0 lỗi trong code có sẵn |
+
+Test mới kiểm tra email có giá trị/NULL/bỏ trống trường, nhiều NULL, từ chối email/SĐT trùng; đọc `information_schema` xác nhận nullable và chỉ mục giữ nguyên. Test rollback không dùng `RefreshDatabase`: tạo dữ liệu test đã commit, so sánh toàn bộ dòng tài khoản/chỉ mục trước–sau `down()` + `up()`, xác nhận NOT NULL từ chối NULL sau rollback thành công. Khi còn NULL, rollback bị chặn và dữ liệu/schema/lịch sử migration giữ nguyên. Dữ liệu tự tạo được dọn, schema test được khôi phục sau test.
+
+**Giới hạn:** chỉ kiểm thử ở mức CSDL/Model/migration, chưa có thao tác đăng ký qua giao diện/API; không kiểm chứng migration trên dữ liệu DB dev. PHPUnit/Pint cần chạy ngoài sandbox do lỗi đọc đường dẫn bootstrap Windows trong sandbox; không đổi `phpunit.xml`, guard hoặc cấu hình kết nối để vượt kiểm tra.
+
+## 16. Biên bản Authentication bước 3.5 — áp dụng riêng email nullable trên dev
+
+- Đã được chủ dự án duyệt riêng. Kết nối kiểm tra: `mini_apartment`, tài khoản `mini_apartment@%`, `127.0.0.1:3307`, MySQL 8.4.11; Laravel 13.35.0. `RUN_MIGRATIONS=false`, không khởi động app.
+- Dùng backup `D:\MaNguonMo\mini-apartment-backups\email-nullable-20261022T112541Z\mini_apartment.sql`; restore được xác minh trên MySQL không mạng, volume riêng, charset/collation khớp dev. Chi tiết thử khôi phục, khác biệt biểu diễn SQL và bài học: [PROJECT_STATUS_AND_LEARNING.md](PROJECT_STATUS_AND_LEARNING.md) §11.8.
+- `--pretend` chỉ ra `alter table users modify email varchar(191) null`; lệnh thật: `php artisan migrate --database=mysql --path=database/migrations/2026_10_22_100001_make_users_email_nullable.php --no-interaction --no-ansi`.
+- Kết quả: đúng một migration mới id 9/batch 3; email nullable, UNIQUE email/SĐT nguyên vẹn, phone vẫn NOT NULL. 13 bảng không đổi, users 0, sessions 11; checksum dữ liệu ngoài migrations không đổi. Các cột/index/constraint khác giữ nguyên; chỉ thứ tự hiển thị UNIQUE trong SHOW CREATE khác, không đổi định nghĩa.
+- Nhóm 2–3: **11 migration vẫn Pending**, không chạy migration khác; không tạo Admin/dữ liệu, không commit/push. Container restore đã dừng, volume riêng giữ lại.
+- Bằng chứng ngoài repo cùng thư mục backup: `migration-final-report.txt`, `restore-verification-v2.txt`, `post-migration-checks.json`, snapshots trước/sau. Lượt chuẩn hóa tài liệu chỉ đọc lại biên bản; không chạy DB/test/migration lại.
+- Kế hoạch triển khai module quản lý ở [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), không dùng kế hoạch schema này làm quyền tự chạy migrations dev.
+
+## 17. Phương án xin duyệt một lần — riêng Nhóm 2 trên dev (23/10/2026)
+
+**Mốc phương án trước phê duyệt; nay đã áp dụng riêngGroup2, xem biên bản§18.** Khi lập phương án đã đọc Git/migration source, snapshot SELECT trực tiếp: MySQL 8.4.11, `mini_apartment`/`mini_apartment@%`; 13 bảng, 9 dòng migrations, 1 user, không Admin; DB mặc định utf8mb4/utf8mb4_unicode_ci. App/frontend/nginx chạy, mysql healthy; `RUN_MIGRATIONS=false` thực tế trong app. Entrypoint chỉ migrate khi biến này bằng true; Compose mặc định true nếu thiếu biến nên phải kiểm tra cả config resolved và container mỗi lần tạo lại, không khởi động lại với biến bị mất. 11 file pending = 7 Nhóm 2 + 4 Nhóm 3, không gộp chúng. Snapshot nội bộ `backups/catalog-next-20261023/dev-before.json`, không in dữ liệu cá nhân.
+
+### 17.1. Danh sách chính xác và phụ thuộc
+
+Tất cả dưới `backend/database/migrations/`, `up()` chỉ CREATE bảng mới/index/FK tương ứng; không UPDATE/DELETE/ALTER bảng cũ. Chỉ thêm dòng theo dõi vào migrations. Không seed hoặc kích hoạt hợp đồng.
+
+| Thứ tự | File migration | Bảng mới / phụ thuộc và ràng buộc chính |
+|---|---|---|
+| 1 / M06 | `2026_10_14_200006_create_rooms_table.php` | rooms → buildings (đã có), RESTRICT; UNIQUE building_id/code, index trạng thái/công khai |
+| 2 / M07 | `2026_10_14_200007_create_building_amenities_table.php` | building_amenities → buildings/amenities (đã có), composite PK và FK CASCADE chỉ pivot |
+| 3 / M08 | `2026_10_14_200008_create_room_amenities_table.php` | room_amenities → rooms bước1 + amenities; composite PK, FK CASCADE chỉ pivot |
+| 4 / M09 | `2026_10_14_200009_create_contracts_table.php` | contracts → rooms/users, self-FK renewed_from_id, meter_gap_confirmed_by→users; RESTRICT; generated STORED active_room_id/active_tenant_id + UNIQUE chống nhiều active |
+| 5 / M10 | `2026_10_14_200010_create_contract_occupants_table.php` | contract_occupants → contracts, RESTRICT |
+| 6 / M11 | `2026_10_14_200011_create_contract_services_table.php` | contract_services → contracts/services, RESTRICT; index khoảng hiệu lực, unit_price snapshot |
+| 7 / M12 | `2026_10_14_200012_create_utility_prices_table.php` | utility_prices → services (đã có), RESTRICT; UNIQUE service_id/effective_from |
+
+**Tách khỏi Thanh lý:** đây là baseline Nhóm 2 đã code/test trước đó (DB-D38), không có P4 điều khoản phí/P5 miễn/P6 kiểm tra tài sản/P7 loại dòng phí-hư hỏng/P8 tệp. Tạo bảng contracts trống không phê duyệt hoặc triển khai các nhánh đó. Comment M09 còn mô tả end_date theo DB-D39 cũ; không sửa migration đã commit. DDL là DATE, không ép cách đếm ngày; logic sau này bắt buộc theo DB-D43 inclusive. Nhóm 3 (`300013`–`300016`), Nhóm 4, ALTER P4–P8 và seeder KHÔNG nằm trong lần duyệt này.
+
+### 17.2. Phương án thực hiện sau phê duyệt
+
+Đề xuất **cả 7 file Nhóm 2, đúng thứ tự trên**, một lần duyệt. Lợi ích: cùng baseline đã có Feature/schema/concurrency tests, mở schema phòng/pivot/giá và chuẩn bị hợp đồng nháp; không tạo dữ liệu nghiệp vụ. Nhược điểm: thêm cả 3 bảng hợp đồng chưa có API, không làm Thanh lý hoàn thành. Phương án hẹp hơn chỉ M06/M07/M08/M12 đủ schema CAT/ROOM nhưng để baseline Nhóm 2 dở; chỉ dùng nếu chủ dự án chọn rõ thay cho gói 7 file. Cả hai đều chưa được chạy trong lượt này.
+
+1. Xác minh config/mysql account/RUN_MIGRATIONS, danh sách bảng/migrations trước; dừng request ghi trong cửa sổ bảo trì ngắn sau khi backup để tránh snapshot/restore bỏ mất dữ liệu vừa phát sinh. Không `docker compose down -v`, không xóa volume. Có thể dừng app/frontend/nginx đã xác minh trong cửa sổ được duyệt, giữ MySQL.
+2. **Backup mới tại thời điểm chạy**, toàn DB `mini_apartment`, ngoài repository, ví dụ `D:\MaNguonMo\mini-apartment-backups\group2-<UTC timestamp>\mini_apartment.sql`. Không dùng backup 22/10 thiếu tài khoản mới. mysqldump single-transaction/quick, triggers/routines/events, hex-blob, no-tablespaces, set-gtid-purged=OFF; thông tin đăng nhập lấy từ môi trường/file cấu hình bảo vệ, không in secret. Chặn nếu dump lỗi/rỗng; ghi SHA-256 + charset/collation/schema/index/rowcount/hash từng bảng/migrations/objects. File backup không vào Git.
+3. **Restore thực tế** trên MySQL 8.4 container tạm network none, không publish port, volume mới hoàn toàn và xác minh tên/volume không trùng dev. Tạo DB đúng charset/collation hiện tại trước import (CREATE IF NOT EXISTS không sửa collation cũ). So sánh đủ cấu trúc/index/FK/data hash/migrations/routines/triggers/events; phải đạt rồi mới tiếp. Không drop/restore lên dev để thử. Sau restore có thể thử đúng 7 migrations trên bản sao và đối chiếu tác động trước khi dev.
+4. Cú pháp đã xác minh bằng `php artisan help migrate` Laravel 13.35: `--path` nhận nhiều giá trị. Dùng **7 đường dẫn file tường minh**, không wildcard/thư mục chung; cùng danh sách cho pretend và lần chạy thật. `--pretend` được thực hiện sau phê duyệt và kiểm tra backup; chỉ chấp nhận CREATE/index/FK 7 bảng trên và ghi nhận migrations tương ứng trong lần chạy thật. Nếu ngoài phạm vi thì dừng.
+
+```powershell
+# Chỉ thực hiện SAU phê duyệt + backup/restore và xác minh kết nối.
+$groupTwoPaths = @(
+  'database/migrations/2026_10_14_200006_create_rooms_table.php',
+  'database/migrations/2026_10_14_200007_create_building_amenities_table.php',
+  'database/migrations/2026_10_14_200008_create_room_amenities_table.php',
+  'database/migrations/2026_10_14_200009_create_contracts_table.php',
+  'database/migrations/2026_10_14_200010_create_contract_occupants_table.php',
+  'database/migrations/2026_10_14_200011_create_contract_services_table.php',
+  'database/migrations/2026_10_14_200012_create_utility_prices_table.php'
+)
+$groupTwoArgs = @('compose','exec','-T','app','php','artisan','migrate',
+  '--database=mysql','--no-interaction','--no-ansi') +
+  @($groupTwoPaths | ForEach-Object { "--path=$_" })
+& docker @groupTwoArgs --pretend
+if ($LASTEXITCODE -ne 0) { throw 'Pretend failed; stop' }
+# Dừng đánh giá SQL ở đây; chỉ khi đúng phạm vi mới chạy cùng danh sách:
+# & docker @groupTwoArgs
+```
+
+5. Sau chạy thật: dự kiến **20 bảng / 16 dòng migrations**, chỉ 7 bảng mới rỗng; dữ liệu/columns/index bảng cũ giữ nguyên, 4 file Nhóm 3 vẫn pending, email nullable và UNIQUE email/SĐT còn nguyên. Không tự seed hoặc tạo Admin. Test API Phòng dev cần tài khoản được tạo theo quy trình riêng, không tự cấp Admin trong bước schema.
+
+### 17.3. Rủi ro và khôi phục
+
+- MySQL DDL tự commit: cả nhóm không là một transaction all-or-nothing; migration hỏng giữa CREATE và thêm FK/index có thể để lại bảng chưa ghi migrations. Dừng và snapshot hiện trạng khi lỗi, không rerun/rollback mù hoặc xóa bảng để thử lại. So sánh từng file/bảng trước khi đề xuất sửa.
+- UNIQUE/generated columns/FK phải đúng MySQL 8.4, đã có tests trên DB test; vẫn cần thử bản sao mới nhất. CREATE có thể chờ metadata locks; cửa sổ bảo trì ngắn giảm request đang ghi.
+- `down()` các file là DROP TABLE: **không tự rollback**, kể cả bảng mới dự kiến rỗng. Nếu đã có dữ liệu mới, rollback/restore có thể mất dữ liệu đó; phải ngừng ghi, đánh giá và xin duyệt phương án. Ưu tiên sửa tiến (forward fix) sau xác định lỗi. Backup đã thử restore là phương án cứu hộ được đánh giá trước, không phải lệnh tự động ghi đè dev.
+- Sau Nhóm 2, đọc danh sách giá có thể hoạt động; **thêm giá vẫn cần meter_readings Nhóm 3 để kiểm tra D33**, sẽ báo503 khi thiếu thay vì giả định chưa có lịch sử. Đây là phụ thuộc vận hành riêng, không lý do gộp chạy Nhóm 3 ngoài quyền được duyệt.
+
+## 18. Biên bản áp dụng riêng Nhóm 2 dev — 23/10/2026
+
+**Đã được chủ dự án duyệt rõ 7 file200006–200012 theo §17; đã thực hiện thành công, batch4.** Không gồm Nhóm3/P4–P8/seeder/Admin. Các phát biểu “chưa chạy” trong phương án §17 là mốc trước phê duyệt, không phải trạng thái sau biên bản này.
+
+- Đọc lại AGENTS/CLAUDE, quyết định D38/D43, thiết kế và đúng7file; Git dirty của Auth/CAT/ROOM được giữ, migration đã commit không sửa. Lưu hash từng file, Git status, cú pháp Laravel13.35 `--path` nhiều giá trị; không dùng wildcard/thư mục chứa nhóm khác khi apply.
+- Kết nối: MySQL8.4.11, mini_apartment/mini_apartment@%; DButf8mb4/utf8mb4_unicode_ci. RUN_MIGRATIONS=false cả Compose resolved và env trong app, entrypoint có điều kiện; không recreate app. Tạm dừng đúng nginx/frontend để đóng ingress ghi, giữ app/mysql. Snapshot trước13bảng/9migration/1khách/không Admin, source metadata/hash dữ liệu (không xuất thông tin cá nhân vào báo cáo).
+- Backup **mới** toàn DB: `D:\MaNguonMo\mini-apartment-backups\group2-20261023T031015Z\mini_apartment.sql`, 20.121byte; mysqldump single-transaction/quick/routines/triggers/events/hex-blob/no-tablespaces/GTIDOFF, thông tin đăng nhập chỉ từ env. SHA-256 ghi và kiểm tra lại; SQL có thể đọc/import, không ở Git. Không dùng backup cũ22/10.
+- Restore thực tế thành công trên container `mini-apartment-group2-20261023T031015Z-restore`, cùng image MySQL dev, network none/không port, volume data và socket mới, không dùng chung dev. Tạo DB đúng charset/collation trước import. PHP đọc qua socket volume riêng bằng container network none, đối chiếu serverUUID khác; không mở cổng MySQL tạm.
+- Schema/table/column/index/FK/delete rules/constraints, AUTO_INCREMENT, lịch sử migration, rowcount/hash **mọi** bảng và đối tượng DB (routines/triggers/events đều0) khớp. SHOW CREATE của bản restore ghi thêm `CHARACTER SET utf8mb4` ở từng cột chữ; đây chỉ là biểu diễn tường minh, metadatacharset/collation và SQL sau bỏ đúng phần ghi tường minh khớp hoàn toàn. Không phải lỗi collation hoặc thay cấu trúc.
+- `--pretend` đúng7file cho **33lệnh DDL**: CREATE7bảng và ALTER index/FK chỉ trên chính7bảng mới, không đụng bảng cũ. Đã diễn tập bằng Laravel cùng7path trên bản restore; thành công20bảng/16migration, 7bảng mới rỗng, bảng cũ không đổi. Trước applydev snapshot vẫn khớp backup, hash7file giữ nguyên.
+- Lệnh thật đúng cùng danh sách7 `--path` tại §17.2, **không có --seed/--force hoặc migrate toàn bộ**. Bằng chứng nguyên văn `actual-command.txt` và `migration-apply.txt` ngoài repo. Laravel ghi id10–16, batch4, đúng7tênfile, không migration khác.
+- Xác minh sau: **20bảng /16dòng migrations**, chỉ7bảng mới rỗng. Cột/index/constraints/FK của13bảng cũ khớp; hash dữ liệu cũ nguyên vẹn **trừ bảng migrations thêm7dòng theo thiết kế**. Users vẫn1khách/không Admin; emailnullable/UNIQUE, phoneNOTNULL/UNIQUE còn nguyên; không dữ liệu nghiệp vụ được tạo. Dev sau khớp bản diễn tập về toàn metadata/dữ liệu sau loại identity và cách in charset nói trên.
+- **4fileNhóm3 vẫn pending:** `2026_10_14_300013_create_invoices_table`, `300014_create_meter_readings_table`, `300015_create_invoice_items_table`, `300016_create_payments_table` (cùng tiền tố2026_10_14). Không P4–P8, seeder hoặc Admin. Không rollback/xóa/reset.
+- Đã mở lại nginx/frontend bằng compose start, không recreate/app entrypoint migration; RUN_MIGRATIONS vẫnfalse. Dev HTTPGET với AcceptHTML: `/`, `/admin/rooms`, `/admin/buildings`, `/admin/services`, `/admin/utility-prices`200 và trả React entry; health200; API chưa đăng nhập401. Kiểm tra Service chỉ đọc: Room/UtilityPrice danh sách rỗng hợp lệ, không lỗi thiếu bảng. **Chưa thử quản trị dev bằng Admin** vì Admin0 và chủ dự án cấm tạo trong lượt này; không giả quyền để kiểm thử. Điện/Nước chưa seed, thêm giá vẫn503 vì thiếu meter_readings theo đúng D33.
+- Container restore đã dừng; backup/volume riêng giữ để đối chiếu, không xóa. Hồ sơ: before/restored/rehearsed/before-apply/after.json, backup-sha256/migration-hashes/restore-verification/post-verification.json, SQLpretend/apply/rehearsal, command và gitstatus cùng thư mục backup. Không in secret/đưa backup vào Git; không stage/commit/push.
+
+
+**Đối chiếu cuối sau triển khai/kiểm thử gán tiện nghi:** `after-browser.json` khớp tất cả phần JSON của `after.json` (metadata, indexes, constraints, lịch sử, rowcount/hash dữ liệu), dev vẫn 20 bảng/16 migration; không có ghi/xóa dữ liệu dev thêm. Phép so sánh chuỗi đầu tiên chỉ khác xuống dòng CRLF/LF, đã xác minh riêng bằng chuẩn hóa và so sánh nội dung JSON. Hash cả 7 migration giữ nguyên, RUN_MIGRATIONS=false. DB test đã dọn đúng fixture, hai container test đã dừng, bốn container dev vẫn chạy/MySQL healthy. Không migration Nhóm 3/P4–P8, seeder, Admin, rollback hoặc commit/push.

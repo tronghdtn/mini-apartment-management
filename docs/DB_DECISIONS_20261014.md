@@ -109,7 +109,7 @@
 | ID | Chủ đề | Quyết định | Tác động / cách áp dụng |
 |---|---|---|---|
 | DB-D39 (O7) — **BỊ THAY bởi DB-D43** (phần ý nghĩa `end_date`) | `contracts.end_date` | ~~`end_date` là ngày bàn giao dự kiến~~ — xem DB-D43. Nguyên văn cũ: `end_date` là **ngày bàn giao dự kiến**, **không** tính vào số ngày thuê. `actual_end_date` là ngày bàn giao thực tế, **cùng quy ước nửa mở** `[start_date, actual_end_date)`. Hợp đồng còn `active` dù đã quá `end_date` thì **tiếp tục tính tiền** các kỳ phát sinh, không tự dừng ở ngày kết thúc dự kiến | Hợp đồng 1 năm từ 01/10/2026 có `end_date = 2027-10-01`. `end_date > start_date` giữ nguyên. Không có job tự kết thúc hợp đồng |
-| DB-D40 (O8) | Ghi nhận chênh lệch chỉ số | Thêm vào `contracts`: `meter_gap_reason TEXT NULL`, `meter_gap_confirmed_by BIGINT UNSIGNED NULL` FK → `users.id`. Khi chỉ số đầu hợp đồng mới **cao hơn chỉ số chốt gần nhất**, bắt buộc lý do + Admin xác nhận; **`activated_at`** là mốc thời gian kích hoạt/xác nhận. **Không** cho sửa thông tin xác nhận qua form cập nhật hợp đồng active thông thường. **Không tạo bảng mới** | Sửa M09 (chưa chạy trên DB dev) — FK `RESTRICT`. Hai cột không nằm trong `#[Fillable]`. Một lý do chung cho cả điện và nước. Thay cách ghi vào `contracts.note` ở DB-D31 |
+| DB-D40 (O8) | Ghi nhận chênh lệch chỉ số | Thêm vào `contracts`: `meter_gap_reason TEXT NULL`, `meter_gap_confirmed_by BIGINT UNSIGNED NULL` FK → `users.id`. Khi chỉ số đầu hợp đồng mới **cao hơn chỉ số chốt gần nhất**, bắt buộc lý do + Admin xác nhận; **`activated_at`** là mốc thời gian kích hoạt/xác nhận. **Không** cho sửa thông tin xác nhận qua form cập nhật hợp đồng active thông thường. **Không tạo bảng mới** | Đã có trong baseline M09, FK `RESTRICT`; M09 đã commit, thay đổi tiếp theo phải dùng ALTER mới sau duyệt. Hai cột không nằm trong `#[Fillable]`. Một lý do chung cho cả điện và nước. Thay cách ghi vào `contracts.note` ở DB-D31 |
 | DB-D41 (O9) | Thanh lý ngay ngày bắt đầu | **Cho phép** Admin thanh lý với `actual_end_date = start_date`, **bắt buộc có lý do**. Tiền phòng và phí dịch vụ định kỳ theo ngày = 0; điện nước tính theo chỉ số thực tế nếu có; tiền cọc đối soát bình thường. **Không** tạo trạng thái hợp đồng mới | Dùng trạng thái `terminated` hiện có. Cột lưu "lý do" cần xác nhận — xem kế hoạch §5.4 (O10) |
 | DB-D42 | Duyệt Nhóm 3 | M13 `invoices`, M14 `meter_readings`, M15 `invoice_items`, M16 `payments`; 6 Enum; 4 Model → **14 Model / 16 bảng**. Chỉ chạy trên `mini_apartment_test` | `InvoiceType::Adjustment` khai báo sẵn (SHOULD), chưa mở luồng |
 
@@ -127,3 +127,67 @@
 | DB-D48 | Miễn bồi thường | Chỉ được miễn khi **đáp ứng điều kiện đã thỏa thuận và ghi trong hợp đồng**; Admin xác nhận điều kiện được áp dụng **cùng căn cứ phù hợp** | Cách nhập/lưu nhiều điều kiện **chưa chốt** → P5 |
 | DB-D49 | Kiểm tra tài sản trước thanh lý | **Bắt buộc** kiểm tra và xác nhận tình trạng phòng. Không hư hỏng bất thường → phí bồi thường tài sản = 0. Có hư hỏng thuộc trách nhiệm người thuê → ghi **hạng mục, lý do, số tiền có căn cứ, ảnh minh chứng**. Khoản này **tách biệt** với phí trả trước hạn. Các khoản phải thu hợp lệ đưa vào **hóa đơn tất toán** (`final`); **tiền cọc đối soát riêng** | Cách lưu kết quả kiểm tra/minh chứng → P6 |
 | DB-D50 | Nhóm 4 | Đồng ý **về mặt kế hoạch** 4 bảng `maintenance_requests`, `viewing_appointments`, `attachments`, `notifications`; **chấp thuận O11**: thêm index `(notifiable_type, notifiable_id, read_at)` | Chưa triển khai; collection/morph alias của `attachments` phụ thuộc P6, P8 |
+
+## J. Authentication — email tùy chọn (22/10/2026)
+
+**Trạng thái: CONFIRMED — chủ dự án đã duyệt** quy tắc và triển khai thay đổi Database trong yêu cầu “AUTHENTICATION — BƯỚC 1: EMAIL TÙY CHỌN”. Mục này ghi đè yêu cầu email NOT NULL ở `09` §3.1. Phạm vi bước 1 ban đầu không cho chạy dev; **bước 3.5 sau đó được chủ dự án duyệt riêng và đã áp dụng**, biên bản ở DB plan §16. Không cho phép chạy migrations dev khác.
+
+| ID | Chủ đề | Quyết định (CONFIRMED) | Tác động |
+|---|---|---|---|
+| DB-D51 | Đăng ký với email tùy chọn | Bắt buộc họ tên, số điện thoại, mật khẩu; email tùy chọn. `users.email` giữ `VARCHAR(191)` và UNIQUE, đổi sang nullable. Nhiều tài khoản được có email NULL; email có giá trị không được trùng. Không dùng email giả hoặc chuỗi rỗng thay NULL. `users.phone` vẫn NOT NULL UNIQUE | Migration ALTER mới `2026_10_22_100001_make_users_email_nullable`; giữ migration đã commit, dữ liệu và chỉ mục hiện có; cập nhật schema tests. Phạm vi bước 1 chỉ CSDL; trạng thái API/frontend mới hơn ở Spec Auth và Plan |
+
+**Rollback an toàn:** `down()` kiểm tra email NULL trước khi đổi về NOT NULL. Nếu còn tài khoản thiếu email, dừng với thông báo rõ; không xóa tài khoản, không điền email giả, không sửa dữ liệu tự động. Chỉ rollback sau khi chủ dự án quyết định cách thu thập/bổ sung email hợp lệ từ người dùng. Khi thực hiện trên môi trường dùng chung cần backup, rà soát dữ liệu và tạm dừng thao tác ghi tài khoản trong suốt kiểm tra + ALTER; MySQL DDL không được bảo vệ bằng transaction thông thường. UNIQUE email và SĐT phải còn nguyên sau cả `up()` lẫn `down()`.
+
+## K. Authentication — tạo Admin bằng Artisan (22/10/2026)
+
+**Trạng thái: CONFIRMED — chủ dự án đã duyệt** triển khai `php artisan app:create-admin` để tạo Admin ban đầu hoặc thêm Admin. Trong lượt triển khai, chủ dự án xác nhận **Admin bắt buộc có email**; đây là quy tắc riêng của thao tác cấp Admin, không đổi `users.email` nullable theo DB-D51.
+
+| ID | Chủ đề | Quyết định (CONFIRMED) | Tác động |
+|---|---|---|---|
+| DB-D52 | Cấp Admin qua Artisan | Người có quyền vận hành chạy command tương tác, nhập họ tên, SĐT, email bắt buộc và mật khẩu nhập ẩn. Chỉ tạo tài khoản mới `role = admin`, `status = active`; không nâng quyền hoặc mở khóa tài khoản cũ, không tự coi email đã xác minh, không dùng mật khẩu mặc định. Email/SĐT trùng bị từ chối. Không có API tạo Admin công khai | Command + kiểm thử, không đổi Model/schema/frontend. Không chạy migration hoặc tạo Admin thật trên DB dev trong lượt này. Chi tiết sử dụng, validation và kiểm thử ở `AUTHENTICATION.md` |
+
+## L. Authentication — API phiên đăng nhập và chuẩn hóa (22/10/2026)
+
+**Trạng thái: CONFIRMED.** Chủ dự án yêu cầu triển khai Backend Authentication bước 3; xác nhận riêng quy SĐT Việt Nam `+84/84` về `0`, email bỏ khoảng trắng đầu/cuối và chuyển chữ thường. Không tự sửa dữ liệu cũ.
+
+| ID | Chủ đề | Quyết định (CONFIRMED) | Tác động |
+|---|---|---|---|
+| DB-D53 | Auth API / định danh | Đăng nhập email hoặc SĐT + mật khẩu, Sanctum SPA session cookie. Tự đăng ký chỉ nhận `user/active`, không nhận quyền/trạng thái từ client; email tùy chọn. Dùng chung chuẩn hóa email và SĐT cho đăng ký/đăng nhập/Artisan. Chặn tài khoản khóa cả sau đăng nhập; quyền do Laravel kiểm tra; không bắt buộc xác minh email để đăng nhập trong bước này | Không đổi schema, không chạy migrations dev. Giữ 5 Enum vai trò. Không có API cấp Admin/nhân viên. Endpoint và response tại `API_AUTHENTICATION.md`; dữ liệu SĐT cũ mơ hồ bị từ chối đăng nhập bằng số đó, không tự gộp tài khoản |
+
+## M. Cài đặt — giới hạn số ngày (23/10/2026)
+
+**CONFIRMED — chủ dự án chọn “1–365 cho cả hai” trong lượt CAT-02b/03b.**
+
+| Mã | Chủ đề | Quyết định | Tác động |
+|---|---|---|---|
+| DB-D54 / CAT-D01 | Cấu hình số ngày MVP | `invoice.due_days` và `contract.expiring_warning_days` là số nguyên từ1 đến365, không nhận0. Mặc định đã thiết kế vẫn lần lượt5 và30 | Validate tại API Admin; lưu chuỗi trong settings.value TEXT theo type integer hiện có, không đổi schema hoặc tự sửa dữ liệu dev. Chưa có quyết định mới về giới hạn/ghi các trường ngân hàng/hệ thống; không tự mở API ghi settings tùy ý |
+
+## N. Tiện nghi đã lưu trữ trên trang quản trị (23/10/2026)
+
+**CONFIRMED — chủ dự án chọn “Hiện kèm nhãn Đã lưu trữ”.**
+
+| Mã | Chủ đề | Quyết định | Tác động |
+|---|---|---|---|
+| DB-D55 / CAT-D02 | Hiển thị tiện nghi đã lưu trữ còn được gán | Trang chi tiết tòa/phòng vẫn hiển thị tiện nghi đó, kèm nhãn **Đã lưu trữ**. Giữ nguyên liên kết hiện có. Lát cắt hiện tại chỉ cho gán/gỡ tiện nghi đang hoạt động; chưa khôi phục hoặc gỡ riêng liên kết đã lưu trữ | Ghép panel vào hai trang hiện có; không thay schema, giá, quyền, hợp đồng hoặc trang công khai. Spec/AC tại brief §19 |
+
+
+## O. USR — cấp tài khoản nhân viên (23/10/2026)
+
+**CONFIRMED — chủ dự án trả lời “Duyệt phương án trên” cho gói cấp Kỹ thuật viên/Bảo vệ.**
+
+| Mã | Quyết định | Tác động |
+|---|---|---|
+| DB-D56 / USR-D01 | Admin cấp tài khoản mới technician/guard; email tùy chọn, thiếu lưu NULL. Admin nhập mật khẩu ban đầu dạng ẩn + xác nhận theo quy tắc hiện có, bàn giao thủ công. Không mật khẩu mặc định, không trả/log mật khẩu; chưa lời mời email hoặc bắt đổi mật khẩu lần đầu. Admin biết mật khẩu ban đầu là nhược điểm đã được trình bày | Không schema. Gán active tại server, email_verified_at giữ NULL; không sửa/nâng quyền tài khoản cũ, không đổi phiên Admin sang nhân viên. Không mở API tạo Admin. Phạm vi khóa được duyệt riêng sau gói này tại DB-D57/USR-D02 |
+
+## P. USR — khóa/mở khóa tài khoản (23/10/2026)
+
+**CONFIRMED — phương án A, phê duyệt trực tiếp của chủ dự án.**
+
+| Mã | Quyết định | Tác động |
+|---|---|---|
+| DB-D57 / USR-D02 | Admin active chỉ khóa/mở khóa user/resident/technician/guard; cấm chính mình và mọi tài khoản Admin. Chỉ đổi users.status active/locked; không xóa tài khoản/hợp đồng/hóa đơn/lịch sử, không đổi mật khẩu/role. Tài khoản locked không được đăng nhập hoặc dùng API cần xác thực, kể cả phiên cũ | Dùng schema hiện có, không migration. Giữ AuthService/EnsureActiveAccount, kiểm thử qua cookie thật. Contract/API/AC tại brief§22; chỉnh hồ sơ tách riêng khi đủ quyết định |
+
+
+## Q. USR — sửa họ tên (23/10/2026)
+
+**CONFIRMED DB-D58 / USR-D03 — chủ dự án duyệt chỉ sửa họ tên/tên hiển thị.** Admin active sửa duy nhất users.full_name trên trang ADM-10 của tài khoản đang xem, theo quyền sửa hồ sơ Admin đã có. SĐT, email, mật khẩu, role, status, dữ liệu pháp lý và lịch sử giữ nguyên. Đây không phải API tự sửa hồ sơ của các vai trò khác, không xác minh định danh, không thay tên pháp lý trên tệp hợp đồng. Khóa/mở khóa vẫn theo DB-D57, cấm mọi Admin. Không schema/migration. API/AC tại brief§23.
