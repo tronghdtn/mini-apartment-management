@@ -191,3 +191,7 @@
 ## Q. USR — sửa họ tên (23/10/2026)
 
 **CONFIRMED DB-D58 / USR-D03 — chủ dự án duyệt chỉ sửa họ tên/tên hiển thị.** Admin active sửa duy nhất users.full_name trên trang ADM-10 của tài khoản đang xem, theo quyền sửa hồ sơ Admin đã có. SĐT, email, mật khẩu, role, status, dữ liệu pháp lý và lịch sử giữ nguyên. Đây không phải API tự sửa hồ sơ của các vai trò khác, không xác minh định danh, không thay tên pháp lý trên tệp hợp đồng. Khóa/mở khóa vẫn theo DB-D57, cấm mọi Admin. Không schema/migration. API/AC tại brief§23.
+
+## R. CTR — đơn giá dịch vụ hợp đồng (24/10/2026)
+
+**CONFIRMED DB-D59 / CTR-D01 / Q7:** chủ dự án chọn “Lấy giá danh mục và lưu snapshot”. Laravel lấy đơn giá từ danh mục khi thêm dịch vụ vào hợp đồng, lưu vào `contract_services.unit_price`; không nhận đơn giá thương lượng từ React. Thay đổi giá danh mục không sửa snapshot đã lưu. Điện/Nước vẫn metered, đơn giá NULL và chỉ tự thêm khi kích hoạt. Không thay schema, không duyệt P4–P8 hoặc quy trình cọc Q15. Lát cắt nháp tại brief §25; thay dịch vụ hợp đồng active là task riêng theo quy tắc hiệu lực tháng sau.

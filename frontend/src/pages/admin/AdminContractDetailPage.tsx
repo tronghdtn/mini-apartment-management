@@ -9,6 +9,7 @@ import { formatVND, formatDate } from '@/lib/format'
 import { deleteDraftContract, getContract } from '@/features/contracts/api'
 import { contractStatusLabels, depositStatusLabels } from '@/features/contracts/types'
 import type { Contract } from '@/features/contracts/types'
+import { ContractServicesPanel } from '@/features/contracts/ContractServicesPanel'
 
 export function AdminContractDetailPage() {
   const { contractId } = useParams<{ contractId: string }>()
@@ -68,7 +69,8 @@ export function AdminContractDetailPage() {
         <div className="py-3"><dt className="text-slate-500">Ghi chú</dt><dd className="text-slate-700 whitespace-pre-wrap break-words mt-1">{contract.note || 'Không có ghi chú.'}</dd></div>
       </dl></section>
     </div>
-    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Kích hoạt, dịch vụ, điều khoản bồi thường, thanh lý, chỉ số và hóa đơn chưa được tích hợp tại trang này.</p>
-    <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
+    <ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} />
+    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Kích hoạt, thay dịch vụ hợp đồng hiệu lực, điều khoản bồi thường, thanh lý, chỉ số và hóa đơn chưa được tích hợp tại trang này.</p>
+    <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p><p className="text-xs text-slate-500">Nếu đã chọn dịch vụ cho bản nháp, hãy gỡ và lưu dịch vụ trước khi xóa.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
   </div>
 }

@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('amenities/{amenity}', [AmenityController::class, 'show'])->name('amenities.show');
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
+        Route::put('contracts/{contract}/services', [ContractController::class, 'updateServices'])->whereNumber('contract')->name('contracts.services.update');
         Route::patch('contracts/{contract}', [ContractController::class, 'update'])->whereNumber('contract')->name('contracts.update');
         Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract')->name('contracts.destroy');
         Route::post('users', [AdminUserController::class, 'store'])->name('users.store');

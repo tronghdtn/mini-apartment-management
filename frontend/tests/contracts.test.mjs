@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { draftContractSchema, contractFiltersSchema } from '../src/features/contracts/schemas.ts'
+import { draftContractSchema, contractFiltersSchema, draftContractServicesSchema } from '../src/features/contracts/schemas.ts'
 
 const draft = { room_id: 1, user_id: 2, start_date: '2026-11-01', end_date: '2027-10-31', monthly_rent: 3500000, deposit_amount: 3500000, occupant_count: 1, note: '' }
 const filters = { status: '', building_id: '', room_id: '', user_id: '', q: '' }
@@ -46,4 +46,20 @@ test('list filters retain literal search characters, explicit IDs and existing r
   assert.equal(contractFiltersSchema.safeParse({ ...filters, q: '😀'.repeat(192) }).success, false)
   for (const field of ['room_id', 'building_id', 'user_id']) for (const value of ['0', '-1', '1.1', '01', '9007199254740992', null, 1]) assert.equal(contractFiltersSchema.safeParse({ ...filters, [field]: value }).success, false)
   assert.equal(contractFiltersSchema.safeParse({ ...filters, status: 'renewed' }).success, false)
+})
+
+test('draft service selection accepts empty removal and positive integer quantity within DECIMAL storage', () => {
+  for (const quantity of [1, 2, 99999999]) assert.equal(draftContractServicesSchema.safeParse({ services: [{ service_id: 1, quantity }] }).success, true)
+  assert.deepEqual(draftContractServicesSchema.parse({ services: [] }), { services: [] })
+  for (const quantity of [0, -1, 1.1, 100000000, '2', null, true, NaN, Infinity]) assert.equal(draftContractServicesSchema.safeParse({ services: [{ service_id: 1, quantity }] }).success, false)
+})
+
+test('draft service request never includes a client price, dates, status or duplicate identifiers', () => {
+  const line = { service_id: 1, quantity: 1 }
+  for (const field of ['unit_price', 'price', 'start_date', 'end_date', 'status', 'contract_id']) {
+    assert.equal(draftContractServicesSchema.safeParse({ services: [{ ...line, [field]: null }] }).success, false)
+    assert.equal(draftContractServicesSchema.safeParse({ services: [line], [field]: null }).success, false)
+  }
+  assert.equal(draftContractServicesSchema.safeParse({ services: [line, line] }).success, false)
+  for (const service_id of [0, -1, 1.5, true, null, '1']) assert.equal(draftContractServicesSchema.safeParse({ services: [{ ...line, service_id }] }).success, false)
 })

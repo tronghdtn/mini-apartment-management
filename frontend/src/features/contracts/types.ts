@@ -26,8 +26,20 @@ export interface Contract {
   note: string | null
   created_at: string | null
   updated_at: string | null
+  contract_services?: ContractServiceLine[]
   room: { id: number; code: string; status: string; max_occupants: number; building: { id: number; name: string } }
   tenant: { id: number; full_name: string; phone: string; email: string | null; role: string; status: string }
+}
+
+export type ContractBillingType = 'per_room' | 'per_person' | 'per_unit' | 'metered'
+export interface ContractServiceOption {
+  id: number; code: string; name: string; billing_type: ContractBillingType
+  unit: string | null; price: number | null; status: 'active' | 'inactive'
+}
+export interface ContractServiceLine {
+  id: number; service_id: number; quantity: string; unit_price: number | null
+  start_date: string; end_date: string | null
+  service: Omit<ContractServiceOption, 'id' | 'price'>
 }
 
 export interface ContractPage {

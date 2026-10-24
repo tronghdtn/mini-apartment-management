@@ -5,12 +5,16 @@ namespace App\Services;
 use App\Enums\ContractStatus;
 use App\Enums\DepositStatus;
 use App\Enums\RoomStatus;
+use App\Enums\ServiceBillingType;
+use App\Enums\ServiceStatus;
 use App\Enums\UserRole;
 use App\Models\Contract;
 use App\Models\Room;
+use App\Models\Service;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Arr;
@@ -64,7 +68,7 @@ class ContractService
     {
         $this->ensureReady();
 
-        return $this->query()->findOrFail($id);
+        return $this->query(true)->findOrFail($id);
     }
 
     public function create(#[\SensitiveParameter] array $data): Contract
@@ -84,7 +88,7 @@ class ContractService
                 $contract->contract_number = null;
                 $contract->save();
 
-                return $this->query()->findOrFail($contract->id);
+                return $this->query(true)->findOrFail($contract->id);
             }, 3);
         } catch (UniqueConstraintViolationException) {
             abort(409, 'Dữ liệu hợp đồng vừa xung đột. Vui lòng tải lại và thử lại.');
@@ -110,16 +114,101 @@ class ContractService
                 // PATCH kiểm tra tập dữ liệu sau ghép, không chỉ các ô vừa gửi.
                 $merged = array_replace(Arr::only($current->getRawOriginal(), self::WRITABLE_FIELDS), Arr::only($data, self::WRITABLE_FIELDS));
                 $this->validateDraftData($rooms[(int) $merged['room_id']], $users[(int) $merged['user_id']], $merged);
+                if ($merged['start_date'] !== $current->getRawOriginal('start_date')) {
+                    foreach ($this->lockSimpleDraftServices($current) as $line) {
+                        $line->start_date = $merged['start_date'];
+                        $line->save();
+                    }
+                }
                 $current->fill(Arr::only($data, self::WRITABLE_FIELDS));
                 $current->save();
 
-                return $this->query()->findOrFail($current->id);
+                return $this->query(true)->findOrFail($current->id);
             }, 3);
         } catch (UniqueConstraintViolationException) {
             abort(409, 'Dữ liệu hợp đồng vừa xung đột. Vui lòng tải lại và thử lại.');
         } catch (QueryException) {
             $this->databaseFailure('cập nhật');
         }
+    }
+
+    /** Chỉ soạn dịch vụ định kỳ của nháp; không kích hoạt hay sửa lịch sử hợp đồng active. */
+    public function updateDraftServices(Contract $contract, array $data): Contract
+    {
+        $this->ensureReady();
+        try {
+            return DB::transaction(function () use ($contract, $data): Contract {
+                $this->lockParents([$contract->room_id], [$contract->user_id]);
+                $current = Contract::whereKey($contract->id)->lockForUpdate()->firstOrFail();
+                $this->ensureUnchangedParents($contract, $current);
+                $this->ensureDraft($current);
+                $existing = $this->lockSimpleDraftServices($current)->keyBy('service_id');
+                $ids = array_map(fn (array $line): int => (int) $line['service_id'], $data['services']);
+                if (count(array_unique($ids)) !== count($ids)) {
+                    throw ValidationException::withMessages(['services' => 'Không được chọn trùng dịch vụ.']);
+                }
+                // Danh mục chỉ giữ khóa chia sẻ: một cập nhật giá phải hoàn tất trước khi chụp giá mới.
+                $catalog = Service::whereIn('id', $ids)->orderBy('id')->sharedLock()->get()->keyBy('id');
+                foreach ($data['services'] as $index => $input) {
+                    $service = $catalog->get((int) $input['service_id']);
+                    if (! $service || $service->status !== ServiceStatus::Active || $service->isMetered()
+                        || in_array($service->code, [Service::CODE_ELECTRICITY, Service::CODE_WATER], true)) {
+                        throw ValidationException::withMessages(["services.$index.service_id" => 'Chỉ chọn dịch vụ định kỳ đang hoạt động. Điện/Nước được thêm khi kích hoạt.']);
+                    }
+                    if ($service->billing_type === ServiceBillingType::PerRoom && (int) $input['quantity'] !== 1) {
+                        throw ValidationException::withMessages(["services.$index.quantity" => 'Dịch vụ theo phòng phải có số lượng bằng 1.']);
+                    }
+                    if ($service->price === null || $service->price < 0 || $service->price > 9007199254740991) {
+                        throw ValidationException::withMessages(["services.$index.service_id" => 'Dịch vụ chưa có đơn giá hợp lệ.']);
+                    }
+                }
+                // Chỉ ghi sau khi kiểm tra toàn bộ mảng, giữ giá snapshot của những dòng còn được chọn.
+                foreach ($data['services'] as $input) {
+                    $id = (int) $input['service_id'];
+                    $line = $existing->get($id);
+                    if ($line) {
+                        $line->quantity = $input['quantity'];
+                        $line->save();
+                    } else {
+                        $current->contractServices()->create([
+                            'service_id' => $id, 'quantity' => $input['quantity'],
+                            'unit_price' => $catalog[$id]->price,
+                            'start_date' => $current->start_date->format('Y-m-d'), 'end_date' => null,
+                        ]);
+                    }
+                }
+                foreach ($existing as $id => $line) {
+                    if (! in_array((int) $id, $ids, true)) {
+                        $line->delete(); // Chỉ dòng soạn nháp chưa có lịch sử, không đụng hợp đồng active.
+                    }
+                }
+                $current->touch();
+
+                return $this->query(true)->findOrFail($current->id);
+            }, 3);
+        } catch (QueryException) {
+            $this->databaseFailure('lưu dịch vụ của');
+        }
+    }
+
+    private function lockSimpleDraftServices(Contract $contract): Collection
+    {
+        $lines = $contract->contractServices()->orderBy('id')->lockForUpdate()->get();
+        foreach (['invoices', 'meter_readings'] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->where('contract_id', $contract->id)->exists()) {
+                abort(409, 'Bản nháp đã có lịch sử liên quan. Không tự sửa dịch vụ hoặc khoảng hiệu lực.');
+            }
+        }
+        if ($lines->unique('service_id')->count() !== $lines->count()) {
+            abort(409, 'Dịch vụ đã có nhiều khoảng hiệu lực. Vui lòng kiểm tra dữ liệu hợp đồng.');
+        }
+        foreach ($lines as $line) {
+            if ($line->end_date !== null || $line->start_date->format('Y-m-d') !== $contract->start_date->format('Y-m-d') || $line->unit_price === null) {
+                abort(409, 'Dịch vụ đã có lịch sử hoặc chỉ số. Không tự ghi đè khi soạn nháp.');
+            }
+        }
+
+        return $lines;
     }
 
     public function delete(Contract $contract): void
@@ -198,13 +287,18 @@ class ContractService
         }
     }
 
-    private function query(): Builder
+    private function query(bool $details = false): Builder
     {
-        return Contract::query()->with([
+        $query = Contract::query()->with([
             'room:id,building_id,code,status,max_occupants',
             'room.building:id,name',
             'tenant:id,full_name,phone,email,role,status',
         ]);
+        if ($details) {
+            $query->with(['contractServices' => fn ($lines) => $lines->orderBy('id'), 'contractServices.service:id,code,name,unit,billing_type,status']);
+        }
+
+        return $query;
     }
 
     private function databaseFailure(string $operation): never

@@ -33,3 +33,12 @@ export const contractFiltersSchema = z.object({
   q: z.string().trim().refine(value => Array.from(value).length <= 191, 'Từ khóa tối đa 191 ký tự.'),
 }).strict()
 export type ContractFilters = z.infer<typeof contractFiltersSchema>
+
+export const draftContractServicesSchema = z.object({
+  services: z.array(z.object({
+    service_id: id,
+    quantity: z.number({ error: 'Vui lòng nhập số lượng.' }).int('Số lượng phải là số nguyên.')
+      .min(1, 'Số lượng phải từ 1.').max(99999999, 'Số lượng vượt giới hạn lưu trữ.'),
+  }).strict()).refine(lines => new Set(lines.map(line => line.service_id)).size === lines.length, 'Không chọn trùng dịch vụ.'),
+}).strict()
+export type DraftContractServicesInput = z.infer<typeof draftContractServicesSchema>

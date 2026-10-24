@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
+use App\Http\Requests\Contract\UpdateDraftServicesRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Services\ContractService;
@@ -57,5 +58,13 @@ class ContractController extends Controller
         $this->contracts->delete($model);
 
         return response()->noContent();
+    }
+
+    public function updateServices(UpdateDraftServicesRequest $request, string $contract): ContractResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractResource($this->contracts->updateDraftServices($model, $request->validated()));
     }
 }

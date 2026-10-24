@@ -27,6 +27,13 @@ class ContractResource extends JsonResource
             'note' => $this->note,
             'created_at' => $this->created_at?->utc()->toISOString(),
             'updated_at' => $this->updated_at?->utc()->toISOString(),
+            'contract_services' => $this->whenLoaded('contractServices', fn () => $this->contractServices->map(fn ($line) => [
+                'id' => $line->id, 'service_id' => $line->service_id,
+                'quantity' => $line->quantity, 'unit_price' => $line->unit_price,
+                'start_date' => $line->start_date->format('Y-m-d'), 'end_date' => $line->end_date?->format('Y-m-d'),
+                'service' => ['code' => $line->service->code, 'name' => $line->service->name, 'unit' => $line->service->unit,
+                    'billing_type' => $line->service->billing_type->value, 'status' => $line->service->status->value],
+            ])),
             'room' => [
                 'id' => $this->room->id,
                 'code' => $this->room->code,

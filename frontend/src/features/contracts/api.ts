@@ -1,8 +1,8 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
 import type { ApiResource } from '@/types/api'
-import { contractFiltersSchema, draftContractSchema } from './schemas'
-import type { ContractFilters, DraftContractInput } from './schemas'
-import type { Contract, ContractPage, ContractOptions, ContractRoomOption, ContractTenantOption } from './types'
+import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema } from './schemas'
+import type { ContractFilters, DraftContractInput, DraftContractServicesInput } from './schemas'
+import type { Contract, ContractPage, ContractOptions, ContractRoomOption, ContractTenantOption, ContractServiceOption } from './types'
 
 export async function getContracts(page: number, filters: ContractFilters, signal?: AbortSignal): Promise<ContractPage> {
   const input = contractFiltersSchema.parse(filters)
@@ -49,4 +49,14 @@ export async function saveDraftContract(input: DraftContractInput, id?: number):
 export async function deleteDraftContract(id: number): Promise<void> {
   await fetchCsrfCookie()
   await http.delete(`/contracts/${id}`)
+}
+
+export async function getContractServiceOptions(signal?: AbortSignal): Promise<ContractServiceOption[]> {
+  return getAllOptions<ContractServiceOption>('/services', {}, signal)
+}
+
+export async function saveDraftContractServices(id: number, input: DraftContractServicesInput): Promise<Contract> {
+  const body = draftContractServicesSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.put<ApiResource<Contract>>(`/contracts/${id}/services`, body)).data.data
 }
