@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum SPA: request từ domain trong SANCTUM_STATEFUL_DOMAINS được xác thực bằng session cookie.
         $middleware->statefulApi();
+        // Trang đăng nhập do React/Nginx phục vụ. Tránh callback mặc định route('login')
+        // ném lỗi trước AuthenticationException khi mở URL API với Accept: text/html.
+        // Renderer bên dưới vẫn trả JSON 401 cho mọi api/*, không redirect API.
+        $middleware->redirectGuestsTo('/login');
         $middleware->alias([
             'spa' => EnsureSpaSession::class,
             'active' => EnsureActiveAccount::class,
