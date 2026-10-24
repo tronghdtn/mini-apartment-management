@@ -28,7 +28,7 @@ services:
       DB_USERNAME: ${DB_USERNAME:-mini_apartment}
       DB_PASSWORD: ${DB_PASSWORD:?Chưa đặt DB_PASSWORD trong .env}
       DB_TEST_PASSWORD: ${DB_TEST_PASSWORD:?Chưa đặt DB_TEST_PASSWORD trong .env — chạy scripts/setup.sh}
-      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
     depends_on:
       mysql:
         condition: service_healthy
