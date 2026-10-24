@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Rules\UniquePhone;
 use App\Support\AuthIdentity;
+use App\Support\HiddenPasswordInput;
 use App\Support\PasswordRules;
 use Illuminate\Console\Command;
 use Illuminate\Database\QueryException;
@@ -15,7 +16,6 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 use Symfony\Component\Console\Exception\RuntimeException as ConsoleRuntimeException;
-use Symfony\Component\Console\Question\Question;
 
 class CreateAdminCommand extends Command
 {
@@ -36,8 +36,8 @@ class CreateAdminCommand extends Command
                 'full_name' => trim((string) $this->ask('Họ và tên')),
                 'phone' => AuthIdentity::phone((string) $this->ask('Số điện thoại')),
                 'email' => AuthIdentity::email((string) $this->ask('Email (bắt buộc cho Admin)')),
-                'password' => $this->askHiddenPassword('Mật khẩu'),
-                'password_confirmation' => $this->askHiddenPassword('Nhập lại mật khẩu'),
+                'password' => HiddenPasswordInput::ask($this->output, 'Mật khẩu'),
+                'password_confirmation' => HiddenPasswordInput::ask($this->output, 'Nhập lại mật khẩu'),
             ];
         } catch (ConsoleRuntimeException) {
             $this->error('Không thể nhập thông tin an toàn. Hãy dùng terminal hỗ trợ nhập mật khẩu ẩn. Chưa tạo tài khoản.');
@@ -104,13 +104,5 @@ class CreateAdminCommand extends Command
         $this->info('Đã tạo tài khoản Admin mới (trạng thái: active). Email chưa được xác minh.');
 
         return self::SUCCESS;
-    }
-
-    private function askHiddenPassword(string $label): ?string
-    {
-        $question = new Question($label);
-        $question->setHidden(true)->setHiddenFallback(false)->setTrimmable(false);
-
-        return $this->output->askQuestion($question);
     }
 }

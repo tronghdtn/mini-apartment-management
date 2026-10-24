@@ -85,6 +85,10 @@ Mỗi API bảo vệ kiểm tra đăng nhập và active; kiểm tra vai trò n�
 
 Người vận hành nhập tên/SĐT/email bắt buộc/mật khẩu ẩn + xác nhận. Validate trước khi ghi một tài khoản mới admin/active; không tìm và nâng quyền tài khoản cũ, không tự xác minh email. Lỗi trả thất bại, không lộ mật khẩu hoặc ghi một phần tài khoản.
 
+**Sửa lỗi terminal24/10 (AUTH-14):** đầu vào mật khẩu phải bỏ đúng một dấu kết thúc dòng Enter (LF/CRLF/CR), giữ nguyên khoảng trắng/ký tự thật; dùng `HiddenPasswordInput::ask`, không dùng trim toàn bộ. Với Symfony hiện tại, hidden+trimmable=false giữLF; test mô phỏng câu hỏi trước đây không bắt được. Không đổi hoặc nới kiểm tra mật khẩu Web.
+
+Khôi phục Admin hiện có bằng `app:reset-admin-password` do người vận hành tự chạy: nhập email/SĐT, chỉ chọn duy nhất Admin active, nhập mật khẩu mới ẩn hai lần theo quy tắc hiện có, xác nhận mặc địnhNo trước ghi. Transaction khóa lại và từ chối nếu định danh/role/status/hash vừa đổi; chỉ đổi password/remember_token/updated_at, không tạo tài khoản/nâng quyền/mở khóa/xác minh email hoặc xóa nghiệp vụ. Sanctum từ chối phiên cũ khi hash thay đổi; React lấy CSRF mới trước login. Lệnh không tự chạy trên dev; chủ dự án đã đồng ý tự chạy để khôi phục tài khoản tạo bằng lệnh cũ. Đây là thao tác vận hành CLI, không API quên/đổi mật khẩu công khai.
+
 ## 6. Trường hợp lỗi
 
 | Tình huống | Hành vi cần giữ |
