@@ -4,7 +4,7 @@ Hệ thống quản lý chung cư mini — bài tập lớn môn **Lập trình 
 
 Một chủ sở hữu quản lý nhiều tòa chung cư mini, mỗi tòa có nhiều phòng. Hệ thống phục vụ 5 actor: **Khách**, **Cư dân**, **Quản trị viên**, **Nhân viên sửa chữa**, **Bảo vệ**.
 
-> **Trạng thái 24/10/2026:** Auth/CAT/ROOM/USR và ba trang Hợp đồng nháp dùng API thật. **Backend963test/7930assertion, frontend58, browserCTR12/12 +liveAPI12/12 PASS**, build/lint/Pint192file đạt (9cảnh báo cũ). Chưa kích hoạt/thu cọc/dịch vụ hợp đồng/thanh lý. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; Admin mới xuất hiện, chờ xác nhận và đăng nhập kiểm thửdev. Các localcheckpoint được duyệt/lưu, không push; không migration/seeder hoặc ghi/xóa dữ liệu dev bởi agent. [Plan](docs/IMPLEMENTATION_PLAN.md) §12.12–13; [bản đồ code](docs/PROJECT_STATUS_AND_LEARNING.md) §11.21.
+> **Trạng thái 24/10/2026:** Auth/CAT/ROOM/USR/Hợp đồng nháp dùng API thật; dịch vụ nháp theo Q7=giá danh mục snapshot đã code/test, 12 tình huống browser và10ca liveAPI đã kiểm chứng. **Backend1.038test/9.348assertion/Pint201file; frontend60/build/lint đạt** (9cảnh báo cũ). Admin dev đã tự reset/login thành công, agent kiểm tra đọc trang quản trị/F5. Docker PHP8.3.36/upload_progress Off; Laragon host8.3.30 chưa vá. Dev20bảng/16migration, RUN_MIGRATIONS=false, Nhóm3pending; chưa kích hoạt/thu cọc/Thanh lý. Checkpoint8bab41e/dc027eb/df59765/503d38c local, không push. [Plan](docs/IMPLEMENTATION_PLAN.md) §12.15; [bản đồ code](docs/PROJECT_STATUS_AND_LEARNING.md) §11.23.
 
 ## Công nghệ
 
@@ -47,9 +47,9 @@ sh scripts/setup.sh            # Git Bash / Linux / macOS
 docker compose up -d --build
 ```
 
-Lần chạy đầu, container `app` tự `composer install`, sinh `APP_KEY` và chạy migrations nếu `RUN_MIGRATIONS=true`; container `frontend` tự `npm install`.
+Lần chạy đầu, container `app` tự `composer install` và sinh `APP_KEY`; container `frontend` tự `npm install`. Compose và `.env.example` mặc định `RUN_MIGRATIONS=false`: DB mới cần triển khai schema theo nhóm đã duyệt trong [kế hoạch Database](docs/DATABASE_IMPLEMENTATION_PLAN.md), không tự chạy tất cả khi khởi động.
 
-> **Quan trọng:** hiện phải giữ `RUN_MIGRATIONS=false` trong `.env`. Nếu bật, `docker compose up` sẽ tự chạy migrations Nhóm 2–3 lên DB dev `mini_apartment` — việc này cần được duyệt riêng (backup + `migrate --pretend` trước).
+Giữ `RUN_MIGRATIONS=false` trong `.env`. Nhóm 2 đã áp dụng riêng; bật cờ sẽ chạy mọi migration còn chờ, gồm Nhóm 3 chưa được duyệt trên dev. Nâng cấp dev cần duyệt đúng file, backup/restore thử và `--pretend` theo kế hoạch Database.
 
 | Địa chỉ | Mô tả |
 | --- | --- |

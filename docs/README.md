@@ -2,7 +2,7 @@
 
 Thư mục chứa tài liệu phân tích, thiết kế và vận hành của Mini Apartment Management.
 
-**Mới24/10 — LEASE-A/CTR:** Hợp đồng nháp đã tích hợp Backend/ba trang React/test;963Backend/7930assertion,58frontend,12browser+12liveAPI PASS. Chưa kích hoạt/Thanh lý/P4–P8. Bốn localcheckpoint đã được duyệt/lưu; không push. Admin dev mới xuất hiện, chờ xác nhậnnguồn và phiên đăng nhập thật. Bằng chứng [Plan§12.12–13](IMPLEMENTATION_PLAN.md), bản đồ [học tập§11.21](PROJECT_STATUS_AND_LEARNING.md); các mốc bên dưới là lịch sử theo module.
+**Mới24/10:** Admin dev đã tự reset/login; agent đọc quản trị/F5 thành công. PHP Docker8.3.36 đã vá (Laragon8.3.30 chưa đổi). CTR dịch vụ nháp Q7=giá danh mục snapshot: Backend1038/9348/Pint201file, frontend60/build/lintPASS; 12 tình huống browser và10ca liveAPI đã kiểm chứng. Không migration/ghi nghiệp vụ dev/push. Plan§12.15, học tập§11.23; các kết quả trước là lịch sử.
 
 **Điểm bắt đầu từ 22/10/2026:** đọc [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) để chọn Task; đọc Spec module rồi API/AC liên quan trước khi làm. Không tạo thêm bản kế hoạch hoặc Tasks trùng lặp. Quy trình chung nằm ở [AGENTS.md](../AGENTS.md) §3.1. Lượt chỉ tài liệu không chạy lại test/migrations; số test cũ phải ghi nhãn lịch sử.
 

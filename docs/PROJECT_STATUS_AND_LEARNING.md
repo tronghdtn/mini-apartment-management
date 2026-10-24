@@ -1,10 +1,10 @@
 # PROJECT STATUS & LEARNING — Mini Apartment Management
 
-> **Hiện trạng 24/10/2026 — LEASE-A/CTR:** Hợp đồng nháp list/detail/create/edit/softdelete đã tích hợp DBtest, chưa kích hoạt/thu cọc/thanh lý. Backend963/7930/Pint192file, frontend58/build/lintPASS; browser12/12 +liveAPI12/12 PASS/0runtimeexception trênDTAoQ2di. Bốn localcheckpoint đã lưu theo duyệt mới, không push. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; có1Admin mới xuất hiện trong lượt, chờ chủ dự án xác nhận và tựđăngnhập để test quảntrịdev. Agent không tạoAdmin/ghi nghiệp vụdev; hash tài khoản khách cũ không đổi. Plan§12.12–13, bản đồ§11.21; kết quảUSR/CAT/Auth trước là lịch sử.
+> **Hiện trạng 24/10/2026:** Admin dev đã tự reset/login; đọc quản trị/F5 đã kiểm chứng, không CRUD dev. CTR nháp +dịch vụ Q7 snapshot đã code/test, 12 tình huống browser và10ca liveAPI đã kiểm chứng; Backend1038/9348/Pint201file, frontend60/build/lintPASS. Docker PHP8.3.36 đã vá; Laragon host8.3.30 chưa đổi. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; chỉsessions đổi theo phiên thật, nghiệp vụ/users/schema không đổi. Checkpoint8bab41e/dc027eb/df59765/503d38c local; không push. Chi tiết mới Plan§12.15, bản đồ§11.23; các mốc trước giữ làm lịch sử.
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Cập nhật | 24/10/2026 — LEASE-A/CTR nháp; các mốc trước giữ đúng lịch sử |
+| Cập nhật | 24/10/2026 — LEASE-B/CTR dịch vụ nháp, AUTH-14/15 và PHP; các mốc trước giữ đúng lịch sử |
 | Người đọc | Chủ dự án (sinh viên) và AI agent làm tiếp |
 | Mục đích | Nói **thật** dự án đang ở đâu, kế hoạch làm tiếp, và giải thích kiến trúc để chủ dự án tự trình bày được |
 | Nhãn bằng chứng | **[KIỂM CHỨNG 18/10]**, **[KIỂM CHỨNG 19/10]** = đã chạy lệnh/kiểm tra trong ngày đó · **[THEO TÀI LIỆU]** = ghi trong `docs/`, chưa chạy lại · **[ĐỀ XUẤT]** = kế hoạch, chưa làm, chưa được duyệt |
@@ -17,12 +17,12 @@ Tài liệu này **không** thay các quyết định trong `DB_DECISIONS_202610
 
 | Phần | Hiện trạng mới nhất | Mức xác minh |
 |---|---|---|
-| Backend | Health/Auth/Artisan/CAT/ROOM/Settings/USR và CRUDnháp Hợp đồng | Mới:963/7930 + Pint192 file PASS; §11.21 |
-| DB dev | Nhóm1+emailnullable+Nhóm2;20bảng/16migrations,1khách+1Admin; Nhóm3chưachạy | Không DDL nghiệp vụ; Admin xuất hiện trong lượt đang chờ xác nhậnnguồn, cache/session thay đổi; hash toàn bộ tài khoản cũ khớp; Plan§12.13 |
-| Frontend | Auth/CAT/ROOM/USR +ADM11/12/13 nháp thật, Antigravity; phần chưa nối có nhãn | Mới:58test/build/lint, browserCTR12/12 PASS; các nhóm trước là lịch sử |
-| Kiểm thử | Mới:963/7930 Backend,58frontend, browserCTR12/12 +liveAPI12/12 trên DB test riêng | Plan§12.13; chưa quản trị bằng phiên Admin dev |
-| Git |4localcheckpoint ff5888a/9151d49/7756eaf/f67fd9c; LEASEcheckpoint riêng sau nghiệm thu | Không push; .claude/public-ui-concept/ui-antigravity-full giữ ngoài commit vì chưa xác nhận phạm vi |
-| Quyết định | Auth D01/D02/D03 CONFIRMED A/A/A; Q2/Q4/Q10/Q11 đã chốt nguyên tắc | Spec Auth §3/8; Plan quản lý task |
+| Backend | Health/Auth/Artisan/CAT/ROOM/Settings/USR và CRUDnháp/dịch vụ Hợp đồng | Full1038/9348/Pint201 PASS, gồm20caAcceptHTML; Plan§12.15 |
+| DB dev | Nhóm1+emailnullable+Nhóm2;20bảng/16migrations,1khách+1Admin; Nhóm3chưachạy | Không DDL nghiệp vụ; Admin tự tạo/reset/login đã xác nhận; snapshot cuối chỉsessions đổi, users và nghiệp vụ khớp; Plan§12.15 |
+| Frontend | Auth/CAT/ROOM/USR +ADM11/12/13/dịch vụ nháp thật, Antigravity; phần chưa nối có nhãn | Mới:60test/build/lint;12tìnhhuốngCUA và10ca liveAPI; Plan§12.15 |
+| Kiểm thử | Mới:full1038/9348 gồm20caAcceptHTML;60frontend,12tìnhhuốngCUA+10liveAPI trên DBtest | Đã đọc Admin dev/F5; khôngCRUDdev; fullcuối PASS ởPlan§12.15 |
+| Git | Có checkpoint cũ tới3a1521a;8bab41e váArtisan,dc027eb váPHP,df59765 váAPI401; CTR503d38c đã checkpoint | Không push; .claude/public-ui-concept/ui-antigravity-full giữ ngoài commit vì chưa xác nhận phạm vi |
+| Quyết định | Auth D01/D02/D03 A/A/A; USR đã chốt; Q7 CONFIRMED DB-D59=giá danh mục snapshot | P4–P8/Q15 chưa duyệt; Plan§12.15 |
 
 Không đồng nhất UI mở được, code đã viết, test tự động và tích hợp thật. Số 27/51 là kiểm kê UI mock lịch sử, không phải tiến độ phần trăm chức năng.
 
@@ -869,3 +869,44 @@ Chỉ nháp và đọc hợp đồng; chưa kích hoạt/thu cọc/dịch vụ/�
 Kiểm thử liên quan: `backend/tests/Feature/Contracts/ContractDraftTest.php`, `frontend/tests/contracts.test.mjs`, `frontend/tests/contracts.browser.mjs`; helper CLI `ContractBrowserFixtures.php` chỉDB/accounttest có guard, không API sản phẩm. Kết quả mới chỉ ghi sau chạy tại Plan§12.13; không lấy867/6970+52 baseline làm bằng chứng Hợp đồng.
 
 **Bằng chứng mới:**963Backend/7930assertion/Pint192file,58frontend/buildDTAoQ2di/lint0lỗi9cảnhbáocũ PASS;12/12browser +12/12liveAPI DBtest PASS,0runtimeexception. Đã xem ảnh desktop/mobile; dọn đúngfixture, dừngtest riêng. Dev có1Admin mới/cachesessionsđổi, không gọi snapshot khớp toàn bộ; schema/migrations nguyênvẹn và hash tài khoản khách cũ khớp. Chưa xác nhậnnguồnAdmin/phiênđăngnhập nên không tuyên bố đã nghiệm thuquảntrịdev. Cơ chế logout xoay remember_token là tác động bảo mật hợp lệ; test khóa vẫn kiểm tra mọi dữ liệu khác và401 ở request tiếp theo.
+
+### 11.22. AUTH-14 — vì sao CLI nói KHOP nhưng Web trả422?
+
+Chủ dự án xác nhận Admin mới do mình tạo bằngArtisan. Nguyên nhân nằm ở **nhập terminal**, không phải hash hai lần hay sai quyền: `setTrimmable(false)` giữ ký tự EnterLF trong phiên bảnSymfony hiện có. Nếu người vận hành gõ p rồiEnter, lệnh cũ hash p+LF; React inputpassword gửi p. CLI checker cũ cũng nhận p+LF nên báoKHOP sai về ý nghĩa. Không thể nhìn hashbcrypt để biết/loại bỏLF; phải khôi phục có kiểm soát, không tự sửaDB.
+
+| Mở file/hàm | Vai trò |
+|---|---|
+| `frontend/src/pages/public/LoginPage.tsx` submit; `features/auth/api.ts` login; `schemas.ts` loginSchema | Gửi đúng {identifier,password}, lấyCSRF trướcPOST; giữ nguyên password, không có lỗiđổitêntrường |
+| `backend/app/Http/Requests/Auth/LoginRequest.php` prepareForValidation/rules | Chỉ chuẩn hóa identifier, không đổi password |
+| `backend/app/Services/AuthService.php:41` login, dòng64 | Tìm đúng một tài khoản, attemptWhen kiểm tra mật khẩu; false→ValidationException identifier422. Không yêu cầu emailverified/roleAdmin đểlogin; locked có403riêng |
+| `backend/app/Console/Commands/CreateAdminCommand.php:39` | Gọi helpermới trướcvalidator vàModelhashed; thay askHiddenPassword cũ trả thẳngchuỗiterminal |
+| `backend/app/Support/HiddenPasswordInput.php:10` ask | Nhậpẩn/noFallback/noTrim, chỉbỏ1LF/CRLF/CR cuối; giữ spaces/Unicode/giớihạn72byte |
+| `backend/app/Console/Commands/ResetAdminPasswordCommand.php:24` handle | Người vận hành chọn Admin active, nhập mật khẩu mới ẩn hai lần và xác nhận (mặc định Không); khóa hàng và kiểm tra lại để chống ghi đè, chỉ đổi password/remember_token/updated_at |
+
+**Cách bảo vệ:** (1) Hash khác mã hóa thế nào? Hash một chiều, không “giải mã rồi xóaEnter” được; nhập mật khẩu mới và hash lại. (2) Tại sao không trim()? Trim mất spaces người dùng cố ý đặt; chỉ bỏ dấu kết thúc dòng của giao thức nhập terminal. (3) Vì sao test cũPASS? expectsQuestion giảlậpgiátrịkhôngcóEnter; cần bộđọcSymfony thật vàTTY thật, không chỉ mock. (4) Vì sao không thêmLF ởAuthService? Làm lỏng so khớp mật khẩu và che dữ liệu cũ sai; sửa nơi sinh lỗi, khôi phục bằngCLI đượcchủdựánkiểmsoát. (5) Reset ảnh hưởng phiên thế nào? Đổi passwordhash +remembertoken; Sanctum so hash trongsession và buộc đăng nhập lại, client lấyCSRFmới.
+
+**Bằng chứng:** trướcfix8caLF/CRLF→422; saufix36test/1147assertionPASS, Pint197file vàfrontendbuild/lintPASS. TTY thực tế trướcplainfalse/LFtrue, sauplaintrue/LFfalse; tất cả trênDBtest vàrollback, khôngmigration. Full963/7930 là lịch sử, chưa chạy lại vì lệnhfullsuite cóschema/migrationtests. Admindev chưa đổi bởiagent; chủdựánđồngý tựreset, còn chờ đăngnhậpthànhcông8080. Chi tiết Plan§12.14; không đưa password/hash vào tài liệu/log.
+
+### 11.23. LEASE-B — dịch vụ hợp đồng nháp và kiểm chứng Admin dev
+
+Chủ dự án đã tự reset và đăng nhập Admin thành công. Agent đọc được các trang quản trị8080 và giữ phiên sau F5/nâng PHP; không thực hiện CRUD trên dữ liệu dev. Dịch vụ nháp thực thi Q7/DB-D59: chọn dịch vụ và số lượng, Laravel lấy giá danh mục để lưu snapshot (bản chụp đơn giá). Giá danh mục đổi không sửa giá đã lưu. Không có tính tiền hóa đơn tại React.
+
+| Chức năng / mở file | Hàm và vị trí chính | API / bảng |
+|---|---|---|
+| `frontend/src/pages/admin/AdminContractDetailPage.tsx` | Ghép `ContractServicesPanel`; `getContract` tải chi tiết, `reload` lấy lại hợp đồng khi xung đột | GET /api/v1/contracts/{id}; contracts, rooms, users |
+| `frontend/src/features/contracts/ContractServicesPanel.tsx:33` | `DraftServicesForm.submit`: RHF/Zod kiểm tra, chặn gửi lặp; chỉ cập nhật giao diện khi server thành công; `ContractServicesPanel` dòng82 tải danh mục, hiển thị snapshot/không cho sửa active | Form chỉ gửi `{services:[{service_id,quantity}]}`; quantity không phải tiền |
+| `frontend/src/features/contracts/api.ts:54` | `getContractServiceOptions` duyệt đủ trang; `saveDraftContractServices` dòng58 lấy CSRF rồi http.put, cookie phiên do http.ts gửi | GET /api/v1/services?page=…; PUT /api/v1/contracts/{id}/services |
+| `backend/routes/api.php:57` | route PUT → `ContractController::updateServices` dòng63 → `UpdateDraftServicesRequest` | auth:sanctum + active + role:admin + spa/CSRF + ContractPolicy; request allowlist không nhận giá/ngày/status |
+| `backend/app/Services/ContractService.php:136` | `updateDraftServices`: transaction (giao dịch tất cả cùng thành công), khóa cha rồi hợp đồng/dòng; kiểm tra toàn mảng, lấy giá ở services, giữ giá dòng cũ | contracts, contract_services, services; lỗi422 hoặc409, lỗiDB rollback |
+| `backend/app/Services/ContractService.php:194` | `lockSimpleDraftServices` chặn lịch sử/những khoảng phức tạp; `update` đồng bộ ngày bắt đầu nháp đơn giản | Không sửa active hoặc hóa đơn; không cần Nhóm3 trên dev |
+| `backend/app/Http/Resources/ContractResource.php:30` | Chỉ chi tiết có contract_services; quantity chuỗi DECIMAL, unit_price nguyên VND/NULL, thông tin service tối thiểu | React hiển thị đơn giá đã lưu và khoảng hiệu lực; không cộng tổng hóa đơn |
+
+**Tự lần theo một request:** mở ADM-13 → chọn dịch vụ → đổi số lượng → Lưu dịch vụ → DevTools/Network tìm PUT `/api/v1/contracts/ID/services`. Ví dụ minh họa với ID có thật trong môi trường của bạn: `{"services":[{"service_id":7,"quantity":2}]}`. Không gửi unit_price; đổi quantity hợp lệ để kiểm chứng số lượng, gửi unit_price qua công cụ test chỉ trên DBtest phải422. Xem Response `data.contract_services`, rồi F5 để thấy dữ liệu Laravel đọc lại MySQL. Gỡ hết gửi mảng rỗng; không xóa hợp đồng. Dòng cũ giữ snapshot; muốn giá mới thì gỡ/lưu trước và chọn lại. Giá hiển thị danh mục là giá tải gần nhất; giá chính thức của dòng mới được server lấy khi lưu nháp, cần xem lại trước kích hoạt.
+
+**Câu hỏi bảo vệ:** (1) Vì sao không gửi giá từ React? Client có thể bị sửa; server đọc danh mục đã duyệt. (2) Vì sao đổi danh mục không đổi hợp đồng? contract_services lưu snapshot, bảo vệ thỏa thuận đã lưu. (3) Khóa và transaction khác nhau? Khóa tuần tự hóa thao tác cạnh tranh; transaction bảo đảm không ghi nửa mảng. (4) React ẩn nút có đủ bảo mật? Không; middleware/Policy vẫn từ chối request trái quyền. (5) Vì sao chưa có nút kích hoạt? Điều khoản P4/P5 và quy tắc cọc Q15 chưa duyệt, không được giả dữ liệu để bỏ qua.
+
+**Runtime cần hiểu:** Dockerfile pin PHP8.3.36 và php.ini tắt upload progress trước khi phân tích request, khắc phục rủi ro runtime theo thông báo PHP21–23/10. CLI và FPM là hai cách chạy PHP; GET health qua Nginx xác minh phiên bản đang phục vụ web, không chỉ nhìn php -v. Compose mặc định RUN_MIGRATIONS=false nên thay container app không nâng schema. Laragon host8.3.30 chưa cập nhật, không dùng phục vụ8080. Kết quả mới và giới hạn kiểm thử ở Plan§12.15; không dùng browser/fullsuite lịch sử thay bằng chứng mới.
+
+**Bài học AUTH-15 từ kiểm thử thật:** `backend/bootstrap/app.php:28` cấu hình `redirectGuestsTo('/login')`. Nếu người chưa được Sanctum xác thực mở trực tiếp API bằng trình duyệt (AcceptHTML, thiếu Origin/Referer SPA), Laravel mặc định tìm routeBackend có tênlogin trước khi ném AuthenticationException. Dự án chỉ có trang React/login nên callback cũ gây RouteNotFoundException500, chưa tới rendererJSON. Dùng URLReact thay tênroute tránh lỗi đó; bộ xử lý api/* vẫn trả401JSON, không mở quyền hoặc tự tạo phiên. `backend/tests/Feature/Auth/ApiUnauthenticatedResponseTest.php` kiểm tra5route×4Accept, trước15fail/5pass, sau20pass; browser đã kiểm tra lại URLcũ. Không suy rằng có cookie là mọi request bất kỳ tự được Sanctum coi là SPA.
+
+**Kết quả chốt:**1038test/9348assertion/Pint201file;60frontend/build/lint PASS (9cảnhbáocũ).12tìnhhuốngCUA +10liveAPI trênDBtest,3hồi quyUI bundlecuối sau sửa cảnhbáorefs; không cộng thành một lượt tự động. Dev chỉsessionđổi,20bảng/16migration và dữliệunghiệpvụ/users nguyênvẹn;4fileNhóm3pending. Localcheckpoints8bab41e/dc027eb/df59765/503d38c, không push. Bản đồ dùng `DraftServicesForm.submit(event)` dòng33 và `ContractServicesPanel` dòng82; cờrefchỉđọc tronghàmsựkiện, không trongrender. Chưa kích hoạt/cọc/dịchvụactive/Thanh lý; không tựduyệtP4–P8/Q15 hoặc seeddev.
