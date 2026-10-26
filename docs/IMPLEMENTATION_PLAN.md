@@ -529,3 +529,45 @@ Chủ dự án xác nhận đã tự tạo Admin bằng Artisan; không còn ngh
 **Git cuối:** `8bab41e` váEnter/resetAdmin; `dc027eb` PHP8.3.36/cấu hìnhmigrationfalse; `df59765` APIkhách401JSON; `503d38c` dịch vụnháp+SpecQ7+tests (15file). Tất cả local, không push. Tài liệu bàn giao cập nhật riêng sau đó; chỉ các file chính thức có nguồn rõ ràng được checkpoint. `.claude/`, `public-ui-concept/`, `ui-antigravity-full/` vẫn không stage/commit vì chưa xác minh phạm vi.
 
 **Tiếp theo:** CTR kích hoạt cần đúng P4/P5 và Q15 (không phải Q7 nữa); Thanh lý/P4–P8 và Group3dev vẫn chưa được duyệt. Có thể tiếp tục nhánh Phòng công khai độc lập theo Plan/brief§7.1, tách phần ảnh/upload phụ thuộc FILE; không sửa sidebar trong giai đoạn này. Không tự coi việc duyệt Q7 là duyệt thu cọc, điều khoản phí, migrationdev hoặc seeder hệ thống.
+
+### 12.16. ROOM-PUB và phân công Antigravity / Codex (24/10)
+
+Chủ dự án xác nhận Antigravity hiện không chạy/chỉnh code. Git thực tế có đúng1worktree tại repository, frontend/ là bản chính thức; public-ui-concept/, ui-antigravity-full/ và .claude/ đang untracked, chưa xác minh là gói bàn giao nên không nhập/stage. Không suy nguồn giao diện chỉ từ tên thư mục. Khi Antigravity hoạt động lại: worktree/branch/Git index riêng, chốt file phụ trách trước; file giao nhau phải bàn giao tuần tự. Hiện Codex phụ trách backend/routes/api.php, các lớp PublicRoom mới, RoomPolicy, test và tài liệu; chưa sửa trang React. Không tạo màn hình lớn hay API giả để thay phần thiết kế còn thiếu.
+
+| Task | Phạm vi / AC | Trạng thái |
+|---|---|---|
+| ROOM-PUB-01 | Contract HTTP tại brief§26; DB-D60 loại tiện nghi archived khỏi Public; giữ Admin/pivot | Đã xác nhận quyết định; contract đã viết |
+| ROOM-PUB-02 | 3 GET công khai list/detail/filter-options, validation/Policy/Resource, tests theo§26 | Đang làm |
+| ROOM-PUB-03 | Tích hợp PUB-02/03 hiện có, dữ liệu thật, giữ Antigravity; không ảnh/đặt lịch thành công giả | Chưa làm; Backend làm trước, không chờ Antigravity |
+| ROOM-PUB-04 | Live API qua Nginx, snapshot dev, cập nhật học tập/checkpoint chọn lọc | Chưa làm |
+
+Không thay schema/devdata; RUN_MIGRATIONS=false đã kiểm tra Docker, PHP8.3.36. Full1038/9348 và frontend60 ở§12.15 là lịch sử, chưa coi là lần kiểm thử của ROOM-PUB. CTR kích hoạt vẫn chỉ bị chặn ở P4/P5/Q15, không chặn Phòng công khai. Không duyệt Group3dev/P4–P8/seeder.
+
+### 12.17. Full MVP tiếp tục / Git an toàn — 27/10/2026
+
+Chủ dự án cho phép tự LOCAL COMMIT phần tiếp quản/triển khai đã kiểm tra; không push, reset, rebase hoặc xóa nhánh. Đầu lượt: `main` tại `a962937`, một worktree; ROOM-PUB backend/tài liệu đang sửa dở. Chủ dự án xác nhận tiếp quản và commit sau kiểm tra. Bản sao/hash baseline ở `backups/full-mvp-20261027/baseline/` (ignored). Không stage `.claude/`, `public-ui-concept/`, toàn bộ prototype, secrets hoặc artifact. Ba agent kiểm kê chỉ đọc đã kết thúc; triển khai tuần tự tại checkout hiện có, không có builder ghi cùng file.
+
+Nguồn giao diện đã xác nhận: `ui-antigravity-full/`; tích hợp chọn lọc vào `frontend/`, giữ layout, font, sky/teal và kiểu card/filter Antigravity. Không nhập router hoặc mock đè API. Trang chủ cũng chuyển phòng/tòa sang API vì dùng chung RoomCard; bỏ những khối dịch vụ/tòa/ảnh/cam kết mẫu chưa có nguồn thật. `/book` và `/rooms/:id/book` giữ route nhưng thông báo chưa tiếp nhận lịch. Contact vẫn mô phỏng có nhãn; chưa tuyên bố hoàn thành Contact/VIEW.
+
+| Task | Phạm vi / tiêu chí nghiệm thu | Trạng thái |
+|---|---|---|
+| ROOM-PUB-02 | Ba GET công khai theo brief§26, validation, Policy, Resource an toàn, truy vấn không N+1 | Đã tích hợp trên DB test |
+| ROOM-PUB-03 | List/detail/home đọc API; nhiều tiện nghi, URL/F5/Back, phân trang; loading/empty/error/retry; không ảnh/cọc/dịch vụ/lịch hẹn giả | Đã tích hợp trên DB test; giới hạn kiểm tra bên dưới |
+| ROOM-PUB-04 | Live API/browser DB test riêng, dọn đúng fixture, snapshot dev, code map, checkpoint chọn lọc | Đã kiểm thử; đang tạo local checkpoint |
+| LEASE-05 | P4/P5-B (DB-D61): migration ALTER mới, Enum/casts, Money multiply; test snapshot/NULL legacy/FK/rollback | Đã duyệt chỉ DB test; chưa làm |
+| LEASE-06 | Bộ tính phí độc lập theo snapshot: đúng hạn 0, trước hạn none/fixed/multiple, miễn toàn bộ hợp lệ | Chưa làm; sau LEASE-05; chưa mở thanh lý |
+| LEASE-07 | Điều kiện thực nhận đủ cọc trước kích hoạt (DB-D62) | Đã chốt nghiệp vụ; API/luồng chưa tích hợp |
+
+**Kiểm tra tự động mới:** full backend **1091 test / 9563 assertion PASS**, public riêng 53/215; Pint **208 file PASS**. Frontend **68 test / build PASS**, lint 0 lỗi / 9 cảnh báo cũ. Bản build hiện có JS 809.14 KB, gzip 226.79 KB; chưa tối ưu code splitting (tách gói tải theo trang), không gọi việc bỏ nội dung mock là tối ưu tương đương. Kết quả 1038/9348 và 60 frontend tại§12.15 là lịch sử.
+
+**Môi trường:** Docker ban đầu tắt; khởi động daemon và đúng hai container MySQL/PHP đã có, kiểm tra RUN_MIGRATIONS=false. PHP8.3.36; guard7/7 và TestEnvironment6/14 PASS, tài khoản `mini_apartment_test` bị cấm đọc dev. Fullsuite kết thúc trước khi tạo fixture browser; không chạy migration/test schema trong lúc fixture tồn tại. App/Nginx nghiệm thu riêng ở8082 trỏ mysql_test, entrypoint không migrate.
+
+**Live API:** root chạy 15/15 PASS: list/detail/options, occupied/private/missing/abc404, wildcard literal, reversed/forbidden/sort422, archived rỗng, Admin401, trang vượt cuối và POST public405. Agent HTTP xác minh thêm 4 ca lọc AND/biên/sort; không cộng ca trùng thành19. Một số batch agent bị giới hạn socket/output nên chỉ báo những kết quả thực nhận; root chạy riêng để bổ sung bằng chứng. Model QA `gpt-6-luna` do chủ dự án chọn, cấu hình tại TEST_MATRIX.md.
+
+**CUA (thao tác trình duyệt thực, không phải automated suite):** list20 + trang2 còn1/Back; chọn2tiện nghi/F5; invalid range lỗi tại ô và không đổi URL; sort giá giảm PUB21 đầu; detail cọc1.5triệu/union2tiện nghi/không ảnh giả; private404; `/book` không form tạo lịch giả; footer dưới3triệu rỗng; home4phòng + quick search canonical; mobile390×667 không tràn ngang; dừng riêng PHP test gây lỗi API, mở lại và retry hai khu vực thành công. Console detail không error/warn; lỗi502 khi chủ động dừng app là dự kiến. Có lần selector hết hạn trước response, sau đọc DOM xác nhận kết quả; không sửa sản phẩm để né kiểm tra. Public API có timeout15giây để không chờ vô hạn. Race phản hồi đảo thứ tự chưa giả lập trên browser: đã kiểm tra AbortController + request key bằng code và kiểm tra khôi phục URL bằng Node.
+
+**Lỗi tìm và sửa:** ContactPage còn link `buildingId`; đổi link hiện tại sang `building_id`, giữ alias `buildingId`/`keyword` cho URL cũ ở React, chỉ gửi canonical sang API, có test hồi quy. Header/footer bỏ hotline và danh mục mẫu, sửa link lọc giá đúng contract. Không tạo featured hoặc dịch vụ/ảnh giả.
+
+**Bảo toàn:** snapshot dev trước/sau khớp toàn bộ metadata/schema/index/FK/migrations/hash dữ liệu mọi bảng, **20 bảng /16 migration**. Fixture23phòng/1tòa/3tiện nghi đã dọn đúng mã lượt, không reset DB; hai container test đã dừng. Không ghi nghiệp vụ, seeder hoặc migration dev. Ảnh mobile ở `backups/full-mvp-20261027/public-room-mobile.png` (ignored).
+
+**Các chặn còn thực:** Group3dev và mọi migration dev chưa duyệt; P3/P6/P7/P8/P9/P11 chưa chốt cho thanh lý; cấu trúc giá theo tòa và nơi lưu yêu cầu chỉ số/ảnh cần đề xuất/duyệt; chưa có Sandbox nhà cung cấp thanh toán. P4/P5-B/Q15 đã được chốt DB-D61/62, không tiếp tục báo chưa duyệt; chưa đồng nghĩa kích hoạt/thanh lý đã code. Các module độc lập tiếp tục triển khai.

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
 import {
   Building2,
-  PhoneCall,
   Menu,
   X,
   Search,
@@ -83,20 +82,6 @@ export const PublicNavbar: React.FC = () => {
 
             {/* Desktop Actions */}
             <div className="hidden sm:flex items-center gap-3">
-              {/* Hotline contact */}
-              <a
-                href="tel:0901000001"
-                className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-sky-700 transition-colors"
-                title="Gọi Hotline tư vấn nhanh"
-              >
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <PhoneCall className="w-3.5 h-3.5 text-sky-600" />
-                <span>0901.000.001</span>
-              </a>
-
               <Link to="/rooms">
                 <Button variant="secondary" size="sm" icon={<Search className="w-3.5 h-3.5" />}>
                   Xem phòng trống
@@ -145,13 +130,6 @@ export const PublicNavbar: React.FC = () => {
                     Tìm phòng còn trống
                   </Button>
                 </Link>
-                <a
-                  href="tel:0901000001"
-                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 bg-slate-50"
-                >
-                  <PhoneCall className="w-4 h-4 text-sky-600" />
-                  Hotline: 0901.000.001
-                </a>
               </div>
             </div>
           </div>

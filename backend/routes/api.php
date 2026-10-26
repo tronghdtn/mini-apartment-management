@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SettingController;
@@ -22,6 +23,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+
+Route::prefix('public/rooms')->name('api.v1.public.rooms.')->group(function () {
+    Route::get('/', [PublicRoomController::class, 'index'])->name('index');
+    Route::get('/filters', [PublicRoomController::class, 'filters'])->name('filters');
+    Route::get('/{room}', [PublicRoomController::class, 'show'])->whereNumber('room')->name('show');
+});
 
 Route::prefix('auth')->name('api.v1.auth.')->group(function () {
     Route::middleware('spa')->group(function () {

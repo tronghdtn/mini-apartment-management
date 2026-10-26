@@ -195,3 +195,15 @@
 ## R. CTR — đơn giá dịch vụ hợp đồng (24/10/2026)
 
 **CONFIRMED DB-D59 / CTR-D01 / Q7:** chủ dự án chọn “Lấy giá danh mục và lưu snapshot”. Laravel lấy đơn giá từ danh mục khi thêm dịch vụ vào hợp đồng, lưu vào `contract_services.unit_price`; không nhận đơn giá thương lượng từ React. Thay đổi giá danh mục không sửa snapshot đã lưu. Điện/Nước vẫn metered, đơn giá NULL và chỉ tự thêm khi kích hoạt. Không thay schema, không duyệt P4–P8 hoặc quy trình cọc Q15. Lát cắt nháp tại brief §25; thay dịch vụ hợp đồng active là task riêng theo quy tắc hiệu lực tháng sau.
+
+## S. Phòng công khai — tiện nghi (24/10/2026)
+
+**CONFIRMED DB-D60 / ROOM-PUB-D01:** chủ dự án chọn Public chỉ dùng tiện nghi chưa lưu trữ: không hiển thị hoặc dùng tiện nghi có `deleted_at` để lọc phòng công khai. Vẫn lấy hợp tiện nghi tòa và phòng, loại trùng theo ID (DB-D01). Không xóa/sửa liên kết cũ; Admin tiếp tục hiện liên kết với nhãn “Đã lưu trữ” theo DB-D55. Không schema/migration. API contract/tiêu chí nghiệm thu tại FRONTEND_DESIGN_BRIEF.md §26.
+
+## T. Phê duyệt Full MVP và hợp đồng — 27/10/2026
+
+**CONFIRMED DB-D61 / P4 + P5-B:** chủ dự án duyệt chuẩn bị migration và kiểm thử **chỉ DB test** theo DB plan §14.4: phí trước hạn `none` / `fixed` / `rent_multiple`, không mặc định phát sinh phí; chỉ theo điều khoản đã thỏa thuận. Lưu điều khoản và điều kiện miễn dạng snapshot trên hợp đồng, thay cấu hình không đổi hợp đồng cũ. MVP chỉ miễn toàn bộ, không miễn một phần. Kiểm thử đúng hạn, trước hạn, không phí và miễn phí. Không duyệt migration dev, P6/P7/P8 hoặc các điểm P3/P9/P11 chưa chốt.
+
+**CONFIRMED DB-D62 / Q15:** nếu `deposit_amount > 0`, Admin phải xác nhận đã thực nhận đủ cọc trước kích hoạt; cọc 0 không cần xác nhận thu. Không ghi cọc thành doanh thu tiền thuê. Chưa tự mở API ghi cọc hoặc thêm cột người nhận ngoài thiết kế được duyệt.
+
+**Phạm vi mới được giao:** tích hợp chọn lọc `ui-antigravity-full/` vào `frontend/`, hoàn thiện các module đủ điều kiện liên tục, tự local commit phần tiếp quản/triển khai đã kiểm tra. Không push, triển khai production, chạy migration dev hoặc dùng thanh toán live. Chưa xác nhận có VNPAY Sandbox/nhà cung cấp QR webhook; chỉ chuẩn bị backend độc lập và kiểm thử giả lập, không tuyên bố đã thanh toán thật. Giá điện nước theo tòa và cư dân gửi chỉ số/ảnh là mục tiêu mới; cấu trúc, chuyển dữ liệu và API cụ thể vẫn cần đề xuất/duyệt riêng. DB-D59 tiếp tục giữ giá danh mục snapshot, chưa mở giá thương lượng.

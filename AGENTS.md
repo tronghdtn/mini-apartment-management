@@ -21,6 +21,8 @@ Spec module đã được duyệt quy định hành vi trong phần không mâu 
 
 ## 2. Công nghệ
 
+**Cập nhật 27/10/2026 (ưu tiên hơn trạng thái 24/10 ở trên):** ROOM-PUB list/detail/home đã nối API và nghiệm thu trên DBtest, Plan§12.17; backend1091/9563, frontend68/build/lint0lỗi9cảnhbáocũ. Chủ dự án cho phép tiếp quản ROOM-PUB đangdở và tự LOCAL COMMIT phầnđãkiểmtra; khôngpush/reset/rebase/xóanhánh. Đãduyệt P4+P5-B đểchuẩnbịmigration/testchỉDBtest (DB-D61), Q15cọc>0phảixácnhậnthựcnhậntrướckíchhoạt/cọc0khôngcầnthu (DB-D62). KhôngcònbáoP4/P5/Q15chưaduyệt; chưatuyênbốđãcodekíchhoạt/thanh lý. Mọimigrationdevvẫnchờduyệtriêng. NguồnAntigravitymớilàui-antigravity-full/đượcchủdựánxácnhận; chỉtíchhợpchọnlọc, giữfrontend/chínhthức. Thanh toánchưacóSandboxđãxácnhận, khôngcoigiảlậplàkếtnốithật.
+
 | Phần | Công nghệ |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, Axios, React Hook Form + Zod, Recharts, lucide-react (icon) |
@@ -63,6 +65,12 @@ Trạng thái: **Chưa làm / Đang làm / Bị chặn / Đã code / Đã kiểm
 - Truy vết đủ React → hàm sự kiện → client API (method/URL/query/body/cookie) → route/middleware/Policy → Controller/Service/Model → bảng và điều kiện query → Resource/response → React hiển thị/lỗi/quyền. Chỉ rõ chỗ cần sửa để thay hành vi, cách thay tham số và kiểm chứng bằng DevTools Network hoặc công cụ phù hợp. Ví dụ dữ liệu phải ghi rõ là minh họa, chỉ dùng endpoint đã tồn tại; không đưa dữ liệu cá nhân/secrets thật vào tài liệu.
 - Sau mỗi module chỉ bổ sung bản đồ code ngắn vào PROJECT_STATUS_AND_LEARNING.md: chức năng, file/hàm/vị trí quan trọng, API, bảng, luồng và 3–5 câu hỏi bảo vệ. Tiếng Việt dễ hiểu, giải nghĩa thuật ngữ khi dùng lần đầu; không lặp lý thuyết hoặc làm chậm code. Phần hướng dẫn thực hành chi tiết chỉ viết khi chủ dự án yêu cầu.
 - Ưu tiên Full MVP theo Plan và quyết định CONFIRMED; không khảo sát lại/làm lại phần đã xong. Tài liệu học tập không là cổng chặn các task triển khai đã đủ điều kiện.
+
+### 3.3 Phân công Frontend / Backend và bàn giao
+
+- Antigravity thiết kế các màn hình lớn còn thiếu; Codex phụ trách Laravel/MySQL/nghiệp vụ/bảo mật/tests/API và tích hợp vào màn hình React đã có. Không tự thiết kế màn hình lớn được giao Antigravity, trừ yêu cầu trực tiếp hoặc chỉnh tối thiểu phục vụ kiểm thử.
+- `frontend/` là bản chính thức duy nhất. Không ghi đè giao diện/tích hợp đã hoàn thiện; thư mục prototype không tự trở thành nguồn bàn giao. Xác minh Git status/worktree/file thực tế trước khi nhập thay đổi.
+- Khi hai AI cùng hoạt động: dùng worktree/branch riêng (Git index riêng), ghi phạm vi file và người phụ trách trong IMPLEMENTATION_PLAN.md; file dùng chung phải bàn giao tuần tự. Không tạo worktree chỉ để chờ khi chưa có phiên thiết kế. API contract đặt trong tài liệu đang sở hữu module, để Antigravity biết dữ liệu/thao tác thật và phần chưa triển khai.
 
 ## 4. Kiến trúc
 

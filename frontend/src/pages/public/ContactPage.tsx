@@ -158,7 +158,7 @@ export const ContactPage: React.FC = () => {
                     </Button>
                   </a>
                 )}
-                <Link to={`/rooms?buildingId=${b.id}`} className="flex-1">
+                <Link to={`/rooms?building_id=${b.id}`} className="flex-1">
                   <Button variant="primary" size="sm" className="w-full text-xs">
                     Xem phòng ({b.availableRooms})
                   </Button>
