@@ -922,3 +922,15 @@ Chủ dự án đã tự reset và đăng nhập Admin thành công. Agent đọ
 **Câu hỏi bảo vệ:** (1) Vì sao phòng riêng trả404 thay vì lộ trạng thái? Public chỉ có tập phòng được công bố. (2) Vì sao tiện nghi tòa không sao chép xuống phòng? Hợp hai quan hệ bảo toàn nguồn và tránh trùng. (3) Vì sao không lấy giá từ mock? Giá/cọc phải có nguồn backend, kể cả0. (4) Vì sao cầnURL+AbortController? Để điều hướng khôi phục đúng bộlọc và request cũ không đè kết quả mới. (5) Vì sao vẫn chưa có đặt lịch thành công? VIEW chưa được tích hợp, không được giả mãAPT.
 
 **Bằng chứng:** Plan§12.17 và TEST_MATRIX.md; full1091/9563, frontend68/build/lint,15liveAPI và các thao tácCUA thực. Đây là mức tích hợp trên DBtest, không phải nghiệm thuCRUDdev hay hoàn thànhFullMVP. P4/P5-B/Q15 được chốt mới DB-D61/62, thay trạng thái chưaduyệt ở ghi chép24/10; migrationdevvẫnchưacho phép.
+
+### 11.25. Nền tảng điều khoản hợp đồng và cọc — chưa mở quy trình kích hoạt/thanh lý
+
+`backend/database/migrations/2026_10_27_000001_add_termination_terms_to_contracts_table.php` thêm tám cột nullable đúng P4/P5-B. Migration M09 đã commit giữ nguyên. Dữ liệu cũ không bị gán điều khoản hoặc phí; `EarlyTerminationFeeType` có none/fixed/rent_multiple, Contract cast JSON/thập phân/Enum và có quan hệ người xác nhận. Các trường mới không vào fillable (tập trường được ghi hàng loạt).
+
+`ContractTermsService::updateDraft` dòng48 kiểm tra Policy, validate input, transaction (giao dịch cùng thành công hoặc cùng hủy) và lockForUpdate (khóa bản ghi đang sửa). Chỉ draft được lưu snapshot; không lấy cấu hình tương lai để sửa hợp đồng cũ. `assertSignedTermsAndDeposit` dòng29 kiểm tra riêng điều khoản và cọc: cọc dương phải held+có thời điểm thu, cọc0 không cần xác nhận. Hàm này chưa phải toàn bộ quy trình kích hoạt và không tạo doanh thu/hóa đơn/payment.
+
+`ContractTerminationFeeCalculator::calculate` dòng15 nhận Contract + ngày bàn giao YYYY-MM-DD, so ngày theo múi giờ nghiệp vụ. Trả đúng hạn là end_date+1; trả ngay end_date vẫn là sớm một ngày. Trước hạn đọc điều khoản đã lưu; thiếu điều khoản thì lỗi, không tự tính một tháng hoặc tự miễn. `Money::multiply` dùng BCMath, HALF_UP đến đồng và chặn tràn số. Miễn toàn bộ yêu cầu mã thuộc snapshot điều kiện, người/thời điểm xác nhận và căn cứ; chưa có endpoint ghi xác nhận miễn, không coi dữ liệu test là quy trình thực tế đã hoạt động.
+
+**Câu hỏi bảo vệ:** (1) NULL và none khác nhau? NULL chưa thỏa thuận, none đã thỏa thuận không thu phí. (2) Vì sao snapshot không đổi sau kích hoạt? Để giữ điều khoản đã ký. (3) Vì sao không dùng float cho hệ số tiền? Sai số nhị phân có thể làm lệch đồng; BCMath xử lý chuỗi thập phân. (4) Vì sao cọc0 không cần biên nhận? Không có khoản thực nhận; cọc dương vẫn phải xác nhận và không là doanh thu thuê. (5) Test calculator có chứng minh thanh lý chạy được không? Không; HTTP/UI, kiểm tra tài sản, final, cọc đối soát và các quyết định P còn chưa hoàn tất.
+
+Full mã cuối1168/9784, Pint218; chi tiết Plan§12.18. Ba test rollback email đã được sửa để nhắm đúng migration khi có migration mới, không bỏ ràng buộc hoặc assertion. Không có migration dev, không nối React vào endpoint điều khoản chưa tồn tại.

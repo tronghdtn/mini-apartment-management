@@ -67,6 +67,23 @@ final class Money
         return self::roundHalfUp(bcmul($consumption, (string) $unitPrice, self::SCALE));
     }
 
+    /** Nhân tiền với hệ số thập phân chính xác; không âm và không tràn PHP integer. */
+    public static function multiply(int $amount, string $factor): int
+    {
+        self::assertNonNegative($amount, 'amount');
+        self::assertDecimal($factor);
+        if (str_starts_with($factor, '-')) {
+            throw new InvalidArgumentException('Hệ số không được âm.');
+        }
+        $product = bcmul((string) $amount, $factor, self::SCALE);
+        $rounded = bcadd($product, '0.5', 0);
+        if (bccomp($rounded, (string) PHP_INT_MAX, 0) > 0) {
+            throw new InvalidArgumentException('Số tiền vượt giới hạn số nguyên.');
+        }
+
+        return self::roundHalfUp($product);
+    }
+
     private static function assertDecimal(string $value): void
     {
         if (preg_match('/^-?\d+(\.\d+)?$/', $value) !== 1) {

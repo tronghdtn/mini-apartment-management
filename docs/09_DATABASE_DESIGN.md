@@ -153,13 +153,21 @@ Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQ
 | `activated_at` | TIMESTAMP | NULL |
 | `actual_end_date` | DATE | NULL; **ngày bàn giao thực tế**, là **mốc loại trừ** khi tính ngày thuê: hợp đồng tính tiền đến hết `actual_end_date − 1` (DB-D32) |
 | `monthly_rent` | BIGINT UNSIGNED | NN, >= 0 |
+| `early_termination_fee_type` | VARCHAR(20) | NULL khi chưa thỏa thuận trong draft; `none/fixed/rent_multiple`, không default; snapshot bất biến sau kích hoạt (DB-D61) |
+| `early_termination_fee_amount` | BIGINT UNSIGNED | NULL, chỉ có giá trị với `fixed`; không tự mặc định phí |
+| `early_termination_fee_multiplier` | DECIMAL(5,2) | NULL, chỉ với `rent_multiple`, >0; tính qua Money, HALF_UP |
+| `early_termination_waiver_conditions` | JSON | NULL hoặc mảng snapshot `[{code,description}]`; không đọc lại cấu hình để đổi hợp đồng cũ |
+| `early_termination_waiver_code` | VARCHAR(50) | NULL; mã được chọn khi miễn, phải thuộc snapshot điều kiện |
+| `early_termination_waived_by` | BIGINT UNSIGNED | NULL, FK → users.id, RESTRICT; server xác định Admin xác nhận |
+| `early_termination_waived_at` | TIMESTAMP | NULL; thời điểm Admin xác nhận miễn toàn bộ |
+| `early_termination_waiver_note` | TEXT | NULL; căn cứ bắt buộc khi miễn; tệp theo P8 còn chờ duyệt |
 | `occupant_count` | SMALLINT UNSIGNED | NN, >= 1, <= rooms.max_occupants |
 | `initial_electricity_reading`, `initial_water_reading` | DECIMAL(10,2) | NN khi active; có thể NULL khi draft chưa hoàn chỉnh |
 | `meter_gap_reason` | TEXT | NULL; bắt buộc khi chỉ số đầu cao hơn chỉ số chốt gần nhất (DB-D40) |
 | `meter_gap_confirmed_by` | BIGINT UNSIGNED | NULL, FK → users.id, RESTRICT; Admin xác nhận chênh lệch; thời điểm xác nhận = `activated_at` (DB-D40) |
 | `deposit_amount` | BIGINT UNSIGNED | NN, DEF 0 |
 | `deposit_status` | VARCHAR(20) | NN, DEF `unpaid`; `unpaid/held/settled` (`transferred` SHOULD) |
-| `deposit_paid_at` | TIMESTAMP | NULL |
+| `deposit_paid_at` | TIMESTAMP | NULL; cọc>0 phải được xác nhận thực nhận đủ (`held` + thời điểm thu) trước kích hoạt; cọc0 không cần thu (DB-D62) |
 | `deposit_deducted_amount`, `deposit_refund_amount` | BIGINT UNSIGNED | NN, DEF 0 |
 | `deposit_settled_at` | TIMESTAMP | NULL |
 | `renewed_from_id` | BIGINT UNSIGNED | NULL, UQ, FK → contracts.id, RESTRICT |
@@ -204,6 +212,8 @@ Seed hai dịch vụ hệ thống: `ELECTRICITY`, `WATER`, `billing_type=metered
 Index `(contract_id,service_id,start_date,end_date)`. Không chồng lấn khoảng ngày trên cùng `(contract_id,service_id)`; khóa bản ghi `contracts` bằng `lockForUpdate()` khi ghi và so khoảng. Khi thay dịch vụ/số người/số xe: kết thúc dòng cũ vào ngày cuối tháng T, dòng mới bắt đầu 01/T+1; **giữ snapshot `quantity`, `unit_price`**. Đối với người thuê mới, đăng ký tính từ ngày bắt đầu thuê. Hai dịch vụ metered được tự thêm vào transaction kích hoạt hợp đồng, không thu phí cố định từ dòng này. `end_date=NULL` trong khi chưa kết thúc, kể cả `contracts.end_date` đã quá nhưng hợp đồng vẫn `active` theo BR-CTR-09. Khi thanh lý, các dòng còn mở được đóng với `end_date = contracts.actual_end_date − 1` (inclusive, DB-D32).
 
 ### 3.12 `utility_prices` (timestamps)
+
+**U1 / DB-D63 — thiết kế chuyển đổi đã duyệt chỉ để chuẩn bị/test:** thêm `building_id BIGINT UNSIGNED NOT NULL`, FK → buildings.id RESTRICT; thay UNIQUE chung bằng `(building_id,service_id,effective_from)`, bổ sung index riêng `service_id` để tiếp tục đỡ FK khi bỏ UNIQUE cũ. Giữ nguyên giá/ngày/timestamps lịch sử, sao chép cho các tòa đang có; tòa mới không tự thừa hưởng giá. File nằm trong `database/migrations/pending/`, không tự chạy bởi migrate mặc định; API và schema dev hiện hành vẫn theo baseline bên dưới cho đến khi chuyển đổi được duyệt/triển khai riêng. Không thay snapshot điện nước hoặc tiền của hóa đơn đã phát hành.
 
 `id BIGINT UNSIGNED PK`, `service_id BIGINT UNSIGNED NN FK → services.id`, `unit_price BIGINT UNSIGNED NN >0`, `effective_from DATE NN`. `UNIQUE(service_id,effective_from)`; index `(service_id,effective_from)`. Chỉ metered được đặt giá. `effective_from` **luôn là ngày 01 của tháng** (DB-D26); **không thay giá giữa tháng** trong MVP; và phải **lớn hơn mọi `meter_readings.period` đã có** của dịch vụ đó — không thêm giá làm thay đổi kỳ đã có chỉ số hoặc hóa đơn (DB-D33). Giá kỳ T = bản mới nhất `effective_from <= ngày 1 tháng T`, **một mức giá cho cả kỳ**; snapshot giá vào `meter_readings` khi ghi, rồi vào `invoice_items` khi lập hóa đơn. Không sửa/xóa giá lịch sử đã được hóa đơn phát hành sử dụng. Ghi đè giá riêng theo hợp đồng (SHOULD) chưa tự triển khai. **Không seed giá mẫu**; giá do Admin cấu hình (DB-D18).
 

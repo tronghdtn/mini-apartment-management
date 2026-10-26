@@ -571,3 +571,21 @@ Nguồn giao diện đã xác nhận: `ui-antigravity-full/`; tích hợp chọn
 **Bảo toàn:** snapshot dev trước/sau khớp toàn bộ metadata/schema/index/FK/migrations/hash dữ liệu mọi bảng, **20 bảng /16 migration**. Fixture23phòng/1tòa/3tiện nghi đã dọn đúng mã lượt, không reset DB; hai container test đã dừng. Không ghi nghiệp vụ, seeder hoặc migration dev. Ảnh mobile ở `backups/full-mvp-20261027/public-room-mobile.png` (ignored).
 
 **Các chặn còn thực:** Group3dev và mọi migration dev chưa duyệt; P3/P6/P7/P8/P9/P11 chưa chốt cho thanh lý; cấu trúc giá theo tòa và nơi lưu yêu cầu chỉ số/ảnh cần đề xuất/duyệt; chưa có Sandbox nhà cung cấp thanh toán. P4/P5-B/Q15 đã được chốt DB-D61/62, không tiếp tục báo chưa duyệt; chưa đồng nghĩa kích hoạt/thanh lý đã code. Các module độc lập tiếp tục triển khai.
+
+### 12.18. LEASE-05/06/07 — nền tảng điều khoản và điều kiện cọc (27/10)
+
+ROOM-PUB đã checkpoint `bcb08a4` — `feat(rooms): tích hợp phòng công khai bằng API thật`; chỉ ba thư mục ngoài phạm vi còn untracked. Tiếp tục theo DB-D61/62, không hỏi lại phê duyệt.
+
+| Task | Kết quả | Mức bằng chứng |
+|---|---|---|
+| LEASE-05 | ALTER mới thêm8cộtnullable, Enum/casts và quan hệ người xác nhận; bản nháp lưu snapshot bằng ContractTermsService | Đã kiểm thử trên DB test; dữ liệu cũ giữ nguyên, NULL không tự thành phí; up/down/FK RESTRICT và baseline schema được kiểm tra |
+| LEASE-06 | Bộ tính phí độc lập đọc snapshot: none/fixed/rent_multiple, HALF_UP, miễn toàn bộ khi đúng điều kiện + có xác nhận/thời điểm/căn cứ | Đã kiểm thử tự động; chưa có HTTP/UI xác nhận miễn hoặc thanh lý, chưa phát hành hóa đơn final |
+| LEASE-07 | assertSignedTermsAndDeposit: điều khoản phải rõ; cọc>0 phải held + deposit_paid_at, cọc0 không cần thu | Đã kiểm thử điều kiện, xác minh không ghi invoices/payments; chưa có API nhận cọc hoặc transaction kích hoạt |
+
+Model không mở mass assignment cho điều khoản/xác nhận. Service dùng Policy Admin, khóa lại hợp đồng và chỉ sửa draft; hợp đồng active không đổi snapshot. API nháp hiện hành vẫn từ chối tất cả các trường này; không đổi route/JSON/phân quyền đã có. Loại phí rỗng/whitespace được chuẩn hóa NULL cho nháp, không gây ValueError và không mặc định none/1tháng; trước kích hoạt vẫn phải chọn rõ. Bộ tính không đóng hợp đồng hoặc cấp quyền thanh lý: same_day còn bị chặn ở P9; quá hạn chỉ trả0 cho **phí trước hạn**, không suy đã có quy trình đóng quá hạn. Xác nhận miễn thực tế/ảnh P8 chưa triển khai.
+
+**Kiểm thử cuối mã này:** toàn bộ backend **1168 test /9784 assertion PASS**, Pint **218 file PASS**. Lượt1167/9778 là trung gian trước ca blank cuối; không cộng các lượt hoặc coi kết quả đó là mã cuối. Frontend độc lập đang làm Settings đã71test/build/lint0lỗi9cảnhbáocũ; không có thay đổi frontend trong commit nền tảng hợp đồng.
+
+**Hồi quy được sửa đúng nguyên nhân:** 19ca ban đầu chụp Model vừa create thiếu cột NULL/default rồi so với fresh đầy đủ; sửa baseline đọc DB trước và giữ assert toàn bản ghi. Ba test OptionalUserEmailMigrationTest cũ dùng rollback --step1, sai sau khi có migration mới; chuyển sang đúng batch/path của migration email, giữ mọi kiểm tra dữ liệu/NULL/UNIQUE và bổ sung lịch sử migration khác phải nguyên vẹn. Không sửa migration đã commit, không bỏ test hoặc giảm yêu cầu. DB errors trong TermsService rollback và chỉ report thông điệp chung, không SQL/bindings/nội dung điều khoản.
+
+**U1 mới được duyệt DB-D63:** chuẩn bị/test giá theo tòa, giữ lịch sử; file pending và hai test mới cũng nằm trong fullsuite trên. U2/U3 chưa được trả lời riêng, không tự duyệt bảng22 hoặc thay monthly/final. Mọi migration dev vẫn chưa được phép; cấu trúc test có P4 không có nghĩa dev đã có. CAT-03c màn Cài đặt đang nghiệm thu trên fixture riêng sau khi fullsuite kết thúc.

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContractStatus;
 use App\Enums\DepositStatus;
+use App\Enums\EarlyTerminationFeeType;
 use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -60,6 +61,11 @@ class Contract extends Model
             'deposit_paid_at' => 'datetime',
             'deposit_settled_at' => 'datetime',
             'monthly_rent' => 'integer',
+            'early_termination_fee_type' => EarlyTerminationFeeType::class,
+            'early_termination_fee_amount' => 'integer',
+            'early_termination_fee_multiplier' => 'decimal:2',
+            'early_termination_waiver_conditions' => 'array',
+            'early_termination_waived_at' => 'datetime',
             'occupant_count' => 'integer',
             'initial_electricity_reading' => 'decimal:2',
             'initial_water_reading' => 'decimal:2',
@@ -121,6 +127,12 @@ class Contract extends Model
     public function meterGapConfirmer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'meter_gap_confirmed_by');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function earlyTerminationWaiverConfirmer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'early_termination_waived_by');
     }
 
     /** @return HasMany<Invoice, $this> */

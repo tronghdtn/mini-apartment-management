@@ -44,7 +44,7 @@ class OptionalUserEmailMigrationTest extends TestCase
         $before = (array) DB::table('users')->where('id', $user->id)->first();
         $indexes = Schema::getIndexes('users');
 
-        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 1, '--force' => true]));
+        $this->assertSame(0, $this->rollbackEmailMigration());
         $this->assertFalse(DB::table('migrations')->where('migration', self::MIGRATION)->exists());
         $this->assertSame('NO', $this->emailNullability());
         $this->assertSame($before, (array) DB::table('users')->where('id', $user->id)->first());
@@ -66,7 +66,7 @@ class OptionalUserEmailMigrationTest extends TestCase
         $history = DB::table('migrations')->orderBy('id')->get()->toArray();
 
         try {
-            Artisan::call('migrate:rollback', ['--step' => 1, '--force' => true]);
+            $this->rollbackEmailMigration();
             $this->fail('Rollback phải bị chặn khi còn email NULL');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('còn tài khoản có email NULL', $e->getMessage());
@@ -81,7 +81,7 @@ class OptionalUserEmailMigrationTest extends TestCase
 
     public function test_successful_rollback_rejects_null_email_again(): void
     {
-        $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 1, '--force' => true]));
+        $this->assertSame(0, $this->rollbackEmailMigration());
 
         try {
             $user = User::factory()->unverified()->create(['email' => null]);
@@ -90,6 +90,23 @@ class OptionalUserEmailMigrationTest extends TestCase
         } catch (QueryException $e) {
             $this->assertSame(1048, $e->errorInfo[1] ?? null, $e->getMessage());
         }
+    }
+
+    private function rollbackEmailMigration(): int
+    {
+        // A later migration must not change which migration this regression actually exercises.
+        $batch = DB::table('migrations')->where('migration', self::MIGRATION)->value('batch');
+        $this->assertNotNull($batch);
+        $others = DB::table('migrations')->where('migration', '!=', self::MIGRATION)->orderBy('id')->get()->toArray();
+        $result = Artisan::call('migrate:rollback', [
+            '--database' => self::TEST_CONNECTION,
+            '--batch' => (int) $batch,
+            '--path' => ['database/migrations/'.self::MIGRATION.'.php'],
+            '--force' => true,
+        ]);
+        $this->assertEquals($others, DB::table('migrations')->where('migration', '!=', self::MIGRATION)->orderBy('id')->get()->toArray());
+
+        return $result;
     }
 
     private function emailNullability(): string

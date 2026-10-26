@@ -55,6 +55,15 @@ class GroupTwoSchemaTest extends TestCase
                 'activated_at' => ['timestamp', 'YES', null],
                 'actual_end_date' => ['date', 'YES', null],
                 'monthly_rent' => ['bigint unsigned', 'NO', null],
+                // P4/P5-B approved ALTER (DB-D61); M09 itself remains unchanged.
+                'early_termination_fee_type' => ['varchar(20)', 'YES', null],
+                'early_termination_fee_amount' => ['bigint unsigned', 'YES', null],
+                'early_termination_fee_multiplier' => ['decimal(5,2)', 'YES', null],
+                'early_termination_waiver_conditions' => ['json', 'YES', null],
+                'early_termination_waiver_code' => ['varchar(50)', 'YES', null],
+                'early_termination_waived_by' => ['bigint unsigned', 'YES', null],
+                'early_termination_waived_at' => ['timestamp', 'YES', null],
+                'early_termination_waiver_note' => ['text', 'YES', null],
                 'occupant_count' => ['smallint unsigned', 'NO', null],
                 'initial_electricity_reading' => ['decimal(10,2)', 'YES', null],
                 'initial_water_reading' => ['decimal(10,2)', 'YES', null],
@@ -161,6 +170,7 @@ class GroupTwoSchemaTest extends TestCase
                 'contracts_status_end_date_index' => 'index:status,end_date',
                 // Index do MySQL tạo cho FK meter_gap_confirmed_by (O8, DB-D40)
                 'contracts_meter_gap_confirmed_by_foreign' => 'index:meter_gap_confirmed_by',
+                'contracts_early_termination_waived_by_foreign' => 'index:early_termination_waived_by',
             ]],
             // Index contract_id do MySQL tạo cho FK — đúng index (contract_id) của thiết kế §3.9.
             'contract_occupants' => ['contract_occupants', [
@@ -221,6 +231,7 @@ class GroupTwoSchemaTest extends TestCase
             'contract_occupants.contract_id -> contracts.id RESTRICT',
             'contract_services.contract_id -> contracts.id RESTRICT',
             'contract_services.service_id -> services.id RESTRICT',
+            'contracts.early_termination_waived_by -> users.id RESTRICT',
             'contracts.meter_gap_confirmed_by -> users.id RESTRICT',
             'contracts.renewed_from_id -> contracts.id RESTRICT',
             'contracts.room_id -> rooms.id RESTRICT',
