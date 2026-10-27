@@ -47,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthStyles[size ?? maxWidth ?? 'md']} bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 my-8`}
+        className={`relative w-full ${maxWidthStyles[size ?? maxWidth ?? 'md']} max-h-[calc(100dvh-3rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 transform transition-all animate-in zoom-in-95 duration-200`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

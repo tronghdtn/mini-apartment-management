@@ -79,6 +79,22 @@ Kết quả mục tiêu cuối10test/230assertion PASS. Lần đầu9/212 trư�
 
 Chốt mã cuối: full1178test/10014assertion, Pint227file PASS; frontend71/build/lint0lỗi9cảnhbáocũ. Sau fullsuite: hai bảng pending đã gỡ khỏi DB test, không còn tệp evidence fixture; snapshot dev khớp20 bảng/16 migration. Chi tiết/giới hạn Plan§12.22. Chưa nghiệm thu UI/live API U2 vì chưa có bề mặt đó.
 
+## LEASE-C — nhận cọc và kích hoạt, brief§28/DB-D61/62
+
+Các ca dưới đây đang chuẩn bị/chạy, chưa tự đánh dấu PASS từ code hoặc build. Model agent QA tiếp tục gpt-6-luna theo lựa chọn đã lưu; root kiểm tra browser bằng CUA. Không chạy schema/fullsuite trong lúc fixture browser tồn tại.
+
+| ID | Tình huống và kết quả bắt buộc | Track |
+|---|---|---|
+| LC-T01 P0 | Guest401, bốn role nonAdmin403, lockedAdmin403, thiếuCSRF419 cho terms/deposit/activate; context chỉAdmin | Feature + liveAPI |
+| LC-T02 P0 | Nháp termsNULL chưaactivate422; none/fixed/multiple/điều kiệnJSON lưu/F5, active không sửa snapshot409; mã trùng/field giả422 | Feature + Node + browser |
+| LC-T03 P0 | Cọc0 không cần nhận; cọc>0 chưaheld activate409; xác nhận đủ và expected_amount đúng → held/paid_at; sai amount/không xác nhận/giả paid_at bị chặn; không invoice/payment | Feature + liveAPI + browser |
+| LC-T04 P0 | Đãheld không đổi room/user/deposit hoặc xóa; note hợp lệ vẫn sửa; receipt lặp không đổi thời điểm, active không nhận lại | Feature + browser |
+| LC-T05 P0 | Hai reading chuỗi DECIMAL bắt buộc/biên; thấp hơn mốc422; cao cần lý do+xác nhận; actor server; priorfinal→vacancyperiodic→người mới hợp lệ; thiếuchốt/chồngngày bị chặn | Feature + API + browser |
+| LC-T06 P0 | Một transaction HD/active/occupied/resident/ĐiệnNước đúng1lần, giữ snapshot định kỳ; lặp409; rollback lỗi không ghi một phần; cùngroom/tenant tranh chấp | Feature/MySQL + API |
+| LC-T07 P0 | Draft đổi nội dung khi modal mở nhưng amount khôngđổi → expected_revision409; không ký/nhận cho nội dung mới. Pending chung chặn lưu khác; response cũ không trả UI vềdraft | Feature + browser |
+| LC-T08 P1 | Form duplicatewaiver hiện lỗi; context503 không confirm; offline/422/409/retry, focus/Escape/pending, F5active/mã/paid_at/services; desktop/mobile390 không tràn | browser + resolver |
+| LC-T09 P0 | Fixture mới có scope/run/SQLidentity, cleanup active đúng FK; không devmigration/seeder; so snapshotdev trước/sau; test/lint/build/Pint và stage đúng file | root |
+
 ## AG-UI — đối chiếu52 nguồn, layout5vai trò và bảo toàn API
 
 Nguồn/trace: yêu cầu trực tiếp27/10, SCREEN_INVENTORY§7–8, Plan§12.23; prototype52file, không tính SYS03 chính thức vào mẫu số. Dùng gpt-6-luna cho tester theo lựa chọn đã lưu. Root thực hiện browser CUA nối bản build chính thức/Nginx DB test và prototype Vite riêng; không dùng quyền demo làm bằng chứng Auth chính thức.
@@ -118,3 +134,5 @@ Ca cần kiểm tra: (1) DB test21phòng công khai, Home hiện đúng tổng v
 AG-T12 P0 — ô chọn tòa khi options tải bất đồng bộ: đã tái hiện trước sửa, URLbuilding_id=30 nhưng dropdown hiển thị Tất cả sau options200. Select dùng register không kiểm soát giá trị; option tạm bị thay khi có danh sách thật khiến native DOM chọn optionđầu. Đổi riêng building_id sang Controller của RHF để giá trị form điều khiển select. Cần kiểm: đi từ Hero/showcase, tải URL trực tiếp vàF5 giữ tòa; bấmÁp dụng không mất building_id; đổi tòa thànhTấtcả vàXóa bộ lọc vẫn xóa đúng. Không sửa schema/endpoint/SQLfilters hoặc số tiền; NodeURLtests vẫn giữ nguyên, không dùng unit chuỗi thay browser cho lỗi DOM này.
 
 ChốtAG-T11/12:72test/build PASS/lint0lỗi8cảnhbáocũ. Browser đã thấy6card/tổng21/7section, Hero/showcasequerycanonical, filters503→error→restorebyte/hash→Thửlại loading→dữ liệu thật hồi phục. Controllergiữtòa sauoptionsloaded/Áp dụng/F5; Tấtcả vàclear xóaquery đúng. SaucleanupHome0phòng/0fixture vẫn7section. Ảnh/log ignored ở backups/antigravity-integration-20261027; không nghiệm thu giá công khai/ảnh/booking hoặc mọi tổ hợpfilter. Public768và1024bản cuối đã xác minh sửaheader; SettingsskinDesktop/Mobile/invalid0 đã kiểm, valid-save chỉ có bằng chứng lịch sử§12.20, chưa chạy lại trong đợt này. Chi tiếtcleanup/snapshot/localcommits tại Plan§12.23.
+
+Kết quả LEASE-C 28/10: LC-T01 quyền/CSRF live API PASS; locked Admin chỉ Feature. LC-T02 terms NULL 422 bởi browser cọc0; none/duplicate waiver UI/1.50 UI/fixed API/snapshot chỉ đọc PASS. LC-T03/04 nhận cọc/kích hoạt/held edit-delete/F5 PASS. LC-T05 thấp/cao/vacancy/order chỉ Feature, chưa browser gap thật. LC-T06 Feature/hai process PHP + API PASS. LC-T07 revision cũ browser409 và pending chung PASS, chưa giả lập response đảo. LC-T08 modal Desktop/Mobile, 503 rồi phục hồi, hết phiên PASS; chưa giả lập mất mạng riêng. LC-T09 cleanup/snapshot dev nguyên vẹn PASS. Số cuối1212/10274/Pint232; frontend78/build/lint0 lỗi8 cảnh báo cũ. Chi tiết/giới hạn tại Plan §12.24; không nâng ca chưa chạy thành PASS.

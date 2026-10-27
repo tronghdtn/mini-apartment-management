@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Enums\ContractStatus;
 use App\Enums\DepositStatus;
+use App\Enums\MeterReadingKind;
 use App\Enums\RoomStatus;
 use App\Enums\ServiceBillingType;
 use App\Enums\ServiceStatus;
 use App\Enums\UserRole;
 use App\Models\Contract;
+use App\Models\MeterReading;
 use App\Models\Room;
 use App\Models\Service;
 use App\Models\User;
@@ -113,6 +115,13 @@ class ContractService
 
                 // PATCH kiểm tra tập dữ liệu sau ghép, không chỉ các ô vừa gửi.
                 $merged = array_replace(Arr::only($current->getRawOriginal(), self::WRITABLE_FIELDS), Arr::only($data, self::WRITABLE_FIELDS));
+                if ($current->deposit_status !== DepositStatus::Unpaid) {
+                    foreach (['room_id', 'user_id', 'deposit_amount'] as $field) {
+                        if ((string) $merged[$field] !== (string) $current->getRawOriginal($field)) {
+                            abort(409, 'Đã nhận tiền cọc: không được đổi phòng, người thuê hoặc số tiền cọc khi chưa có quy trình hoàn cọc.');
+                        }
+                    }
+                }
                 $this->validateDraftData($rooms[(int) $merged['room_id']], $users[(int) $merged['user_id']], $merged);
                 if ($merged['start_date'] !== $current->getRawOriginal('start_date')) {
                     foreach ($this->lockSimpleDraftServices($current) as $line) {
@@ -221,6 +230,9 @@ class ContractService
                 $current = Contract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
                 $this->ensureUnchangedParents($contract, $current);
                 $this->ensureDraft($current);
+                if ($current->deposit_status !== DepositStatus::Unpaid || $current->deposit_paid_at !== null) {
+                    abort(409, 'Hợp đồng đã ghi nhận tiền cọc. Không thể xóa khi chưa có quy trình hoàn cọc.');
+                }
                 if ($current->occupants()->exists() || $current->contractServices()->exists()
                     || Contract::withTrashed()->where('renewed_from_id', $current->id)->exists()) {
                     abort(409, 'Hợp đồng đã có dữ liệu liên quan. Không thể xóa nháp này.');
@@ -235,6 +247,159 @@ class ContractService
             }, 3);
         } catch (QueryException) {
             $this->databaseFailure('xóa nháp');
+        }
+    }
+
+    public function confirmDeposit(Contract $contract, array $data): Contract
+    {
+        try {
+            return DB::transaction(function () use ($contract, $data): Contract {
+                $this->lockParents([$contract->room_id], [$contract->user_id]);
+                $current = Contract::whereKey($contract->id)->lockForUpdate()->firstOrFail();
+                $this->ensureUnchangedParents($contract, $current);
+                $this->ensureDraft($current);
+                $this->assertLifecycleRevision($current, $data['expected_revision']);
+                if ($current->deposit_amount <= 0 || $current->deposit_amount !== (int) $data['expected_amount']) {
+                    abort(409, 'Số tiền cọc đã thay đổi hoặc hợp đồng không yêu cầu cọc. Vui lòng tải lại.');
+                }
+                if ($current->deposit_status === DepositStatus::Held && $current->deposit_paid_at !== null) {
+                    return $this->find($current->id); // Lặp lại không ghi nhận tiền hay đổi thời điểm lần nữa.
+                }
+                if ($current->deposit_status !== DepositStatus::Unpaid || $current->deposit_paid_at !== null) {
+                    abort(409, 'Trạng thái cọc không phù hợp để xác nhận thực nhận.');
+                }
+                $current->deposit_status = DepositStatus::Held;
+                $current->deposit_paid_at = now();
+                $current->save();
+
+                return $this->find($current->id);
+            }, 3);
+        } catch (QueryException) {
+            $this->databaseFailure('ghi nhận tiền cọc của');
+        }
+    }
+
+    private function ensureActivationReady(): void
+    {
+        $this->ensureReady();
+        if (! Schema::hasTable('meter_readings') || ! Schema::hasColumns('contracts', ContractTermsService::SNAPSHOT_FIELDS)) {
+            abort(503, 'Cấu trúc kích hoạt hợp đồng chưa sẵn sàng. Chưa thể thực hiện trên môi trường này.');
+        }
+    }
+
+    private function assertLifecycleRevision(Contract $contract, string $expected): void
+    {
+        $contract->setRelation('contractServices', $contract->contractServices()->orderBy('id')->lockForUpdate()->get());
+        if (! hash_equals($contract->lifecycleRevision(), $expected)) {
+            abort(409, 'Nội dung hợp đồng hoặc dịch vụ vừa thay đổi. Vui lòng tải lại trước khi xác nhận.');
+        }
+    }
+
+    /** Mốc hiển thị chỉ để tham khảo; action luôn đọc lại dưới khóa. */
+    public function activationContext(Contract $contract): array
+    {
+        $this->ensureActivationReady();
+        $result = [];
+        foreach ($this->meteredServices() as $service) {
+            $reading = MeterReading::where('room_id', $contract->room_id)->where('service_id', $service->id)
+                ->orderByDesc('reading_date')->orderByDesc('id')->first();
+            $result[$service->code] = $reading ? [
+                'current_reading' => $reading->current_reading, 'reading_date' => $reading->reading_date->format('Y-m-d'),
+                'kind' => $reading->kind->value,
+            ] : null;
+        }
+
+        return $result;
+    }
+
+    private function meteredServices(): Collection
+    {
+        $services = Service::whereIn('code', [Service::CODE_ELECTRICITY, Service::CODE_WATER])->orderBy('id')->get();
+        if ($services->count() !== 2 || $services->contains(fn ($service) => ! $service->isMetered()
+            || $service->status !== ServiceStatus::Active || $service->price !== null)) {
+            abort(503, 'Danh mục Điện/Nước hệ thống chưa được cấu hình hợp lệ.');
+        }
+
+        return $services;
+    }
+
+    public function activate(Contract $contract, User $actor, array $data): Contract
+    {
+        $this->ensureActivationReady();
+        try {
+            return DB::transaction(function () use ($contract, $actor, $data): Contract {
+                [$rooms, $users] = $this->lockParents([$contract->room_id], [$contract->user_id]);
+                $current = Contract::whereKey($contract->id)->lockForUpdate()->firstOrFail();
+                $this->ensureUnchangedParents($contract, $current);
+                $this->ensureDraft($current);
+                $this->assertLifecycleRevision($current, $data['expected_revision']);
+                $room = $rooms[$current->room_id];
+                $tenant = $users[$current->user_id];
+                $this->validateDraftData($room, $tenant, $current->getRawOriginal());
+                app(ContractTermsService::class)->assertSignedTermsAndDeposit($current);
+                $prior = Contract::withTrashed()->where('room_id', $room->id)->where('id', '!=', $current->id)
+                    ->where('status', '!=', ContractStatus::Draft)->orderByDesc('actual_end_date')->orderByDesc('id')->first();
+                if ($prior && ($prior->status !== ContractStatus::Terminated || $prior->actual_end_date === null
+                    || $prior->closed_at === null || $prior->actual_end_date->format('Y-m-d') > $current->start_date->format('Y-m-d'))) {
+                    abort(409, 'Hợp đồng trước của phòng chưa bàn giao hợp lệ hoặc ngày thuê mới chồng lịch sử.');
+                }
+                $lines = $this->lockSimpleDraftServices($current);
+                $services = $this->meteredServices();
+                $hasGap = false;
+                foreach ($services as $service) {
+                    $field = $service->code === Service::CODE_ELECTRICITY ? 'initial_electricity_reading' : 'initial_water_reading';
+                    $latest = MeterReading::where('room_id', $room->id)->where('service_id', $service->id)
+                        ->orderByDesc('reading_date')->orderByDesc('id')->lockForUpdate()->first();
+                    if ($latest && $latest->reading_date->format('Y-m-d') > $current->start_date->format('Y-m-d')) {
+                        throw ValidationException::withMessages([$field => 'Đã có chỉ số sau ngày bắt đầu thuê. Không được kích hoạt ngược chuỗi chỉ số.']);
+                    }
+                    if ($prior) {
+                        $final = MeterReading::where('room_id', $room->id)->where('service_id', $service->id)
+                            ->where('contract_id', $prior->id)->where('kind', MeterReadingKind::Final)
+                            ->whereDate('reading_date', $prior->actual_end_date->format('Y-m-d'))->lockForUpdate()->first();
+                        if (! $final || ! $latest || bccomp($latest->current_reading, $final->current_reading, 2) < 0
+                            || ($latest->contract_id !== null && $latest->contract_id !== $prior->id)) {
+                            throw ValidationException::withMessages([$field => 'Hợp đồng trước chưa có mốc chốt hoặc chuỗi chỉ số phù hợp. Không suy đoán chỉ số bàn giao.']);
+                        }
+                    }
+                    if ($latest && bccomp($data[$field], $latest->current_reading, 2) < 0) {
+                        throw ValidationException::withMessages([$field => 'Chỉ số đầu không được thấp hơn mốc gần nhất '.$latest->current_reading.'.']);
+                    }
+                    $hasGap = $hasGap || ($latest && bccomp($data[$field], $latest->current_reading, 2) > 0);
+                    $current->{$field} = $data[$field];
+                }
+                if ($hasGap && (! ($data['meter_gap_confirmed'] ?? false) || trim($data['meter_gap_reason'] ?? '') === '')) {
+                    throw ValidationException::withMessages(['meter_gap_reason' => 'Chỉ số cao hơn mốc gần nhất: cần lý do và xác nhận chênh lệch không tính cho người thuê.']);
+                }
+                // Dòng nháp định kỳ giữ nguyên snapshot; không nhận danh sách hoặc giá từ action.
+                foreach ($lines as $line) {
+                    if ($line->service->isMetered() || $line->service->status !== ServiceStatus::Active) {
+                        abort(409, 'Dịch vụ nháp không còn hợp lệ. Vui lòng kiểm tra và lưu lại dịch vụ.');
+                    }
+                }
+                foreach ($services as $service) {
+                    $current->contractServices()->create([
+                        'service_id' => $service->id, 'quantity' => '1.00', 'unit_price' => null,
+                        'start_date' => $current->start_date->format('Y-m-d'), 'end_date' => null,
+                    ]);
+                }
+                $current->status = ContractStatus::Active;
+                $current->activated_at = now();
+                $current->contract_number = 'HD-'.now(config('app.business_timezone'))->format('Y').'-'.str_pad((string) $current->id, 4, '0', STR_PAD_LEFT);
+                $current->meter_gap_reason = $hasGap ? trim($data['meter_gap_reason']) : null;
+                $current->meter_gap_confirmed_by = $hasGap ? $actor->id : null;
+                $current->save();
+                $room->status = RoomStatus::Occupied;
+                $room->save();
+                $tenant->role = UserRole::Resident;
+                $tenant->save();
+
+                return $this->find($current->id);
+            }, 3);
+        } catch (UniqueConstraintViolationException) {
+            abort(409, 'Phòng hoặc người thuê vừa có hợp đồng đang hiệu lực. Vui lòng tải lại.');
+        } catch (QueryException) {
+            $this->databaseFailure('kích hoạt');
         }
     }
 

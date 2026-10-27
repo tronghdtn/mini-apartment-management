@@ -80,6 +80,21 @@ class Contract extends Model
         return $this->status === ContractStatus::Active;
     }
 
+    /** Optimistic version includes signed fields and saved service snapshots, not second-resolution timestamps alone. */
+    public function lifecycleRevision(): string
+    {
+        $attributes = $this->getRawOriginal();
+        ksort($attributes);
+        $lines = $this->contractServices->map(function ($line) {
+            $values = $line->getRawOriginal();
+            ksort($values);
+
+            return $values;
+        })->all();
+
+        return hash('sha256', json_encode([$attributes, $lines], JSON_THROW_ON_ERROR));
+    }
+
     /** @param Builder<Contract> $query */
     #[Scope]
     protected function active(Builder $query): void

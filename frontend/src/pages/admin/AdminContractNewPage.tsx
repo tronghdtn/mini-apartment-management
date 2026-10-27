@@ -32,7 +32,7 @@ export function AdminContractNewPage() {
   return <div className="max-w-4xl mx-auto space-y-6 pb-12">
     <nav aria-label="Đường dẫn" className="flex flex-wrap gap-2 items-center text-xs text-slate-500"><Link to="/admin/contracts" className="hover:text-slate-900">Hợp đồng</Link><ChevronRight className="w-3.5 h-3.5" /><span className="font-bold text-slate-900">{contract ? 'Sửa bản nháp' : 'Lập hợp đồng mới'}</span></nav>
     <div><h1 className="text-2xl font-bold text-slate-900">{contract ? 'Sửa Hợp Đồng Nháp' : 'Lập Hợp Đồng Cho Thuê'}</h1><p className="text-xs text-slate-500 mt-1">Lưu các thông tin cơ bản dưới dạng bản nháp; chưa kích hoạt hợp đồng.</p></div>
-    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Kích hoạt, dịch vụ, điều khoản bồi thường, miễn trừ và thanh lý chưa được tích hợp. Lưu nháp không nhận cọc, không đổi trạng thái phòng hoặc vai trò người thuê.</p>
+    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Điều khoản, dịch vụ, nhận cọc và kích hoạt được thực hiện tại trang chi tiết sau khi lưu nháp. Thanh lý chưa tích hợp. Lưu nháp không nhận cọc, không đổi trạng thái phòng hoặc vai trò người thuê.</p>
     <DraftContractForm key={`${contractId ?? 'new'}-${revision}`} options={options} contract={contract} roomId={params.get('roomId')} onReload={reload} onCancel={() => navigate(contract ? `/admin/contracts/${contract.id}` : '/admin/contracts')} onSaved={saved => navigate(`/admin/contracts/${saved.id}`, { state: { success: contract ? 'Đã cập nhật hợp đồng nháp.' : 'Đã lưu hợp đồng nháp.' } })} />
   </div>
 }

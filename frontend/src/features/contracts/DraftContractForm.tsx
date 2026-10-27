@@ -42,6 +42,7 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
     },
   })
   const busy = saving || isSubmitting
+  const receiptLocked = !!contract && contract.deposit_status !== 'unpaid'
   const roomSelection = useWatch({ control, name: 'room_id' })
   const tenantSelection = useWatch({ control, name: 'user_id' })
   const chosenRoom = options.rooms.find(room => room.id === roomSelection)
@@ -93,19 +94,20 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
     </div>
     <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-5">
       {selectionUnavailable && <p className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-800">Phòng hoặc người thuê của bản nháp không còn đủ điều kiện. Chọn lại trước khi lưu; dữ liệu cũ chưa bị thay đổi.</p>}
+      {receiptLocked && <p className="text-sm text-sky-800">Đã nhận cọc: phòng, người thuê và số cọc được giữ nguyên. Chưa có quy trình hoàn cọc cho nháp tại đây.</p>}
       <fieldset disabled={busy} className="space-y-5">
         <section hidden={step !== 0} className="space-y-4">
           <h2 className="text-base font-bold text-slate-900">Bước 1: Chọn phòng trống</h2>
           <div>
             <label htmlFor="contract-room_id" className="block text-xs font-bold text-slate-700 mb-1">Phòng / Tòa nhà</label>
-            <select id="contract-room_id" {...register('room_id', { valueAsNumber: true, onChange: event => {
+            <fieldset disabled={receiptLocked}><select id="contract-room_id" {...register('room_id', { valueAsNumber: true, onChange: event => {
               const room = options.rooms.find(item => item.id === Number(event.target.value))
               if (room) { setValue('monthly_rent', room.base_price, { shouldValidate: true }); setValue('deposit_amount', room.deposit_amount, { shouldValidate: true }) }
             } })} aria-invalid={!!errors.room_id} aria-describedby="contract-room_id-error" className={inputClass}>
               <option value="">Chọn phòng</option>
               {contract && !options.rooms.some(room => room.id === contract.room_id) && <option value={contract.room_id} disabled>{contract.room.code} — Không còn đủ điều kiện</option>}
               {options.rooms.map(room => <option key={room.id} value={room.id}>{room.code} — {room.building.name}</option>)}
-            </select>
+            </select></fieldset>
             <p id="contract-room_id-error" className="text-xs text-rose-600 mt-1">{errors.room_id?.message}</p>
           </div>
           {options.rooms.length === 0 && <p className="text-sm text-slate-500">Chưa có phòng trống. Tạo hoặc kiểm tra phòng tại khu Quản lý phòng trước khi lập hợp đồng.</p>}
@@ -115,11 +117,11 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
           <h2 className="text-base font-bold text-slate-900">Bước 2: Người thuê đại diện</h2>
           <div>
             <label htmlFor="contract-user_id" className="block text-xs font-bold text-slate-700 mb-1">Tài khoản người thuê</label>
-            <select id="contract-user_id" {...register('user_id', { valueAsNumber: true })} aria-invalid={!!errors.user_id} aria-describedby="contract-user_id-error" className={inputClass}>
+            <fieldset disabled={receiptLocked}><select id="contract-user_id" {...register('user_id', { valueAsNumber: true })} aria-invalid={!!errors.user_id} aria-describedby="contract-user_id-error" className={inputClass}>
               <option value="">Chọn tài khoản người thuê</option>
               {contract && !options.tenants.some(user => user.id === contract.user_id) && <option value={contract.user_id} disabled>{contract.tenant.full_name} — Không còn đủ điều kiện</option>}
               {options.tenants.map(user => <option key={user.id} value={user.id}>{user.full_name} — {user.phone}{user.email ? ` — ${user.email}` : ''}</option>)}
-            </select>
+            </select></fieldset>
             <p id="contract-user_id-error" className="text-xs text-rose-600 mt-1">{errors.user_id?.message}</p>
           </div>
           <p className="text-xs text-slate-500">Chọn Khách/Cư dân đang hoạt động và chưa có hợp đồng hiệu lực. Lưu nháp không đổi vai trò tài khoản.</p>
@@ -136,7 +138,7 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
             </div>)}
             {(['monthly_rent', 'deposit_amount', 'occupant_count'] as const).map(field => <div key={field}>
               <label htmlFor={`contract-${field}`} className="block text-xs font-bold text-slate-700 mb-1">{{ monthly_rent: 'Tiền thuê / tháng (VND)', deposit_amount: 'Tiền cọc (VND)', occupant_count: 'Số người ở (gồm người đại diện)' }[field]}</label>
-              <input id={`contract-${field}`} type="number" min={field === 'occupant_count' ? 1 : 0} step="1" {...register(field, { valueAsNumber: true })} aria-invalid={!!errors[field]} aria-describedby={`contract-${field}-error`} className={inputClass} />
+              <input id={`contract-${field}`} type="number" readOnly={receiptLocked && field === 'deposit_amount'} min={field === 'occupant_count' ? 1 : 0} step="1" {...register(field, { valueAsNumber: true })} aria-invalid={!!errors[field]} aria-describedby={`contract-${field}-error`} className={inputClass} />
               <p id={`contract-${field}-error`} className="text-xs text-rose-600 mt-1">{errors[field]?.message}</p>
             </div>)}
             <div className="sm:col-span-2"><label htmlFor="contract-note" className="block text-xs font-bold text-slate-700 mb-1">Ghi chú</label><textarea id="contract-note" rows={3} {...register('note')} aria-invalid={!!errors.note} aria-describedby="contract-note-error" className={inputClass} /><p id="contract-note-error" className="text-xs text-rose-600 mt-1">{errors.note?.message}</p></div>

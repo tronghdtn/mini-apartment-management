@@ -14,8 +14,8 @@ const labels: Record<ContractBillingType, string> = { per_room: 'Theo phòng', p
 const selectedServices = (contract: Contract) => ({ services: (contract.contract_services ?? []).filter(line => line.service.billing_type !== 'metered')
   .map(line => ({ service_id: line.service_id, quantity: Number(line.quantity) })) })
 
-function DraftServicesForm({ contract, options, onSaved, onReload }: {
-  contract: Contract; options: ContractServiceOption[]; onSaved: (contract: Contract) => void; onReload: () => void
+function DraftServicesForm({ contract, options, onSaved, onReload, onBusy }: {
+  contract: Contract; options: ContractServiceOption[]; onSaved: (contract: Contract) => void; onReload: () => void; onBusy?: (busy: boolean) => void
 }) {
   const { control, register, handleSubmit, reset, setError, formState: { errors, isSubmitting } } = useForm<DraftContractServicesInput>({
     resolver: zodResolver(draftContractServicesSchema), defaultValues: selectedServices(contract),
@@ -35,6 +35,7 @@ function DraftServicesForm({ contract, options, onSaved, onReload }: {
     inFlight.current = true
     try {
       await handleSubmit(async input => {
+        onBusy?.(true)
         setSuccess('')
         try {
           const updated = await saveDraftContractServices(contract.id, input)
@@ -44,7 +45,7 @@ function DraftServicesForm({ contract, options, onSaved, onReload }: {
           applyApiErrors(failure, setError, paths)
         }
       })(event)
-    } finally { inFlight.current = false }
+    } finally { inFlight.current = false; onBusy?.(false) }
   }
   return <form onSubmit={submit} noValidate aria-busy={isSubmitting} className="space-y-4 border-t border-slate-100 pt-5">
     <p className="text-xs text-slate-500">Đơn giá do hệ thống lấy từ danh mục khi thêm mới. Dòng đã lưu giữ nguyên giá; thay số người ở không tự đổi số lượng dịch vụ.</p>
@@ -79,7 +80,7 @@ function DraftServicesForm({ contract, options, onSaved, onReload }: {
   </form>
 }
 
-export function ContractServicesPanel({ contract, onSaved, onReload }: { contract: Contract; onSaved: (contract: Contract) => void; onReload: () => void }) {
+export function ContractServicesPanel({ contract, onSaved, onReload, onBusy }: { contract: Contract; onSaved: (contract: Contract) => void; onReload: () => void; onBusy?: (busy: boolean) => void }) {
   const [revision, setRevision] = useState(0)
   const [loaded, setLoaded] = useState<{ key: string; options: ContractServiceOption[]; error: string }>()
   const key = `${contract.id}:${revision}`
@@ -92,8 +93,8 @@ export function ContractServicesPanel({ contract, onSaved, onReload }: { contrac
   }, [key, contract.status])
   return <section className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-5" aria-label="Dịch vụ hợp đồng">
     <h2 className="font-bold text-base text-slate-900">Dịch vụ hợp đồng</h2>
-    <p className="text-sm text-sky-800 rounded-2xl border border-sky-100 bg-sky-50 p-4">Điện và Nước tự động được thêm khi kích hoạt, tính theo chỉ số thực tế. Chưa kích hoạt hoặc phát sinh hóa đơn trong bước soạn nháp này.</p>
+    <p className="text-sm text-sky-800 rounded-2xl border border-sky-100 bg-sky-50 p-4">{contract.status === 'draft' ? 'Điện và Nước tự động được thêm khi kích hoạt, tính theo chỉ số thực tế. Lưu nháp chưa phát sinh hóa đơn.' : 'Điện và Nước tính theo chỉ số thực tế. Kích hoạt không tạo hóa đơn; đơn giá được xác định khi ghi chỉ số.'}</p>
     {(contract.contract_services ?? []).length === 0 ? <p className="text-sm text-slate-500">Chưa có dịch vụ được lưu cho hợp đồng.</p> : <div className="overflow-x-auto"><table className="min-w-[640px] w-full text-sm"><thead><tr className="text-left text-xs text-slate-500 border-b border-slate-200"><th className="py-3 pr-4">Dịch vụ</th><th className="py-3 pr-4">Số lượng</th><th className="py-3 pr-4">Đơn giá đã lưu</th><th className="py-3">Khoảng hiệu lực</th></tr></thead><tbody>{contract.contract_services?.map(line => <tr key={line.id} className="border-b border-slate-100"><td className="py-3 pr-4 break-words">{line.service.name}<span className="block text-xs text-slate-500">{labels[line.service.billing_type]}</span>{line.service.status === 'inactive' && <Badge tone="slate">Ngừng hoạt động</Badge>}</td><td className="py-3 pr-4 font-mono">{line.quantity}</td><td className="py-3 pr-4">{line.unit_price === null ? 'Theo bảng giá điện nước' : formatVND(line.unit_price)}</td><td className="py-3">{formatDate(line.start_date)} → {line.end_date ? formatDate(line.end_date) : 'Chưa kết thúc'}</td></tr>)}</tbody></table></div>}
-    {contract.status === 'draft' ? !loaded || loaded.key !== key ? <p role="status" className="text-sm text-slate-500">Đang tải danh mục dịch vụ…</p> : loaded.error ? <div role="alert" className="space-y-3 text-sm text-rose-700"><p>{loaded.error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Tải lại dịch vụ</Button></div> : <DraftServicesForm key={key} contract={contract} options={loaded.options} onSaved={onSaved} onReload={onReload} /> : <p className="text-xs text-slate-500">Các dòng và đơn giá đã lưu chỉ đọc. Thay dịch vụ hợp đồng đang hiệu lực chưa được tích hợp.</p>}
+    {contract.status === 'draft' ? !loaded || loaded.key !== key ? <p role="status" className="text-sm text-slate-500">Đang tải danh mục dịch vụ…</p> : loaded.error ? <div role="alert" className="space-y-3 text-sm text-rose-700"><p>{loaded.error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Tải lại dịch vụ</Button></div> : <DraftServicesForm key={key} contract={contract} options={loaded.options} onSaved={onSaved} onReload={onReload} onBusy={onBusy} /> : <p className="text-xs text-slate-500">Các dòng và đơn giá đã lưu chỉ đọc. Thay dịch vụ hợp đồng đang hiệu lực chưa được tích hợp.</p>}
   </section>
 }

@@ -10,6 +10,7 @@ export const depositStatusLabels: Record<string, string> = {
 
 export interface Contract {
   id: number
+  lifecycle_revision: string | null
   contract_number: string | null
   room_id: number
   user_id: number
@@ -20,6 +21,14 @@ export interface Contract {
   monthly_rent: number
   deposit_amount: number
   deposit_status: string
+  deposit_paid_at: string | null
+  activated_at: string | null
+  early_termination_fee_type: 'none' | 'fixed' | 'rent_multiple' | null
+  early_termination_fee_amount: number | null
+  early_termination_fee_multiplier: string | null
+  early_termination_waiver_conditions: { code: string; description: string }[] | null
+  meter_gap_reason: string | null
+  meter_gap_confirmed_by: number | null
   occupant_count: number
   initial_electricity_reading: string | null
   initial_water_reading: string | null

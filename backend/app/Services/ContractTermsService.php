@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
-/** Backend foundation for P4/P5-B; no HTTP route or activation/closure side effects. */
+/** Signed P4/P5-B snapshots; saving terms never activates or closes a contract. */
 class ContractTermsService
 {
     public const SNAPSHOT_FIELDS = [

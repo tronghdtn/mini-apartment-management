@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\ContractLifecycleRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
@@ -10,6 +11,7 @@ use App\Http\Requests\Contract\UpdateDraftServicesRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Services\ContractService;
+use App\Services\ContractTermsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -66,5 +68,39 @@ class ContractController extends Controller
         Gate::authorize('update', $model);
 
         return new ContractResource($this->contracts->updateDraftServices($model, $request->validated()));
+    }
+
+    public function updateTerms(ContractLifecycleRequest $request, string $contract, ContractTermsService $terms): ContractResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+        $terms->updateDraft($model, $request->user(), $request->validated());
+
+        return new ContractResource($this->contracts->find($contract));
+    }
+
+    public function activationContext(string $contract): JsonResponse
+    {
+        Gate::authorize('viewAny', Contract::class);
+        $model = $this->contracts->find($contract);
+        Gate::authorize('view', $model);
+
+        return response()->json(['data' => $this->contracts->activationContext($model)]);
+    }
+
+    public function confirmDeposit(ContractLifecycleRequest $request, string $contract): ContractResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractResource($this->contracts->confirmDeposit($model, $request->validated()));
+    }
+
+    public function activate(ContractLifecycleRequest $request, string $contract): ContractResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractResource($this->contracts->activate($model, $request->user(), $request->validated()));
     }
 }

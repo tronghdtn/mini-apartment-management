@@ -4,6 +4,8 @@
 
 ## 1. Nguồn sự thật và trách nhiệm tài liệu
 
+**Ưu tiên mới 27/10 sau báo cáo:** nghiệp vụ xuyên suốt trước tinh chỉnh UI: nhận cọc/kích hoạt → U1/MTR/U2 → INV/PAY/công nợ → CLOSE → VIEW/MAINT/NOTIF và API các vai trò. Antigravity tích hợp cùng module. P4/P5-B/Q15/U1/U2 đã duyệt, không hỏi lại; mọi migration dev vẫn cần duyệt cụ thể. LEASE-C đã tích hợp và kiểm thử DB test theo brief §28/§12.24: API terms/deposit/activation-context/activate và frontend ADM-13. Các nhóm sau tiếp tục theo dependency. Các quyết định còn mở đã gửi nhóm lựa chọn; không suy phê duyệt từ thời gian chờ.
+
 | Nơi quản lý | Nội dung duy nhất cần duy trì ở đó |
 |---|---|
 | [AGENTS.md](../AGENTS.md), [CLAUDE.md](../CLAUDE.md) | Quy trình và giới hạn; CLAUDE import AGENTS, không có bộ quy tắc riêng trùng lặp |
@@ -686,3 +688,24 @@ Cleanup: AuthBrowserFixtures đã dọn đúng5tài khoản/phiên của lượt
 **Tiếp tục theo Plan:** AG-UI-03/04/05 chưa hoàn tất: thay khung dùng chung bằng bố cục riêng từng màn, hoàn thiện List/Detail/Booking/Appointments và các trang Admin cóAPI, rồi nối API nghiệp vụ theo Spec/quyết định đủ điều kiện. Các task Backend độc lập vẫn còn trong Plan; U1/U2 chỉ migrationtest/pending, U3/Pcòn mở/provider chưa xác nhận giữ nguyên cổng. Không gọi FullMVP hoặc toàn bộUI Antigravity đã hoàn thành.
 
 Đã kết thúc tài nguyên tạm của lượt kiểm tra: đóng các tab do agent tạo, khôi phục kích thước browser; dừng Vite prototype5175 và hai container UI test8082, giữ container dev và dự án khác. Cấu hình Nginx test cuối khớp hash bản gốc. Các ảnh/log/fixture manifest chỉ ở thư mục backups đã gitignore, không stage thông tin đăng nhập, snapshot database hoặc output build.
+
+### 12.24. LEASE-C — nhận cọc và kích hoạt xuyên suốt (28/10/2026)
+
+**Đã tích hợp trên DB test** theo yêu cầu ưu tiên nghiệp vụ: PUT terms, POST deposit, GET activation-context, POST activate và ADM-13 (brief §28). Không đồng nghĩa đã hoàn thành gia hạn, thay dịch vụ active, INV/PAY/CLOSE hoặc schema dev. Quyết định mới U3/thanh lý ghi tại DB-D65/66/67, local checkpoint tài liệu `8b73c30`.
+
+| Task | Kết quả |
+|---|---|
+| LEASE-08 | Lưu/đọc snapshot điều khoản và thời điểm. Nhận cọc kiểm tra amount + revision, giữ thời điểm lần đầu; nháp đã nhận cọc không đổi phòng/người thuê/số cọc hoặc bị xóa. |
+| LEASE-09 | Kích hoạt trong transaction: kiểm điều khoản/cọc/chuỗi chỉ số; sinh mã HD từ ID, phòng occupied, người thuê resident, thêm hai dịch vụ metered đúng một lần; không tạo invoice/payment/reading giả. |
+| LEASE-10 | Form RHF/Zod tại ADM-13; khóa ghi chung, revision chống dữ liệu cũ, Auth refresh khi 401/403; modal dài cuộn được và giữ thiết kế Antigravity. |
+| LEASE-11 | Feature/concurrency/fullsuite/style, ba agent API Luna và browser do root thao tác; đã dọn fixture, dev không đổi. |
+
+**Tự động:** backend **1212 test / 10274 assertion PASS**, Pint **232 file PASS**. Riêng lifecycle/concurrency **34 test / 260 assertion PASS**; hai process PHP tranh chấp cùng phòng hoặc cùng người thuê cho đúng một 200 và một 409. Frontend **78 test/build PASS**, lint **0 lỗi/8 cảnh báo cũ**; main chunk >500 KB còn. Backend fullsuite kết thúc trước fixture; các chỉnh frontend cuối đã build/test/lint lại, không chạy schema tests khi fixture tồn tại.
+
+**Live API:** Guest 401, bốn vai trò không phải Admin 403 tại bốn action; thiếu CSRF 419. Field giả/trùng waiver/sai precision/confirmed=false trả 422; amount hoặc revision sai trả 409. Flow cọc 1 triệu → held → lặp nhận giữ paid_at → active/occupied/resident và hai metered giá NULL; GET giữ mã/thời điểm, kích hoạt lặp và sửa/xóa nháp đã nhận cọc trả 409. Logout 204. Locked Admin chỉ kiểm bằng Feature test. Không cộng lỗi harness thành PASS: auth từng dùng nhầm `.id` trên ID số, sau đó sửa; flow kỳ vọng logout 200 sai nhưng endpoint đúng 204; validation không xác minh được terms NULL ban đầu, nên nhánh đó lấy bằng chứng từ browser cọc 0 (422). Có login 429 khi kiểm thử dày, đã đợi cửa sổ throttle, không nới quy tắc.
+
+**Browser:** lưu none + điều kiện miễn và hệ số 1.50; trùng mã hiện lỗi. Cọc 0 kích hoạt sau lưu terms; cọc 2 triệu trước nhận bị 409, xác nhận đủ rồi kích hoạt thành công. F5 giữ mã HD, paid_at/activated_at và hai dòng Điện/Nước. Xóa nháp đã nhận cọc bị khóa; room/user disabled và deposit readonly trong form, ghi chú vẫn lưu mà không mất ID. Desktop 1440×900/mobile 390×844 (scrollWidth 382); nút Đóng/Escape của modal dài đã thử. Pending khóa các nút/tab; chưa giả lập response đảo thứ tự với độ trễ tùy chỉnh. Context 503 trên Nginx TEST làm confirm disabled; khôi phục nguyên byte cấu hình, nginx -t/reload và context hồi phục. Admin khác đổi note khi modal nhận cọc mở → 409, không nhận tiền. Đăng xuất ở tab phụ rồi gửi form cũ: sau sửa Auth refresh, UI chuyển về login, không báo thành công. Console trang active bình thường ở bản cuối không error/warn; lỗi 422/409/503 chủ động là dự kiến. Ảnh/log ignored tại `backups/lease-lifecycle-20261027/`.
+
+**Lỗi điều phối và bảo toàn:** preflight và lifecycle ban đầu chạy chồng, hai RefreshDatabase làm schema test thiếu bảng; đã kết thúc cả hai, chạy tuần tự lại 6/14, 34/260 và fullsuite PASS. Không sửa guard hay giảm test. Docker lúc khởi động trả danh sách rỗng; khi ổn định, container/volume cũ xuất hiện. Compose test thử mới chưa tạo container/volume, build kết thúc EOF; quay về đúng app/nginx test hiện có. Helper mới kiểm SQL identity/run IDs và dọn các hợp đồng active/dịch vụ/phòng/tòa/users/sessions thuộc lượt, từ chối lịch sử ngoài dự kiến; manifest trong container đã xóa. Snapshot dev trước/sau khớp toàn bộ JSON, metadata và hash dữ liệu: **20 bảng/16 migration**. Không migration/seeder/ghi nghiệp vụ dev hoặc push.
+
+**Tiếp theo:** U1 API/UI giá theo tòa, MTR chính thức và U3 conditional unique theo DB-D65, U2 upload/duyệt. Thanh lý P3/P6/P7/P8/P9/P11 đã duyệt trên DB test; các đoạn cũ ghi chờ duyệt là lịch sử. Chưa có Sandbox thanh toán được xác nhận.

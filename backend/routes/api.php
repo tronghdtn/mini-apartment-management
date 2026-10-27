@@ -44,6 +44,7 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
 
 Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->group(function () {
     Route::get('contracts', [ContractController::class, 'index'])->name('contracts.index');
+    Route::get('contracts/{contract}/activation-context', [ContractController::class, 'activationContext'])->whereNumber('contract')->name('contracts.activation-context');
     Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract')->name('contracts.show');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('users/{user}', [AdminUserController::class, 'show'])->whereNumber('user')->name('users.show');
@@ -61,6 +62,9 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('amenities/{amenity}', [AmenityController::class, 'show'])->name('amenities.show');
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
+        Route::put('contracts/{contract}/terms', [ContractController::class, 'updateTerms'])->whereNumber('contract')->name('contracts.terms.update');
+        Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');
+        Route::post('contracts/{contract}/activate', [ContractController::class, 'activate'])->whereNumber('contract')->name('contracts.activate');
         Route::put('contracts/{contract}/services', [ContractController::class, 'updateServices'])->whereNumber('contract')->name('contracts.services.update');
         Route::patch('contracts/{contract}', [ContractController::class, 'update'])->whereNumber('contract')->name('contracts.update');
         Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract')->name('contracts.destroy');

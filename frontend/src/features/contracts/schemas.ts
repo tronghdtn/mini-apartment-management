@@ -42,3 +42,25 @@ export const draftContractServicesSchema = z.object({
   }).strict()).refine(lines => new Set(lines.map(line => line.service_id)).size === lines.length, 'Không chọn trùng dịch vụ.'),
 }).strict()
 export type DraftContractServicesInput = z.infer<typeof draftContractServicesSchema>
+
+export const contractTermsSchema = z.object({
+  early_termination_fee_type: z.enum(['', 'none', 'fixed', 'rent_multiple']),
+  early_termination_fee_amount: money.nullable(),
+  early_termination_fee_multiplier: z.string().nullable(),
+  early_termination_waiver_conditions: z.array(z.object({
+    code: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,49}$/, 'Mã 1–50 ký tự chữ, số, gạch ngang hoặc gạch dưới.'),
+    description: z.string().trim().min(1, 'Nhập nội dung điều kiện đã thỏa thuận.'),
+  }).strict()).refine(items => new Set(items.map(item => item.code)).size === items.length, 'Không được trùng mã điều kiện.'),
+}).strict().superRefine((input, context) => {
+  if (input.early_termination_fee_type === 'fixed' && input.early_termination_fee_amount === null) context.addIssue({ code: 'custom', path: ['early_termination_fee_amount'], message: 'Nhập số tiền phí đã thỏa thuận.' })
+  if (input.early_termination_fee_type === 'rent_multiple' && (!/^\d{1,3}(?:\.\d{1,2})?$/.test(input.early_termination_fee_multiplier ?? '') || Number(input.early_termination_fee_multiplier) <= 0)) context.addIssue({ code: 'custom', path: ['early_termination_fee_multiplier'], message: 'Hệ số từ 0.01 đến 999.99, tối đa hai số thập phân.' })
+})
+export type ContractTermsInput = z.infer<typeof contractTermsSchema>
+
+export const activateContractSchema = z.object({
+  initial_electricity_reading: z.string().regex(/^\d{1,8}(?:\.\d{1,2})?$/, 'Nhập chỉ số từ 0 đến 99999999.99, tối đa hai số thập phân.'),
+  initial_water_reading: z.string().regex(/^\d{1,8}(?:\.\d{1,2})?$/, 'Nhập chỉ số từ 0 đến 99999999.99, tối đa hai số thập phân.'),
+  meter_gap_reason: z.string().trim().refine(fitsTextColumn, 'Lý do quá dài.'),
+  meter_gap_confirmed: z.boolean(),
+}).strict()
+export type ActivateContractInput = z.infer<typeof activateContractSchema>

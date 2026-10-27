@@ -11,8 +11,12 @@ import { deleteDraftContract, getContract } from '@/features/contracts/api'
 import { contractStatusLabels, depositStatusLabels } from '@/features/contracts/types'
 import type { Contract } from '@/features/contracts/types'
 import { ContractServicesPanel } from '@/features/contracts/ContractServicesPanel'
+import { ContractTermsPanel } from '@/features/contracts/ContractTermsPanel'
+import { ContractLifecycleActions } from '@/features/contracts/ContractLifecycleActions'
+import { useAuth } from '@/features/auth/useAuth'
 
 export function AdminContractDetailPage() {
+  const { refresh } = useAuth()
   const { contractId } = useParams<{ contractId: string }>()
   const location = useLocation()
   const navigate = useNavigate()
@@ -23,6 +27,7 @@ export function AdminContractDetailPage() {
   const [revision, setRevision] = useState(0)
   const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [writing, setWriting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const inFlight = useRef(false)
   const [tab, setTab] = useState<'info' | 'services' | 'terms' | 'invoices'>('info')
@@ -46,15 +51,16 @@ export function AdminContractDetailPage() {
   if (loading || resolvedId !== contractId) return <p role="status" className="text-sm text-slate-500 py-6">Đang tải chi tiết hợp đồng…</p>
   if (error || !contract) return <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4"><h1 className="text-xl font-bold text-slate-900">Chưa tải được hợp đồng</h1><p role="alert" className="text-sm text-rose-700">{error}</p><div className="flex flex-wrap gap-3 items-center"><Button variant="outline" onClick={reload}>Thử lại</Button><Link to="/admin/contracts" className="text-sm text-sky-700 underline">Về danh sách hợp đồng</Link><a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a></div></div>
   const success = typeof location.state?.success === 'string' ? location.state.success : ''
-  return <div className="space-y-6">
+  return <fieldset disabled={writing} className="space-y-6 min-w-0">
     <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/contracts" className="hover:text-slate-900">Hợp đồng</Link><ChevronRight className="w-3.5 h-3.5" /><span className="font-bold text-slate-900">{contract.contract_number ?? `Bản nháp #${contract.id}`}</span></nav>
     {success && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
     <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div className="min-w-0"><div className="flex flex-wrap gap-2 items-center mb-2"><span className="font-mono text-xs font-bold px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-100">{contract.contract_number ?? `Bản nháp #${contract.id}`}</span><Badge tone={contract.status === 'active' ? 'emerald' : 'slate'}>{contractStatusLabels[contract.status]}</Badge></div><h1 className="text-2xl font-bold text-slate-900 break-words">Hợp Đồng Thuê Phòng {contract.room.code}</h1><p className="text-xs text-slate-500 mt-1">{contract.room.building.name}</p></div>
-      {contract.status === 'draft' && <div className="flex flex-wrap gap-2"><Link to={`/admin/contracts/${contract.id}/edit`}><Button variant="outline" icon={<Pencil className="w-4 h-4" />}>Sửa bản nháp</Button></Link><Button variant="danger" icon={<Trash2 className="w-4 h-4" />} onClick={() => { setDeleteError(''); setDeleting(true) }}>Xóa bản nháp</Button></div>}
+      {contract.status === 'draft' && <div className="flex flex-wrap gap-2"><Link to={`/admin/contracts/${contract.id}/edit`}><Button variant="outline" icon={<Pencil className="w-4 h-4" />}>Sửa bản nháp</Button></Link><Button variant="danger" disabled={contract.deposit_status !== 'unpaid'} icon={<Trash2 className="w-4 h-4" />} onClick={() => { setDeleteError(''); setDeleting(true) }}>Xóa bản nháp</Button></div>}
     </div>
     {contract.status === 'active' && <p className="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-2 text-sm text-slate-600"><Lock className="w-4 h-4 shrink-0 mt-0.5" />Hợp đồng đang hiệu lực: thông tin phòng, người thuê, thời hạn, tiền thuê và cọc chỉ đọc.</p>}
     <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'invoices', label: 'Lịch sử hóa đơn' }]} activeTab={tab} onChange={setTab} />
+    <ContractLifecycleActions key={`actions-${contract.id}`} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} />
     <div hidden={tab !== 'info'}><div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4"><h2 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Thời hạn và tài chính</h2><dl className="divide-y divide-slate-100 text-sm">
         <div className="py-3 flex flex-wrap justify-between gap-2"><dt className="text-slate-500">Ngày bắt đầu</dt><dd className="font-semibold text-slate-800">{formatDate(contract.start_date)}</dd></div>
@@ -73,9 +79,10 @@ export function AdminContractDetailPage() {
       </dl></section>
     </div>
     </div>
-    <div hidden={tab !== 'services'}><ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} /></div>
-    {(tab === 'terms' || tab === 'invoices') && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'terms' ? 'Điều khoản đã thỏa thuận' : 'Lịch sử hóa đơn'}</h2><p className="mt-2 text-sm text-slate-500">Dữ liệu này chưa được cung cấp qua API tại đây.</p></section>}
-    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Kích hoạt, thay dịch vụ hợp đồng hiệu lực, điều khoản bồi thường, thanh lý, chỉ số và hóa đơn chưa được tích hợp tại trang này.</p>
+    <div hidden={tab !== 'services'}><ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} /></div>
+    <div hidden={tab !== 'terms'}><ContractTermsPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} /></div>
+    {tab === 'invoices' && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">Lịch sử hóa đơn</h2><p className="mt-2 text-sm text-slate-500">Hóa đơn chưa được tích hợp tại đây.</p></section>}
+    <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Thay dịch vụ hợp đồng hiệu lực, thanh lý và hóa đơn chưa được tích hợp tại trang này.</p>
     <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p><p className="text-xs text-slate-500">Nếu đã chọn dịch vụ cho bản nháp, hãy gỡ và lưu dịch vụ trước khi xóa.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
-  </div>
+  </fieldset>
 }

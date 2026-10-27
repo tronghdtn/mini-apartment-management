@@ -3,6 +3,7 @@ import type { ApiResource } from '@/types/api'
 import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema } from './schemas'
 import type { ContractFilters, DraftContractInput, DraftContractServicesInput } from './schemas'
 import type { Contract, ContractPage, ContractOptions, ContractRoomOption, ContractTenantOption, ContractServiceOption } from './types'
+import { activateContractSchema, contractTermsSchema, type ActivateContractInput, type ContractTermsInput } from './schemas'
 
 export async function getContracts(page: number, filters: ContractFilters, signal?: AbortSignal): Promise<ContractPage> {
   const input = contractFiltersSchema.parse(filters)
@@ -59,4 +60,29 @@ export async function saveDraftContractServices(id: number, input: DraftContract
   const body = draftContractServicesSchema.parse(input)
   await fetchCsrfCookie()
   return (await http.put<ApiResource<Contract>>(`/contracts/${id}/services`, body)).data.data
+}
+
+export async function saveContractTerms(id: number, input: ContractTermsInput): Promise<Contract> {
+  const valid = contractTermsSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.put<ApiResource<Contract>>(`/contracts/${id}/terms`, { ...valid,
+    early_termination_fee_type: valid.early_termination_fee_type || null,
+    early_termination_fee_amount: valid.early_termination_fee_type === 'fixed' ? valid.early_termination_fee_amount : null,
+    early_termination_fee_multiplier: valid.early_termination_fee_type === 'rent_multiple' ? valid.early_termination_fee_multiplier : null,
+  })).data.data
+}
+
+export async function confirmContractDeposit(id: number, expectedAmount: number, expectedRevision: string): Promise<Contract> {
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<Contract>>(`/contracts/${id}/deposit`, { confirmed: true, expected_amount: expectedAmount, expected_revision: expectedRevision })).data.data
+}
+
+export type ActivationContext = Record<'ELECTRICITY' | 'WATER', { current_reading: string; reading_date: string; kind: 'periodic' | 'final' } | null>
+export async function getActivationContext(id: number, signal?: AbortSignal): Promise<ActivationContext> {
+  return (await http.get<ApiResource<ActivationContext>>(`/contracts/${id}/activation-context`, { signal })).data.data
+}
+export async function activateContract(id: number, input: ActivateContractInput, expectedRevision: string): Promise<Contract> {
+  const body = activateContractSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<Contract>>(`/contracts/${id}/activate`, { ...body, expected_revision: expectedRevision })).data.data
 }
