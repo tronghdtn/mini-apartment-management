@@ -21,7 +21,7 @@ Spec module đã được duyệt quy định hành vi trong phần không mâu 
 
 ## 2. Công nghệ
 
-**Cập nhật 27/10/2026 (ưu tiên hơn trạng thái 24/10 ở trên):** ROOM-PUB list/detail/home đã nối API và nghiệm thu trên DBtest, Plan§12.17; backend1091/9563, frontend68/build/lint0lỗi9cảnhbáocũ. Chủ dự án cho phép tiếp quản ROOM-PUB đangdở và tự LOCAL COMMIT phầnđãkiểmtra; khôngpush/reset/rebase/xóanhánh. Đãduyệt P4+P5-B đểchuẩnbịmigration/testchỉDBtest (DB-D61), Q15cọc>0phảixácnhậnthựcnhậntrướckíchhoạt/cọc0khôngcầnthu (DB-D62). KhôngcònbáoP4/P5/Q15chưaduyệt; chưatuyênbốđãcodekíchhoạt/thanh lý. Mọimigrationdevvẫnchờduyệtriêng. NguồnAntigravitymớilàui-antigravity-full/đượcchủdựánxácnhận; chỉtíchhợpchọnlọc, giữfrontend/chínhthức. Thanh toánchưacóSandboxđãxácnhận, khôngcoigiảlậplàkếtnốithật.
+**Cập nhật 27/10/2026 (ưu tiên hơn trạng thái 24/10 ở trên):** ROOM-PUB list/detail/home và ADM-23 Cài đặt đã tích hợp API thật trên DB test (Plan §12.17/20). Backend hiện tại 1168 test/9784 assertion, Pint218 PASS; frontend71 test/build PASS, lint0 lỗi/9 cảnh báo cũ. Local commits ROOM-PUB bcb08a4, điều khoản/cọc 5167cd5, U1 2999554; không push. P4+P5-B và Q15 đã duyệt DB-D61/62, nền tảng nội bộ đã code/test; chưa có API kích hoạt/thu cọc/thanh lý. U1 đã duyệt DB-D63 chỉ chuẩn bị migration pending/test; API giá hiện hành vẫn global. U2/U3 chưa duyệt. Mọi migration dev vẫn cần duyệt riêng; snapshot dev cuối nguyên vẹn20 bảng/16 migration, không ghi nghiệp vụ dev. Nguồn thiết kế ui-antigravity-full/ đã được xác nhận, chỉ tích hợp chọn lọc vào frontend/ chính thức. Chưa có Sandbox thanh toán được xác nhận, không coi mô phỏng là kết nối thật. Chủ dự án cho phép tự local commit phần đã kiểm tra; không push/reset/rebase/xóa nhánh.
 
 | Phần | Công nghệ |
 | --- | --- |

@@ -30,6 +30,7 @@ import { AdminContractTerminatePage } from '@/pages/admin/AdminContractTerminate
 import { AdminMeterReadingsPage } from '@/pages/admin/AdminMeterReadingsPage'
 import { AdminInvoicesPage } from '@/pages/admin/AdminInvoicesPage'
 import { AdminInvoiceDetailPage } from '@/pages/admin/AdminInvoiceDetailPage'
+import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
 
 // Chỉ khai báo những màn hình đã thực sự có trang. Khu vực Cư dân (/resident) và
 // Nhân viên (/staff) chưa có trang nào nên chưa được đăng ký route.
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: 'amenities', element: <AdminAmenitiesPage /> },
       { path: 'services', element: <AdminServicesPage /> },
       { path: 'utility-prices', element: <AdminUtilityPricesPage /> },
+      { path: 'settings', element: <AdminSettingsPage /> },
       { path: 'users', element: <AdminUsersPage /> },
       { path: 'users/:userId', element: <AdminUserDetailPage /> },
       { path: 'contracts', element: <AdminContractsPage /> },

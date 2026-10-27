@@ -21,7 +21,6 @@ import {
   ChevronRight,
   Menu,
 } from 'lucide-react'
-import { useApp } from '@/mocks/AppContext'
 import { useAuth } from '@/features/auth/useAuth'
 import { AccountActions } from '@/features/auth/AccountActions'
 
@@ -36,18 +35,14 @@ interface AdminNavItem {
   notBuilt?: boolean
 }
 
-const NOT_BUILT_TITLE = 'Màn hình chưa có trong prototype'
+const NOT_BUILT_TITLE = 'Chức năng chưa được kết nối'
 
 export const AdminLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { payments, maintenanceRequests } = useApp()
   const { user } = useAuth()
   const { pathname } = useLocation()
-  const realCatalog = (pathname === '/admin/contracts' || (pathname.startsWith('/admin/contracts/') && !pathname.endsWith('/terminate'))) || pathname === '/admin/users' || pathname.startsWith('/admin/users/') || pathname === '/admin/services' || pathname === '/admin/utility-prices' || pathname === '/admin/rooms' || pathname.startsWith('/admin/rooms/') || pathname === '/admin/amenities' || pathname === '/admin/buildings' || pathname.startsWith('/admin/buildings/')
-
-  const pendingPaymentsCount = payments.filter((p) => p.status === 'pending').length
-  const pendingMaintenanceCount = maintenanceRequests.filter((m) => m.status === 'pending').length
+  const realCatalog = pathname === '/admin/settings' || (pathname === '/admin/contracts' || (pathname.startsWith('/admin/contracts/') && !pathname.endsWith('/terminate'))) || pathname === '/admin/users' || pathname.startsWith('/admin/users/') || pathname === '/admin/services' || pathname === '/admin/utility-prices' || pathname === '/admin/rooms' || pathname.startsWith('/admin/rooms/') || pathname === '/admin/amenities' || pathname === '/admin/buildings' || pathname.startsWith('/admin/buildings/')
 
   const navGroups: { group: string; items: AdminNavItem[] }[] = [
     {
@@ -81,8 +76,6 @@ export const AdminLayout: React.FC = () => {
           to: '/admin/payments',
           label: 'Duyệt thanh toán',
           icon: <CreditCard className="w-4 h-4" />,
-          badge: pendingPaymentsCount > 0 ? pendingPaymentsCount : undefined,
-          badgeColor: 'bg-amber-500 text-white',
           notBuilt: true,
         },
         { to: '/admin/debts', label: 'Công nợ', icon: <AlertCircle className="w-4 h-4" />, notBuilt: true },
@@ -95,8 +88,6 @@ export const AdminLayout: React.FC = () => {
           to: '/admin/maintenance-requests',
           label: 'Yêu cầu sửa chữa',
           icon: <Wrench className="w-4 h-4" />,
-          badge: pendingMaintenanceCount > 0 ? pendingMaintenanceCount : undefined,
-          badgeColor: 'bg-rose-500 text-white',
           notBuilt: true,
         },
       ],
@@ -106,7 +97,7 @@ export const AdminLayout: React.FC = () => {
       items: [
         { to: '/admin/services', label: 'Dịch vụ', icon: <Layers className="w-4 h-4" /> },
         { to: '/admin/utility-prices', label: 'Giá điện nước', icon: <Zap className="w-4 h-4" /> },
-        { to: '/admin/settings', label: 'Cài đặt hệ thống', icon: <Settings className="w-4 h-4" />, notBuilt: true },
+        { to: '/admin/settings', label: 'Cài đặt hệ thống', icon: <Settings className="w-4 h-4" /> },
       ],
     },
   ]
