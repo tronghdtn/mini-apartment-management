@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import {
   LayoutDashboard,
@@ -279,7 +279,9 @@ export const AdminLayout: React.FC = () => {
         {/* Page Outlet */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           <p role="note" className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{realCatalog ? 'Trang này sử dụng API thật; nếu dữ liệu chưa sẵn sàng, hệ thống sẽ báo rõ. Các khu vực nghiệp vụ khác vẫn dùng dữ liệu minh họa khi chưa tích hợp.' : 'Bạn đang đăng nhập bằng tài khoản thật. Các màn hình nghiệp vụ bên dưới vẫn dùng dữ liệu minh họa trong bộ nhớ; thao tác tại đây chưa lưu vào hệ thống.'}</p>
-          <Outlet />
+          <Suspense fallback={<p role="status" className="py-8 text-center text-slate-600">Đang tải trang quản trị…</p>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

@@ -43,3 +43,20 @@ Tiền điều kiện: backend tests đã kết thúc; app/Nginx8082 trỏ mysql
 Các ca tính phí P4/P5-B/Q15 và migrationU1 không có bề mặt HTTP/UI mới: kiểm tra bằng PHPUnit có guard, không gán kết quả đó thành đã kích hoạt/thanh lý/thanh toán thực tế. Test U1 dùng đường dẫn pending tường minh và khôi phục schema global ở cuối; không chạy song song với các test khác hoặc fixture browser.
 
 Kết quả CAT-SET ngày27/10: các bằng chứng thực thi/giới hạn ở Plan§12.20. HTTP11 nhóm PASS; UI lưu365/1/F5, invalid0, expired session, GET503/retry, Guard denied và mobile đã kiểm tra. Các input còn lại có Node/API, không tự nâng thành UI. Fixture đã khôi phục hai khóa, invoices/payments không đổi; năm tài khoản test đã dọn đúng phạm vi.
+
+## PERF-01 — tải mã trang quản trị theo nhu cầu
+
+Không sửa nghiệp vụ/API/database. Checkpoint trước sửa c129fbd; baseline build JS815.23KB/gzip228.14KB. Dùng React.lazy + Suspense bao Outlet dưới guard hiện có; các named export/URL giữ nguyên. Nguồn [React lazy](https://react.dev/reference/react/lazy), [Suspense](https://react.dev/reference/react/Suspense); đối chiếu package React19.2.8 hiện cài, không nâng dependency.
+
+| ID | Kiểm tra | Kết quả cần có |
+|---|---|---|
+| PERF-T01 | Build manifest và các static import của entry | Tổng JS tải ban đầu giảm so baseline; chunk trang quản trị tách riêng, không chỉ so mỗi file entry |
+| PERF-T02 | Guest mở Home/Rooms rồi trực tiếp /admin/settings | Public render bình thường; guard chuyển login trước khi render trang quản trị |
+| PERF-T03 | Admin fixture login, Settings, F5 và qua Buildings/Rooms/Contracts/Users | Named export resolve đúng, API thật, không trắng trang, sidebar giữ nguyên |
+| PERF-T04 | Admin mở dashboard/mock và trở lại Settings; URL chi tiết thiếu ID | Trang còn mock giữ nhãn; route/detail404 không fallback; không tự nâng trạng thái nghiệp vụ |
+| PERF-T05 | NonAdmin mở URL quản trị; logout rồi mở lại | Guard vẫn từ chối; backend vẫn bảo vệ API độc lập |
+| PERF-T06 | Chặn một chunk chưa tải bằng Nginx test503, mở route rồi khôi phục file | Lỗi tiếng Việt không lộ URL/module, có Tải lại trang và hồi phục sau reload; không giả dữ liệu |
+
+Fixture tài khoản test riêng được dọn sau regression; không chạy schema tests khi fixture tồn tại. Đo dung lượng build không được gọi là đo thời gian người dùng tải/render trên mạng thật. Không cache dữ liệu tài chính hoặc điều chỉnh ngưỡng cảnh báo để che bundle lớn.
+
+Kết quả PERF-01: Plan§12.21 ghi số đo cuối, hồi quy UI/API và ca chunk503/phục hồi; frontend71/build/lint0lỗi9cảnhbáocũ. Guard và logout được kiểm tra lại trên bản cuối. Đã dọn năm tài khoản/phiên fixture, dừng hai container test, snapshot dev trước/sau khớp. Không kiểm thử hết18 luồng nghiệp vụ hoặc đo thời gian tải mạng thật.

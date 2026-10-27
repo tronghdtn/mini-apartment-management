@@ -1,0 +1,21 @@
+import { lazy } from 'react'
+
+// Chỉ tải mã trang khi guard cho phép render; khai báo ngoài component để giữ định danh.
+export const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage').then(module => ({ default: module.AdminDashboardPage })))
+export const AdminBuildingsPage = lazy(() => import('@/pages/admin/AdminBuildingsPage').then(module => ({ default: module.AdminBuildingsPage })))
+export const AdminBuildingDetailPage = lazy(() => import('@/pages/admin/AdminBuildingDetailPage').then(module => ({ default: module.AdminBuildingDetailPage })))
+export const AdminRoomsPage = lazy(() => import('@/pages/admin/AdminRoomsPage').then(module => ({ default: module.AdminRoomsPage })))
+export const AdminRoomDetailPage = lazy(() => import('@/pages/admin/AdminRoomDetailPage').then(module => ({ default: module.AdminRoomDetailPage })))
+export const AdminAmenitiesPage = lazy(() => import('@/pages/admin/AdminAmenitiesPage').then(module => ({ default: module.AdminAmenitiesPage })))
+export const AdminServicesPage = lazy(() => import('@/pages/admin/AdminServicesPage').then(module => ({ default: module.AdminServicesPage })))
+export const AdminUtilityPricesPage = lazy(() => import('@/pages/admin/AdminUtilityPricesPage').then(module => ({ default: module.AdminUtilityPricesPage })))
+export const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage').then(module => ({ default: module.AdminUsersPage })))
+export const AdminUserDetailPage = lazy(() => import('@/pages/admin/AdminUserDetailPage').then(module => ({ default: module.AdminUserDetailPage })))
+export const AdminContractsPage = lazy(() => import('@/pages/admin/AdminContractsPage').then(module => ({ default: module.AdminContractsPage })))
+export const AdminContractNewPage = lazy(() => import('@/pages/admin/AdminContractNewPage').then(module => ({ default: module.AdminContractNewPage })))
+export const AdminContractDetailPage = lazy(() => import('@/pages/admin/AdminContractDetailPage').then(module => ({ default: module.AdminContractDetailPage })))
+export const AdminContractTerminatePage = lazy(() => import('@/pages/admin/AdminContractTerminatePage').then(module => ({ default: module.AdminContractTerminatePage })))
+export const AdminMeterReadingsPage = lazy(() => import('@/pages/admin/AdminMeterReadingsPage').then(module => ({ default: module.AdminMeterReadingsPage })))
+export const AdminInvoicesPage = lazy(() => import('@/pages/admin/AdminInvoicesPage').then(module => ({ default: module.AdminInvoicesPage })))
+export const AdminInvoiceDetailPage = lazy(() => import('@/pages/admin/AdminInvoiceDetailPage').then(module => ({ default: module.AdminInvoiceDetailPage })))
+export const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage').then(module => ({ default: module.AdminSettingsPage })))

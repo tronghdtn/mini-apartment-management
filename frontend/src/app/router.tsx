@@ -1,3 +1,23 @@
+import {
+  AdminDashboardPage,
+  AdminBuildingsPage,
+  AdminBuildingDetailPage,
+  AdminRoomsPage,
+  AdminRoomDetailPage,
+  AdminAmenitiesPage,
+  AdminServicesPage,
+  AdminUtilityPricesPage,
+  AdminUsersPage,
+  AdminUserDetailPage,
+  AdminContractsPage,
+  AdminContractNewPage,
+  AdminContractDetailPage,
+  AdminContractTerminatePage,
+  AdminMeterReadingsPage,
+  AdminInvoicesPage,
+  AdminInvoiceDetailPage,
+  AdminSettingsPage,
+} from './adminPages'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { createBrowserRouter } from 'react-router'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
@@ -13,24 +33,6 @@ import { LoginPage } from '@/pages/public/LoginPage'
 import { RegisterPage } from '@/pages/public/RegisterPage'
 import { GuestAppointmentsPage } from '@/pages/public/GuestAppointmentsPage'
 import { GuestProfilePage } from '@/pages/public/GuestProfilePage'
-import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage'
-import { AdminBuildingsPage } from '@/pages/admin/AdminBuildingsPage'
-import { AdminBuildingDetailPage } from '@/pages/admin/AdminBuildingDetailPage'
-import { AdminRoomsPage } from '@/pages/admin/AdminRoomsPage'
-import { AdminRoomDetailPage } from '@/pages/admin/AdminRoomDetailPage'
-import { AdminAmenitiesPage } from '@/pages/admin/AdminAmenitiesPage'
-import { AdminServicesPage } from '@/pages/admin/AdminServicesPage'
-import { AdminUtilityPricesPage } from '@/pages/admin/AdminUtilityPricesPage'
-import { AdminUsersPage } from '@/pages/admin/AdminUsersPage'
-import { AdminUserDetailPage } from '@/pages/admin/AdminUserDetailPage'
-import { AdminContractsPage } from '@/pages/admin/AdminContractsPage'
-import { AdminContractNewPage } from '@/pages/admin/AdminContractNewPage'
-import { AdminContractDetailPage } from '@/pages/admin/AdminContractDetailPage'
-import { AdminContractTerminatePage } from '@/pages/admin/AdminContractTerminatePage'
-import { AdminMeterReadingsPage } from '@/pages/admin/AdminMeterReadingsPage'
-import { AdminInvoicesPage } from '@/pages/admin/AdminInvoicesPage'
-import { AdminInvoiceDetailPage } from '@/pages/admin/AdminInvoiceDetailPage'
-import { AdminSettingsPage } from '@/pages/admin/AdminSettingsPage'
 
 // Chỉ khai báo những màn hình đã thực sự có trang. Khu vực Cư dân (/resident) và
 // Nhân viên (/staff) chưa có trang nào nên chưa được đăng ký route.
