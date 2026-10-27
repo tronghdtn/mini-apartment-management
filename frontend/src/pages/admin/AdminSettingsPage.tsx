@@ -63,17 +63,17 @@ export function AdminSettingsPage() {
         </div>
       ) : result && <>
         {result.missing_keys.length > 0 && <p role="note" className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">Còn {result.missing_keys.length} khóa chưa cấu hình. Các giá trị chưa có được để trống, không dùng dữ liệu mẫu.</p>}
-        {readOnlySections.map(({ title, icon: Icon, fields }) => (
-          <section key={title} className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-            <h2 className="font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3"><Icon aria-hidden="true" className="w-5 h-5 text-sky-600" />{title}</h2>
+        {readOnlySections.map(({ title, icon: Icon, fields }, index) => (
+          <section key={title} className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
+            <h2 className="font-bold text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm text-sky-700">{index + 1}</span><Icon aria-hidden="true" className="w-4 h-4 text-sky-600" />{title}</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {fields.map(([key, label]) => <div key={key}><dt className="text-sm font-semibold text-slate-500">{label}</dt><dd className="text-sm text-slate-800 mt-1 break-words">{result.data.find(setting => setting.key === key)?.value || 'Chưa cấu hình'}</dd></div>)}
+              {fields.map(([key, label]) => <div key={key}><dt className="text-xs font-semibold text-slate-600">{label}</dt><dd className="text-sm text-slate-700 mt-1.5 break-words rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">{result.data.find(setting => setting.key === key)?.value || 'Chưa cấu hình'}</dd></div>)}
             </dl>
             <p className="text-xs text-slate-500">Thông tin này hiện chỉ đọc.</p>
           </section>
         ))}
         <section className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4">
-          <h2 className="font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3"><Calendar aria-hidden="true" className="w-5 h-5 text-sky-600" />Tham số thời hạn</h2>
+          <h2 className="font-bold text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm text-sky-700">3</span><Calendar aria-hidden="true" className="w-4 h-4 text-sky-600" />Tham số thời hạn</h2>
           {(Object.keys(daySettingLabels) as DaySettingKey[]).map(key => <DaySettingForm key={key} settingKey={key} setting={result.data.find(setting => setting.key === key)} onSaved={saved} onAuthFailure={() => void refresh()} />)}
           <p className="text-sm text-slate-500">Mỗi nút chỉ lưu tham số tương ứng. Không sửa thời hạn trên hóa đơn hoặc hợp đồng đã phát sinh.</p>
         </section>

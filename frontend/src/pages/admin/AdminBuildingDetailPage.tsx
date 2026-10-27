@@ -5,6 +5,8 @@ import { ChevronRight, MapPin, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { BuildingRoomMatrix } from '@/features/room-management/BuildingRoomMatrix'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { getBuilding } from '@/features/buildings/api'
 import { BuildingForm } from '@/features/buildings/BuildingForm'
@@ -22,6 +24,7 @@ export function AdminBuildingDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
+  const [tab, setTab] = useState<'matrix' | 'utility' | 'info'>('matrix')
   useEffect(() => {
     const controller = new AbortController()
     getBuilding(buildingId ?? '', controller.signal)
@@ -40,9 +43,10 @@ export function AdminBuildingDetailPage() {
       <div className="min-w-0"><div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone={building.status === 'active' ? 'emerald' : 'slate'} dot>{building.status === 'active' ? 'Đang hoạt động' : 'Ngừng hoạt động'}</Badge><span className="text-xs text-slate-400">Mã cơ sở: #{building.id}</span></div><h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 break-words">{building.name}</h1><p className="text-xs sm:text-sm text-slate-500 flex items-start gap-1.5 mt-1"><MapPin className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" /><span className="break-words">{building.address}</span></p></div>
       <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
     </div>
-    <section className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-5"><h2 className="font-bold text-base text-slate-900">Thông tin tòa nhà</h2><dl className="grid sm:grid-cols-2 gap-5 text-sm"><div><dt className="text-slate-500 text-xs">Số tầng</dt><dd className="mt-1 font-semibold text-slate-900">{building.total_floors}</dd></div><div><dt className="text-slate-500 text-xs">Tọa độ (vĩ độ, kinh độ)</dt><dd className="mt-1 text-slate-900 break-words">{building.latitude ?? 'Chưa có vĩ độ'}, {building.longitude ?? 'chưa có kinh độ'}</dd></div><div className="sm:col-span-2"><dt className="text-slate-500 text-xs">Mô tả</dt><dd className="mt-1 text-slate-900 whitespace-pre-wrap break-words">{building.description || 'Chưa có mô tả.'}</dd></div></dl></section>
-    <AmenityAssignmentPanel key={building.id} targetType="buildings" targetId={building.id} archivedVisibility="show" />
-    <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800">Sơ đồ phòng theo tầng chưa được tích hợp.</section>
+    <Tabs tabs={[{ id: 'matrix', label: 'Sơ đồ phòng theo tầng' }, { id: 'utility', label: 'Biểu giá điện nước' }, { id: 'info', label: 'Thông tin tòa nhà' }]} activeTab={tab} onChange={setTab} />
+    <div hidden={tab !== 'matrix'}><BuildingRoomMatrix key={building.id} buildingId={building.id} totalFloors={building.total_floors} /></div>
+    {tab === 'info' && <><section className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5"><h2 className="font-bold text-base text-slate-900">Thông tin tòa nhà</h2><dl className="grid sm:grid-cols-2 gap-5 text-sm"><div><dt className="text-slate-500 text-xs">Số tầng</dt><dd className="mt-1 font-semibold text-slate-900">{building.total_floors}</dd></div><div><dt className="text-slate-500 text-xs">Tọa độ (vĩ độ, kinh độ)</dt><dd className="mt-1 text-slate-900 break-words">{building.latitude ?? 'Chưa có vĩ độ'}, {building.longitude ?? 'chưa có kinh độ'}</dd></div><div className="sm:col-span-2"><dt className="text-slate-500 text-xs">Mô tả</dt><dd className="mt-1 text-slate-900 whitespace-pre-wrap break-words">{building.description || 'Chưa có mô tả.'}</dd></div></dl></section><AmenityAssignmentPanel key={building.id} targetType="buildings" targetId={building.id} archivedVisibility="show" /></>}
+    {tab === 'utility' && <section className="rounded-2xl border border-sky-100 bg-white p-6 space-y-3"><h2 className="font-bold text-slate-900">Biểu giá điện nước theo tòa</h2><p className="text-sm text-slate-600">Chưa có API giá riêng cho tòa nhà. Chức năng cấu hình tại đây chưa khả dụng.</p><Link to="/admin/utility-prices" className="text-sm font-semibold text-sky-700 underline">Xem lịch sử giá chung hiện hành</Link></section>}
     <Modal isOpen={editing} onClose={close} title="Sửa thông tin tòa nhà" maxWidth="lg"><BuildingForm key={building.id} building={building} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setBuilding(updated); setEditing(false); setSuccess('Đã lưu thông tin tòa nhà.') }} /></Modal>
   </div>
 }

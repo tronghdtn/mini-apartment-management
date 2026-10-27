@@ -5,6 +5,8 @@ import { ChevronRight, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
+import { RoomContractsPanel } from '@/features/contracts/RoomContractsPanel'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
 import { getRoom } from '@/features/room-management/api'
@@ -24,6 +26,7 @@ export function AdminRoomDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
+  const [tab, setTab] = useState<'info' | 'contracts' | 'utilities' | 'maintenance' | 'appointments'>('info')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -59,7 +62,8 @@ export function AdminRoomDetailPage() {
         </div>
         <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
       </div>
-      <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-5">
+      <Tabs tabs={[{ id: 'info', label: 'Thông tin phòng' }, { id: 'contracts', label: 'Hợp đồng' }, { id: 'utilities', label: 'Điện nước' }, { id: 'maintenance', label: 'Sửa chữa' }, { id: 'appointments', label: 'Lịch xem phòng' }]} activeTab={tab} onChange={setTab} />
+      <div hidden={tab !== 'info'} className="space-y-6"><section className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-5">
         <h2 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h2>
         <dl className="grid grid-cols-2 lg:grid-cols-4 gap-5 text-sm">
           <div><dt className="text-xs text-slate-500">Giá thuê niêm yết</dt><dd className="font-bold text-sky-700 mt-1 break-words">{formatVND(room.base_price)}</dd></div>
@@ -70,10 +74,9 @@ export function AdminRoomDetailPage() {
         </dl>
       </section>
       <AmenityAssignmentPanel key={room.id} targetType="rooms" targetId={room.id} archivedVisibility="show" />
-      <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
-        <p>Hợp đồng, chỉ số điện nước, sửa chữa, lịch xem và ảnh phòng chưa được tích hợp.</p>
-        <p>Trang phòng công khai vẫn dùng dữ liệu minh họa. Giá niêm yết tại đây không sửa các hợp đồng đã ký.</p>
-      </section>
+      <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. Ảnh phòng chưa được tích hợp.</p></div>
+      {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
+      {['utilities', 'maintenance', 'appointments'].includes(tab) && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'utilities' ? 'Chỉ số điện nước' : tab === 'maintenance' ? 'Yêu cầu sửa chữa' : 'Lịch xem phòng'}</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
       <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
         <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
       </Modal>

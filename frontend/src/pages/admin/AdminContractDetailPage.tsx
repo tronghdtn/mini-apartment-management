@@ -4,6 +4,7 @@ import { ChevronRight, Lock, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { Tabs } from '@/components/ui/Tabs'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND, formatDate } from '@/lib/format'
 import { deleteDraftContract, getContract } from '@/features/contracts/api'
@@ -24,6 +25,7 @@ export function AdminContractDetailPage() {
   const [busy, setBusy] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const inFlight = useRef(false)
+  const [tab, setTab] = useState<'info' | 'services' | 'terms' | 'invoices'>('info')
   useEffect(() => {
     const controller = new AbortController()
     getContract(contractId ?? '', controller.signal)
@@ -52,7 +54,8 @@ export function AdminContractDetailPage() {
       {contract.status === 'draft' && <div className="flex flex-wrap gap-2"><Link to={`/admin/contracts/${contract.id}/edit`}><Button variant="outline" icon={<Pencil className="w-4 h-4" />}>Sửa bản nháp</Button></Link><Button variant="danger" icon={<Trash2 className="w-4 h-4" />} onClick={() => { setDeleteError(''); setDeleting(true) }}>Xóa bản nháp</Button></div>}
     </div>
     {contract.status === 'active' && <p className="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-2 text-sm text-slate-600"><Lock className="w-4 h-4 shrink-0 mt-0.5" />Hợp đồng đang hiệu lực: thông tin phòng, người thuê, thời hạn, tiền thuê và cọc chỉ đọc.</p>}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'invoices', label: 'Lịch sử hóa đơn' }]} activeTab={tab} onChange={setTab} />
+    <div hidden={tab !== 'info'}><div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4"><h2 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Thời hạn và tài chính</h2><dl className="divide-y divide-slate-100 text-sm">
         <div className="py-3 flex flex-wrap justify-between gap-2"><dt className="text-slate-500">Ngày bắt đầu</dt><dd className="font-semibold text-slate-800">{formatDate(contract.start_date)}</dd></div>
         <div className="py-3 flex flex-wrap justify-between gap-2"><dt className="text-slate-500">Ngày cuối được ở</dt><dd className="font-bold text-slate-900">{formatDate(contract.end_date)}</dd></div>
@@ -69,7 +72,9 @@ export function AdminContractDetailPage() {
         <div className="py-3"><dt className="text-slate-500">Ghi chú</dt><dd className="text-slate-700 whitespace-pre-wrap break-words mt-1">{contract.note || 'Không có ghi chú.'}</dd></div>
       </dl></section>
     </div>
-    <ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} />
+    </div>
+    <div hidden={tab !== 'services'}><ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} /></div>
+    {(tab === 'terms' || tab === 'invoices') && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'terms' ? 'Điều khoản đã thỏa thuận' : 'Lịch sử hóa đơn'}</h2><p className="mt-2 text-sm text-slate-500">Dữ liệu này chưa được cung cấp qua API tại đây.</p></section>}
     <p className="p-4 bg-sky-50 border border-sky-100 rounded-2xl text-sm text-sky-800">Kích hoạt, thay dịch vụ hợp đồng hiệu lực, điều khoản bồi thường, thanh lý, chỉ số và hóa đơn chưa được tích hợp tại trang này.</p>
     <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p><p className="text-xs text-slate-500">Nếu đã chọn dịch vụ cho bản nháp, hãy gỡ và lưu dịch vụ trước khi xóa.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
   </div>
