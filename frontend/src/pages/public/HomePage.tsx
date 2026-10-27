@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router'
 import { Search, Sparkles, ArrowRight, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { RoomCard } from '@/features/rooms/RoomCard'
+import { HomeInformationSections } from '@/features/rooms/HomeInformationSections'
 import { getPublicRoomOptions, getPublicRooms } from '@/features/rooms/api'
 import { emptyRoomFilters, roomSearch } from '@/features/rooms/schemas'
 import type { PublicRoomOptions, PublicRoomPage } from '@/features/rooms/types'
@@ -27,18 +28,19 @@ export function HomePage() {
       .catch(failure => { if (!controller.signal.aborted) setOptionsError(apiErrorMessage(failure)) })
     return () => controller.abort()
   }, [revision])
-  const reload = () => { setError(''); setOptionsError(''); setRevision(value => value + 1) }
-  return <div className="space-y-12 sm:space-y-16 pb-16">
+  const reload = () => { setError(''); setOptionsError(''); setResult(null); setOptions(null); setRevision(value => value + 1) }
+  return <div className="space-y-16 sm:space-y-24 pb-16">
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-white shadow-2xl">
         <div aria-hidden="true" className="absolute top-0 right-0 w-80 h-80 rounded-full bg-sky-500/20 blur-3xl pointer-events-none" />
+        <div aria-hidden="true" className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-teal-500/15 blur-3xl pointer-events-none" />
         <div className="relative px-6 py-12 sm:px-12 sm:py-16 lg:py-20 max-w-4xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-300 text-xs font-semibold uppercase tracking-wider mb-5">
             <Sparkles aria-hidden="true" className="w-4 h-4" />Hệ thống chung cư mini</div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">Tìm Không Gian Sống <span className="text-sky-300">Phù Hợp Với Bạn</span>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">Tìm Không Gian Sống <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-sky-200 to-teal-300">Phù Hợp Với Bạn</span>
           </h1>
           <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed">Xem thông tin phòng đang cho thuê, giá niêm yết và tiện nghi được cập nhật từ hệ thống quản lý.</p>
-          <form onSubmit={event => { event.preventDefault(); const prices = selectedPrice === 'under-3.5m' ? { max_price: '3499999' } : selectedPrice === '3.5m-4.5m' ? { min_price: '3500000', max_price: '4500000' } : selectedPrice === 'above-4.5m' ? { min_price: '4500001' } : {}; navigate(`/rooms?${roomSearch({ ...emptyRoomFilters, ...prices, building_id: selectedBuilding })}`) }} className="mt-8 p-4 rounded-2xl bg-white text-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-xl">
+          <form onSubmit={event => { event.preventDefault(); const prices = selectedPrice === 'under-3.5m' ? { max_price: '3499999' } : selectedPrice === '3.5m-4.5m' ? { min_price: '3500000', max_price: '4500000' } : selectedPrice === 'above-4.5m' ? { min_price: '4500001' } : {}; navigate(`/rooms?${roomSearch({ ...emptyRoomFilters, ...prices, building_id: selectedBuilding })}`) }} className="mt-8 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-white/20 text-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-xl">
             <div>
               <label htmlFor="home-building" className="block text-sm font-semibold mb-1">Tòa nhà</label>
               <select id="home-building" value={selectedBuilding} disabled={!options} onChange={event => setSelectedBuilding(event.target.value)} className="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
@@ -82,11 +84,12 @@ export function HomePage() {
         </p>
         <Button variant="outline" onClick={reload}>Thử lại</Button>
       </div> : !result ? <p role="status" className="text-slate-500 py-8">Đang tải phòng cho thuê…</p> : result.data.length ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {result.data.slice(0, 4).map(room => <RoomCard key={room.id} room={room} />)}
+        {result.data.slice(0, 6).map(room => <RoomCard key={room.id} room={room} />)}
       </div> : <div className="rounded-3xl bg-white border border-slate-200 p-10 text-center text-slate-500">
         <Building2 aria-hidden="true" className="w-10 h-10 mx-auto mb-3 text-slate-400" />
         <p>Hiện chưa có phòng công khai đang cho thuê.</p>
       </div>}
     </section>
+    <HomeInformationSections options={options} error={optionsError} onRetry={reload} />
   </div>
 }

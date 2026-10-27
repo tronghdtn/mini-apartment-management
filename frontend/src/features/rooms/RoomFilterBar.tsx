@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/Button'
 import { publicRoomFiltersSchema } from './schemas'
@@ -19,7 +19,7 @@ const numericFields = [
 ] as const
 
 export function RoomFilterBar({ filters, options, onApply, onReset }: RoomFilterBarProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm<PublicRoomFilters>({
+  const { register, control, handleSubmit, formState: { errors } } = useForm<PublicRoomFilters>({
     resolver: zodResolver(publicRoomFiltersSchema), defaultValues: filters,
   })
   const inputClass = 'w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm focus:outline-sky-500'
@@ -34,13 +34,13 @@ export function RoomFilterBar({ filters, options, onApply, onReset }: RoomFilter
       </div>
       <div>
         <label htmlFor="public-room-building" className="block text-sm font-semibold mb-1">Tòa nhà</label>
-        <select id="public-room-building" {...register('building_id')} disabled={!options} className={inputClass}>
+        <Controller control={control} name="building_id" render={({ field }) => <select id="public-room-building" {...field} disabled={!options} className={inputClass}>
           <option value="">Tất cả tòa nhà</option>
           {filters.building_id && !options?.buildings.some(building => String(building.id) === filters.building_id) && <option value={filters.building_id}>Tòa nhà #{filters.building_id}
           </option>}{options?.buildings.map(building => <option key={building.id} value={building.id}>
             {building.name}
           </option>)}
-        </select>
+        </select>} />
         {errors.building_id && <p role="alert" className="text-xs text-rose-700">
           {errors.building_id.message}
         </p>}
