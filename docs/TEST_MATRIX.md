@@ -78,3 +78,43 @@ Kết quả PERF-01: Plan§12.21 ghi số đo cuối, hồi quy UI/API và ca ch
 Kết quả mục tiêu cuối10test/230assertion PASS. Lần đầu9/212 trước bổ sung quyền/tệp chỉ là trung gian. Test isolation file trước sửa **404 mong đợi/200 thực tế** với URL local ký; không ký đã403. Tách root private sang storage/app/evidence, local giữ nguyên storage/app/private; sau sửa cả URL ký/không ký không đọc được tệp private. Không sửa framework hoặc tuyên bố unsigned URL trước đó đọc được. Tệp test đã xóa bằng finally. Fullsuite/style/snapshot cuối ghi tại Plan§12.22 khi hoàn tất.
 
 Chốt mã cuối: full1178test/10014assertion, Pint227file PASS; frontend71/build/lint0lỗi9cảnhbáocũ. Sau fullsuite: hai bảng pending đã gỡ khỏi DB test, không còn tệp evidence fixture; snapshot dev khớp20 bảng/16 migration. Chi tiết/giới hạn Plan§12.22. Chưa nghiệm thu UI/live API U2 vì chưa có bề mặt đó.
+
+## AG-UI — đối chiếu52 nguồn, layout5vai trò và bảo toàn API
+
+Nguồn/trace: yêu cầu trực tiếp27/10, SCREEN_INVENTORY§7–8, Plan§12.23; prototype52file, không tính SYS03 chính thức vào mẫu số. Dùng gpt-6-luna cho tester theo lựa chọn đã lưu. Root thực hiện browser CUA nối bản build chính thức/Nginx DB test và prototype Vite riêng; không dùng quyền demo làm bằng chứng Auth chính thức.
+
+| ID / mức | Kịch bản | Tiêu chí |
+|---|---|---|
+| AG-T01 P0 | Kiểm kê tất cả file nguồn, mapping/export/route/guard, hash nguồn trước/sau | Đúng52nguồn và không file sót; không sửa prototype, không tính file tồn tại thành UI đầy đủ |
+| AG-T02 P0 | Guest/Admin/Resident/Technician/Guard login/F5/logout và mở URL sai role | Me thật; cấm role-switch/demo; sai quyền403, Guestlogin; Technician không mở lịch Guard và ngược lại |
+| AG-T03 P1 | So source/chính thức desktop1440×900 và390×844: AdminSidebar, Resident/Staffheader/footer nav | Sidebar trắng/skyactive/headertrắng; fontskytealđúng; không emerald/darkamber cũ, không overflow |
+| AG-T04 P1 | Menu mobile, thu gọn desktop, Escape/Tab/modal;640–767px navbarpublic | Menu không mất ở breakpoint; mở/đóng/focus/bànphím, nav có đích thật, modal không thoát focus |
+| AG-T05 P0 | Hồ sơGuest/Admin/Resident/Staff, NULL email; readonly/disabled chỉnh sửa | Tên/SĐT/email/role từ me, không phòng/CCCD/tòa/Đangtrực mẫu; không lưu giả hoặc nhận mật khẩu khi chưa API |
+| AG-T06 P0 | Admin Residents filter/search/paging/clear, vào accountdetail; Users tạo/name/status hồi quy | Residents dùng role=resident, tìnhtrạngthuê riêng; clear không mất role; APIs/validation/CSRF thật giữ nguyên |
+| AG-T07 P1 | Mọi route mới: list/detail, tabs, form preview, back, bell, directURL/F5 | Có route đúng role; chưaAPI khác noresults; sốliệu—, lưu khóa, không chụp mock/claim nghiệp vụ hoàn tất |
+| AG-T08 P0 | Những trang API đang chạy: buildings/rooms/amenities/services/prices/contracts/settings | Không fallback/mock, lỗi/empty/retry giữ nguyên; modal/formRHF/snapshot/services/saveddata không bị thay |
+| AG-T09 P1 | Kiểm tra từ prototype: public filter URL, detailID, booking/contact/FAQ/thumbnail | Giữ APIcanonical/cọc thật; không hotlines/giá/QR/ảnh/claims giả hoặc querysource không hợp lệ |
+| AG-T10 P1 | Build/lint/tests, bundle lazy và Reactconsole; snapshot dev và cleanup test | Ghi số thực chạy; không bỏ tests/hạ rule; không devmigration/seeder hoặc ghi nghiệp vụ dev |
+
+Kịch bản chạy theo nhóm: S1layout/Auth (T01–05), S2Admin API (T06/08), S3route/chưaAPI (T02/07), S4Public (T04/09), S5hồi quy/bảo toàn (T10). Không gộp source-review/unit/API thành kiểm thử thị giác. Các màn chưa đầy đủ bố cục/form/flow sẽ vẫn ghi UI một phần, dù tất cả file đã có route.
+
+Kết quả AG-UI27/10 (phân biệt mức bằng chứng):
+- T01: đối chiếu nguồn52/52, file/route/exports và78hash prototype không đổi; chưa phải visual52màn.
+- T02/T03/T05: browser đăng nhập cả5vai trò; hồ sơ me/role thực và layout mới Desktop/Mobile. Guest và staff đăng xuất thật; ResidentF5 giữ phiên trên hostlocalhost; Technician→Guard và Guard→Technician bị403; Resident→Admin bị403. Không báo đã F5 ở mọi route hoặc thử mọi tài khoản locked qua browser.
+- T04: Admin drawer/Modal sửa tòa đã thử ShiftTab/Escape/focusreturn; Public640menu mở thật. Phát hiện768header xuống dòng, đã đổi desktop nav/actions sanglg và menu tài khoản gọn, cần xác minh lại bản cuối. Không phải mọi modal/page đã được duyệt accessibility.
+- T06/T08: LiveAPI5role read_permissions/login/me/logout PASS; roomspagination23/phòng/hợp đồng và residentrole filter PASS. Browsermatrix23, roomdraft đúngdata, contractservice tab đọc, residentssearch/clear giữrole. Chưa kiểm lại toàn bộ createStaff/update/status/saveServices/settingswrite hoặc wizard cũ.
+- T07: route/export52 nguồn đã review; Guard lịch/tab có—và chưa nguồn, không0/emptygiả. Các khung dùng chung vẫn chưa đủ UI chi tiết; không đánh đồng buildPASS với nghiệp vụ đã hoạt động.
+- T09: Contact bỏ dữ liệu mẫu và claims; profile Guest me. Registerformrỗng hiện lỗi đúng ô, không tạo user; Login/403/404 đang nghiệm thu giao diện. Chưa kiểm toàn bộ filter/detail/bookflow Public trong đợt này.
+- T10: frontend72/build PASS, lint0lỗi8cảnhbáocũ; backend1178/10014/Pint227 trước fixture. Snapshotdev20bảng16migration không đổi; cleanup fixture ghi ở Plan khi kết thúc. Có lỗi chunk404 chủ động do thaybuild trong phiên, reloadphục hồi; không coi toàn bộ console phiên cũ sạch lỗi.
+
+Đây là một đợt tích hợp layout, chưa là releaseGo hoặc nghiệm thu FullMVP. Những dòng Chưa ở trên vẫn là ca cần chạy/triển khai, không bị xóa khỏi matrix.
+
+### AG-T11 — Trang chủ, các khối Antigravity3–7
+
+Sau checkpoint UI1950d1a/rooms562bc67/publiceaf73d3, tiếp tục Home trong AG-UI-04: giữ API/form hiện có; thêm lợi ích, chi phí chưa công bố, bốn bước tìm hiểu, tòa nhà có phòng công khai và CTA cuối trang theo source. Không khôi phục giá/ảnh/hotline/lịch hoặc cam kết mẫu.
+
+Ca cần kiểm tra: (1) DB test21phòng công khai, Home hiện đúng tổng và6card đầu theo prototype; roomoccupied/private không xuất hiện. (2) Hero chọn tòa và ngân sách → querysnake_case đúng, list thật; tòa showcase link cùngbuilding_id, khôngbuildingId. (3) Đủ7khối, nguồn Antigravity không đổi, phí chưa công bố khácgiá0; không gọiđặt lịch/kýonline đã hoạt động. (4) Desktop1440 vàMobile390/640/768: không tràn, card/CTA/cột hợp lý. (5) Empty thật sau dọn fixture; error/retry giữ xử lý cũ, abortguard không mất. Kiểm tra tự động/build/lint và ghi riêng ca browser chưa thực hiện.
+
+AG-T12 P0 — ô chọn tòa khi options tải bất đồng bộ: đã tái hiện trước sửa, URLbuilding_id=30 nhưng dropdown hiển thị Tất cả sau options200. Select dùng register không kiểm soát giá trị; option tạm bị thay khi có danh sách thật khiến native DOM chọn optionđầu. Đổi riêng building_id sang Controller của RHF để giá trị form điều khiển select. Cần kiểm: đi từ Hero/showcase, tải URL trực tiếp vàF5 giữ tòa; bấmÁp dụng không mất building_id; đổi tòa thànhTấtcả vàXóa bộ lọc vẫn xóa đúng. Không sửa schema/endpoint/SQLfilters hoặc số tiền; NodeURLtests vẫn giữ nguyên, không dùng unit chuỗi thay browser cho lỗi DOM này.
+
+ChốtAG-T11/12:72test/build PASS/lint0lỗi8cảnhbáocũ. Browser đã thấy6card/tổng21/7section, Hero/showcasequerycanonical, filters503→error→restorebyte/hash→Thửlại loading→dữ liệu thật hồi phục. Controllergiữtòa sauoptionsloaded/Áp dụng/F5; Tấtcả vàclear xóaquery đúng. SaucleanupHome0phòng/0fixture vẫn7section. Ảnh/log ignored ở backups/antigravity-integration-20261027; không nghiệm thu giá công khai/ảnh/booking hoặc mọi tổ hợpfilter. Public768và1024bản cuối đã xác minh sửaheader; SettingsskinDesktop/Mobile/invalid0 đã kiểm, valid-save chỉ có bằng chứng lịch sử§12.20, chưa chạy lại trong đợt này. Chi tiếtcleanup/snapshot/localcommits tại Plan§12.23.
