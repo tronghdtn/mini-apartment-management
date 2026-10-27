@@ -1,12 +1,14 @@
 # 09 — DATABASE DESIGN — MINI APARTMENT MANAGEMENT
 
+> **Bổ sung27/10, DB-D64:** thiết kế mở rộng thành **22 bảng nghiệp vụ** bằng meter_reading_submissions (§3.22), chỉ chuẩn bị/kiểm thử DB test. Không phê duyệt migration dev. Các mốc21 bảng bên dưới là baseline lịch sử; U2 không tự phê duyệt phần thanh lý hoặc U3. Alias ảnh mới meter_reading_submission, collection meter_reading_photo, disk private; chưa có endpoint upload/download trong lượt chuẩn bị.
+
 > **Cập nhật đã duyệt 22/10/2026 — v1.6, DB-D51:** email đăng ký là tùy chọn; schema mục 3.1 và checklist đã cập nhật. Thay đổi được triển khai bằng migration ALTER mới, không sửa migrations đã commit; **đã áp dụng riêng trên DB dev theo phê duyệt bước 3.5**, DB plan §16. Các ghi chép baseline 14/10 bên dưới là lịch sử thiết kế.
 
 | Thuộc tính | Giá trị |
 |---|---|
 | Trạng thái | Thiết kế đã duyệt; tiến độ triển khai/kiểm thử từng đợt ở `DATABASE_IMPLEMENTATION_PLAN.md`. DB-D51 đã kiểm thử DB test và áp dụng riêng dev (batch 3); Nhóm 2–3 vẫn chỉ test, xem DB plan §16 |
-| Phiên bản | **1.6** — 22/10/2026: DB-D51 (email tùy chọn), giữ baseline DB-D01..DB-D50. Cấu trúc hợp đồng/thanh lý chưa chốt vẫn ở `DATABASE_IMPLEMENTATION_PLAN.md` §14. Lịch sử: §10 |
-| Phạm vi | **21 bảng chính**, 5 actor; một chủ nhà quản lý nhiều tòa nhà, không multi-tenant |
+| Phiên bản | **1.7** — 27/10/2026: DB-D64/U2 thêm bảng22, chỉ chuẩn bị/test; giữ DB-D51 và các quyết định đã chốt. Cấu trúc hợp đồng/thanh lý còn mở ở `DATABASE_IMPLEMENTATION_PLAN.md` §14. Lịch sử: §10 |
+| Phạm vi | **22 bảng chính** theo DB-D64, 5 actor; một chủ nhà quản lý nhiều tòa nhà, không multi-tenant |
 | Nguồn | `02_SYSTEM_DISCOVERY.md` v0.10 (04/10/2026); quyết định bổ sung 13–14/10/2026 trong `DB_DECISIONS_20261014.md` |
 | Ưu tiên khi xung đột | (1) quyết định mới trong `DB_DECISIONS_20261014.md`; (2) bản thiết kế này; (3) `02_SYSTEM_DISCOVERY.md` v0.10 và các tài liệu `03`–`08` ở các phần không xung đột |
 
@@ -23,7 +25,7 @@
 7. **Mã nghiệp vụ:** `HD-YYYY-NNNN`, `INV-YYYYMM-NNNN`, `RCP-YYYYMM-NNNN`, `MR-YYYYMM-NNNN`, `APT-YYYYMM-NNNN`: `NNNN` là **ID tự tăng đệm tối thiểu 4 chữ số, không reset theo tháng/năm** (ID ≥ 10000 thì dài hơn). Cột mã **NULL được** trước khi sinh, gán trong **cùng transaction** với thao tác sinh mã, unique index; không dùng MAX()+1. Hợp đồng sinh mã khi **kích hoạt**, hóa đơn khi **phát hành**, biên nhận khi **xác nhận thanh toán**, yêu cầu sửa chữa/lịch hẹn ngay khi tạo (DB-D13).
 8. **Quy ước tên và tính toán:** `snake_case` cho bảng/cột; `created_at`, `updated_at` cho các bảng nghiệp vụ trừ pivot thuần và `sessions` theo mặc định Laravel. `billing_type` của `services` không quyết định nghĩa vụ thanh toán nếu chưa đăng ký ở `contract_services`.
 
-## 2. Danh sách đúng 21 bảng
+## 2. Danh sách 22 bảng sau DB-D64
 
 | STT | Bảng | Nhóm |
 |---:|---|---|
@@ -48,8 +50,9 @@
 | 19 | `notifications` | thông báo Laravel |
 | 20 | `settings` | cấu hình nghiệp vụ |
 | 21 | `sessions` | phiên đăng nhập Sanctum SPA |
+| 22 | `meter_reading_submissions` | yêu cầu chỉ số chờ duyệt, tách khỏi chỉ số tính tiền |
 
-Các bảng hạ tầng khác do Laravel cần (`migrations`, `cache`, `jobs` ... tùy config) **không tính vào 21**. Các bảng SHOULD/FUTURE (`contact_requests`, `activity_logs`, `maintenance_status_logs`, `personal_access_tokens`) không tự thêm vào đợt triển khai hiện tại.
+Các bảng hạ tầng khác do Laravel cần (`migrations`, `cache`, `jobs` ... tùy config) **không tính vào 22**. Các bảng SHOULD/FUTURE (`contact_requests`, `activity_logs`, `maintenance_status_logs`, `personal_access_tokens`) không tự thêm vào đợt triển khai hiện tại.
 
 ## 3. Từ điển bảng và cột vật lý
 
@@ -127,9 +130,9 @@ Không tự xóa nhà khi còn phòng/hợp đồng. `rooms.floor_number` phải
 | Cột | MySQL | Ràng buộc |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
-| `attachable_type` | VARCHAR(100) | NN, dùng Laravel morphMap cố định `room/maintenance_request/payment` |
+| `attachable_type` | VARCHAR(100) | NN, morphMap cố định `room/maintenance_request/payment`; U2 thêm `meter_reading_submission` |
 | `attachable_id` | BIGINT UNSIGNED | NN |
-| `collection` | VARCHAR(50) | NN, `room_gallery/maintenance_photo/payment_proof` |
+| `collection` | VARCHAR(50) | NN, `room_gallery/maintenance_photo/payment_proof`; U2 thêm `meter_reading_photo` |
 | `disk` | VARCHAR(20) | NN, `public/private` |
 | `path` | VARCHAR(500) | NN |
 | `original_name` | VARCHAR(255) | NN |
@@ -336,6 +339,24 @@ Index `(room_id,preferred_at)`, `(status,preferred_at)`, `(user_id,created_at)`,
 
 Bám migration mặc định Laravel phiên bản đã cài: `id VARCHAR(255) PK`, `user_id BIGINT UNSIGNED NULL`, `ip_address VARCHAR(45) NULL`, `user_agent TEXT NULL`, `payload LONGTEXT NN`, `last_activity INT NN` và index `user_id`, `last_activity`. `SESSION_DRIVER=database`; Sanctum SPA cookie + CSRF; không cần thêm `personal_access_tokens` cho web MVP.
 
+### 3.22 `meter_reading_submissions` (timestamps) — DB-D64
+
+| Cột | MySQL | Ràng buộc |
+|---|---|---|
+| id | BIGINT UNSIGNED | PK |
+| room_id, contract_id, service_id | BIGINT UNSIGNED | NN, FK tương ứng RESTRICT |
+| period, reading_date | DATE | NN; kỳ tiêu thụ/ngày ghi, kiểm tra nghiệp vụ ở Service |
+| current_reading | DECIMAL(10,2) | NN; không dùng float |
+| status | VARCHAR(20) | NN DEFAULT pending; pending/approved/rejected |
+| submitted_by | BIGINT UNSIGNED | NN, FK users RESTRICT, server gán |
+| reviewed_by | BIGINT UNSIGNED | NULL, FK users RESTRICT, server gán |
+| reviewed_at | TIMESTAMP | NULL, UTC |
+| rejection_reason | TEXT | NULL; bắt buộc khi từ chối ở Service |
+| approved_meter_reading_id | BIGINT UNSIGNED | NULL, UNIQUE FK meter_readings RESTRICT |
+| pending_slot | TINYINT UNSIGNED generated STORED | 1 khi pending, NULL các trạng thái khác |
+
+UNIQUE `(room_id,service_id,period,pending_slot)` chặn một yêu cầu pending cho cùng phòng/dịch vụ/kỳ, cho phép giữ nhiều bản đã xử lý và gửi lại sau từ chối. Index `(contract_id,period)` và `(status,created_at)` phục vụ lịch sử/hàng chờ. M19 attachments giữ đúng cấu trúc§3.7; quan hệ đa hình cho U2 dùng alias/collection đã nêu, không FK SQL đa bảng. Ảnh U2 private, chỉ Admin hoặc cư dân chủ yêu cầu được đọc theo Policy; cấu hình disk private không có URL/serve/symlink public. Không thêm field giá/tiền vào yêu cầu, không thay chỉ số/hóa đơn đã lưu. Quy tắc âm/ngày/quy trình xử lý thuộc Request/Service sau, không thêm CHECK ngoài DB-D20.
+
 ## 4. Quan hệ ERD và phân tách đồ họa
 
 ```mermaid
@@ -505,6 +526,7 @@ ALTER TABLE invoices
 
 | Phiên bản | Ngày | Thay đổi |
 |---|---|---|
+| 1.7 | 27/10/2026 | DB-D64/U2: thêm meter_reading_submissions, thiết kế22 bảng; pending tách chỉ số chính thức, giữ lịch sử/FK RESTRICT, ảnh private theo chủ yêu cầu/Admin. Chỉ chuẩn bị/test, không migration dev. |
 | 1.6 | 22/10/2026 | DB-D51 (CONFIRMED): email đăng ký tùy chọn, `users.email` nullable và giữ UNIQUE; `phone` vẫn NOT NULL UNIQUE. Migration ALTER mới; chặn rollback nếu còn NULL; thêm DB-42..DB-44. Chưa chạy trên DB dev. |
 | 1.0 | 14/10/2026 | Baseline 21 bảng / 5 actor (thay bản thảo 13/10). |
 | 1.5 | 14/10/2026 | Đồng bộ DB-D43..DB-D50: **đảo O7** — `end_date` là ngày cuối được ở (inclusive), đúng hạn `actual_end_date = end_date + 1`; mã thanh lý `on_time`/`early_termination`/`same_day` nhất quán với ngày bàn giao; bồi thường trước hạn 3 loại, tự tính, bất biến; miễn bồi thường theo điều kiện trong hợp đồng; kiểm tra tài sản bắt buộc, khoản tài sản tách riêng trên `final`; Nhóm 4 + index O11. Viết lại DB-34, thêm DB-37..DB-41. Cấu trúc lưu chờ duyệt (P1–P12). |

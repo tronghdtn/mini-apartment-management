@@ -12,7 +12,7 @@ File này là **nguồn quy tắc dùng chung duy nhất** cho mọi agent (Code
 
 **Nguồn sự thật — thứ tự ưu tiên khi mâu thuẫn:**
 1. `docs/DB_DECISIONS_20261014.md` — quyết định ghi đè (số bảng, số actor, tiền, timezone, tiện nghi/dịch vụ, BR-SVC-04…).
-2. `docs/09_DATABASE_DESIGN.md` — thiết kế vật lý 21 bảng, quy tắc tính tiền, checklist test DB-01..DB-41.
+2. `docs/09_DATABASE_DESIGN.md` — baseline21 bảng, mở rộng22 theo DB-D64/U2 chỉ chuẩn bị/test; quy tắc tính tiền và checklist DB.
 3. `docs/02_SYSTEM_DISCOVERY.md` v0.10, `PROJECT_CONTEXT.md`, docs `03`–`08` — chỉ ở phần **không** xung đột với (1)(2). *(Hiện chưa có trong repo.)*
 
 Tài liệu cũ hoặc sơ đồ còn ghi 20 bảng / 3 actor / tiền DECIMAL / dịch vụ trọn tháng / cột `type` điện nước là **lỗi thời** — không dùng để lập migration.
@@ -21,7 +21,7 @@ Spec module đã được duyệt quy định hành vi trong phần không mâu 
 
 ## 2. Công nghệ
 
-**Cập nhật 27/10/2026 (ưu tiên hơn trạng thái 24/10 ở trên):** ROOM-PUB list/detail/home và ADM-23 Cài đặt đã tích hợp API thật trên DB test (Plan §12.17/20). Backend hiện tại 1168 test/9784 assertion, Pint218 PASS; frontend71 test/build PASS, lint0 lỗi/9 cảnh báo cũ. Local commits ROOM-PUB bcb08a4, điều khoản/cọc 5167cd5, U1 2999554; không push. P4+P5-B và Q15 đã duyệt DB-D61/62, nền tảng nội bộ đã code/test; chưa có API kích hoạt/thu cọc/thanh lý. U1 đã duyệt DB-D63 chỉ chuẩn bị migration pending/test; API giá hiện hành vẫn global. U2/U3 chưa duyệt. Mọi migration dev vẫn cần duyệt riêng; snapshot dev cuối nguyên vẹn20 bảng/16 migration, không ghi nghiệp vụ dev. Nguồn thiết kế ui-antigravity-full/ đã được xác nhận, chỉ tích hợp chọn lọc vào frontend/ chính thức. Chưa có Sandbox thanh toán được xác nhận, không coi mô phỏng là kết nối thật. Chủ dự án cho phép tự local commit phần đã kiểm tra; không push/reset/rebase/xóa nhánh.
+**Cập nhật 27/10/2026 (ưu tiên hơn trạng thái 24/10 ở trên):** ROOM-PUB list/detail/home và ADM-23 Cài đặt đã tích hợp API thật trên DB test (Plan §12.17/20). Backend hiện tại1178 test/10014 assertion, Pint227 PASS; frontend71 test/build PASS, lint0 lỗi/9 cảnh báo cũ. Local commits ROOM-PUB bcb08a4, điều khoản/cọc 5167cd5, U1 2999554, Cài đặt c129fbd, hiệu năng e66c23f; không push. Tổng JS ban đầu sau tách18 trang quản trị617.63KB, giảm24.2%, gzip giảm15.3%; chưa đo thời gian mạng thật. P4+P5-B và Q15 đã duyệt DB-D61/62, nền tảng nội bộ đã code/test; chưa có API kích hoạt/thu cọc/thanh lý. U1 đã duyệt DB-D63 chỉ chuẩn bị migration pending/test; API giá hiện hành vẫn global. U2 đã duyệt DB-D64 trên DB test: chuẩn bị bảng22/M19 pending, model/Policy/disk private; chưa có API/UI gửi/duyệt ảnh. U3 chưa duyệt, giữ enum periodic/final hiện có. Mọi migration dev vẫn cần duyệt riêng; snapshot dev cuối nguyên vẹn20 bảng/16 migration, không ghi nghiệp vụ dev. Nguồn thiết kế ui-antigravity-full/ đã được xác nhận, chỉ tích hợp chọn lọc vào frontend/ chính thức. Chưa có Sandbox thanh toán được xác nhận, không coi mô phỏng là kết nối thật. Chủ dự án cho phép tự local commit phần đã kiểm tra; không push/reset/rebase/xóa nhánh.
 
 | Phần | Công nghệ |
 | --- | --- |
@@ -34,7 +34,7 @@ Spec module đã được duyệt quy định hành vi trong phần không mâu 
 
 **Không được tự ý:**
 - Thay đổi nghiệp vụ đã chốt. Nghiệp vụ đã chốt nằm trong `docs/`; nếu code hoặc yêu cầu mâu thuẫn với `docs/` hay chưa rõ, hỏi lại, không tự đoán.
-- Tạo migration/model của nhóm chưa được duyệt trong `docs/DATABASE_IMPLEMENTATION_PLAN.md`; chạy migration nghiệp vụ trên DB dev `mini_apartment` khi chưa được duyệt riêng (backup + `migrate --pretend` trước). Thêm/bớt bảng ngoài 21 bảng, hoặc đổi cột/kiểu/ràng buộc khác `docs/09_DATABASE_DESIGN.md`.
+- Tạo migration/model của nhóm chưa được duyệt trong `docs/DATABASE_IMPLEMENTATION_PLAN.md`; chạy migration nghiệp vụ trên DB dev `mini_apartment` khi chưa được duyệt riêng (backup + `migrate --pretend` trước). Thêm/bớt bảng ngoài thiết kế22 bảng sau DB-D64 (baseline21 + U2), hoặc đổi cột/kiểu/ràng buộc khác `docs/09_DATABASE_DESIGN.md`. U2/M19 chỉ chuẩn bị pending và kiểm thử DB test theo phê duyệt27/10; không suy quyền chạy dev hoặc hoàn thành HTTP/upload/duyệt.
 - Tạo bảng `roles`, `permissions`, `technicians`, `guards`… — vai trò nằm trong `users.role`.
 - Triển khai chức năng nghiệp vụ (hợp đồng, hóa đơn, thanh toán, phòng, sửa chữa…) khi chưa được yêu cầu cụ thể.
 - Tích hợp ngân hàng/cổng thanh toán.

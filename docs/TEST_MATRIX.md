@@ -60,3 +60,21 @@ Không sửa nghiệp vụ/API/database. Checkpoint trước sửa c129fbd; base
 Fixture tài khoản test riêng được dọn sau regression; không chạy schema tests khi fixture tồn tại. Đo dung lượng build không được gọi là đo thời gian người dùng tải/render trên mạng thật. Không cache dữ liệu tài chính hoặc điều chỉnh ngưỡng cảnh báo để che bundle lớn.
 
 Kết quả PERF-01: Plan§12.21 ghi số đo cuối, hồi quy UI/API và ca chunk503/phục hồi; frontend71/build/lint0lỗi9cảnhbáocũ. Guard và logout được kiểm tra lại trên bản cuối. Đã dọn năm tài khoản/phiên fixture, dừng hai container test, snapshot dev trước/sau khớp. Không kiểm thử hết18 luồng nghiệp vụ hoặc đo thời gian tải mạng thật.
+
+## U2 — nền tảng cấu trúc/quyền/tệp, DB-D64
+
+Đây là kiểm thử tự động nội bộ, chưa có màn hình hoặc API gửi/duyệt chỉ số. Test DDL không dùng RefreshDatabase: migrate mặc định chỉ DB test, assert hai bảng pending chưa tồn tại; apply tường minh, bắt đầu transaction fixture sau DDL, rollback fixture trước down. Theo dõi quyền sở hữu schema trước up để dọn được cả trạng thái DDL lỗi một phần; down từ chối khi còn lịch sử/metadata. Không chạy song song với fixture browser hoặc schema test khác.
+
+| ID | Kiểm tra | Bằng chứng |
+|---|---|---|
+| U2-T01 | Đúng cột/type/null/default, generated STORED, indexes M19/submissions; default migrate không tự áp dụng | PHPUnit MySQL |
+| U2-T02 | Pending trùng bị chặn, rejected giải phóng slot/gửi lại, khác kỳ/dịch vụ, giữ lịch sử | PHPUnit MySQL, dữ liệu trạng thái là fixture trực tiếp, chưa là thao tác duyệt |
+| U2-T03 | Sáu FK RESTRICT, FK sai, UNIQUE approved reading; không tự sinh reading/invoice/payment từ pending | PHPUnit MySQL |
+| U2-T04 | Decimal chuỗi/Enum/date/quan hệ/morph; ownership/status/review/path không mass-assign | PHPUnit |
+| U2-T05 | Guest/sai chủ/User/Technician/Guard/locked bị chặn; Admin hoặc chủ Resident đọc, chỉ Resident đang thuê tạo, lịch sử sau thanh lý vẫn đọc | Gate/Policy tự động; chưa HTTP nghiệp vụ |
+| U2-T06 | Disk private sai collection/parent/orphan bị chặn; không route/url/symlink public; URL local ký cũng không tìm thấy file private | Cấu hình + tệp UUID thật + HTTP framework test, không coi là kiểm thử download endpoint U2 |
+| U2-T07 | Down từ chối khi còn submissions hoặc metadata ảnh, không đổi rows; dọn test và down rỗng thành công | PHPUnit MySQL |
+
+Kết quả mục tiêu cuối10test/230assertion PASS. Lần đầu9/212 trước bổ sung quyền/tệp chỉ là trung gian. Test isolation file trước sửa **404 mong đợi/200 thực tế** với URL local ký; không ký đã403. Tách root private sang storage/app/evidence, local giữ nguyên storage/app/private; sau sửa cả URL ký/không ký không đọc được tệp private. Không sửa framework hoặc tuyên bố unsigned URL trước đó đọc được. Tệp test đã xóa bằng finally. Fullsuite/style/snapshot cuối ghi tại Plan§12.22 khi hoàn tất.
+
+Chốt mã cuối: full1178test/10014assertion, Pint227file PASS; frontend71/build/lint0lỗi9cảnhbáocũ. Sau fullsuite: hai bảng pending đã gỡ khỏi DB test, không còn tệp evidence fixture; snapshot dev khớp20 bảng/16 migration. Chi tiết/giới hạn Plan§12.22. Chưa nghiệm thu UI/live API U2 vì chưa có bề mặt đó.

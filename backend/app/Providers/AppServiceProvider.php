@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\MeterReadingSubmission;
 use App\Models\User;
 use App\Support\AuthIdentity;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         // Bổ sung 'room', 'maintenance_request', 'payment' khi tạo các Model tương ứng (docs/DATABASE_IMPLEMENTATION_PLAN.md).
         Relation::enforceMorphMap([
             'user' => User::class,
+            'meter_reading_submission' => MeterReadingSubmission::class,
         ]);
     }
 }

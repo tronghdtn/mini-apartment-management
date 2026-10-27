@@ -50,7 +50,7 @@ Tài khoản MySQL riêng `mini_apartment_test`, kết nối `mysql_test` gán c
 | 1 | M01–M05 | ✔ dev + test |
 | 2 | M06–M12 (M09 thêm `meter_gap_reason`, `meter_gap_confirmed_by` — DB-D40) | ✔ dev + test; dev batch4 theo §18 |
 | 3 | M13–M16 | ✔ test |
-| 4 | M17 `maintenance_requests`, M18 `viewing_appointments`, M19 `attachments`, M20 `notifications` | Kế hoạch đã duyệt DB-D50; chưa triển khai, chi tiết P6/P8 còn chờ (§9/14) |
+| 4 | M17 `maintenance_requests`, M18 `viewing_appointments`, M19 `attachments`, M20 `notifications` | M19 đang chuẩn bị/test riêng cho U2 theo DB-D64, pending; không mở alias/collection thanh lý P8. Các bảng còn lại chưa triển khai |
 | 5 | Seeder hệ thống `ELECTRICITY`/`WATER`, khóa `settings` | Chưa |
 
 ---
@@ -438,9 +438,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Pretend failed; stop' }
 
 **Đối chiếu cuối sau triển khai/kiểm thử gán tiện nghi:** `after-browser.json` khớp tất cả phần JSON của `after.json` (metadata, indexes, constraints, lịch sử, rowcount/hash dữ liệu), dev vẫn 20 bảng/16 migration; không có ghi/xóa dữ liệu dev thêm. Phép so sánh chuỗi đầu tiên chỉ khác xuống dòng CRLF/LF, đã xác minh riêng bằng chuẩn hóa và so sánh nội dung JSON. Hash cả 7 migration giữ nguyên, RUN_MIGRATIONS=false. DB test đã dọn đúng fixture, hai container test đã dừng, bốn container dev vẫn chạy/MySQL healthy. Không migration Nhóm 3/P4–P8, seeder, Admin, rollback hoặc commit/push.
 
-## 19. Đề xuất điện nước Full MVP mới — chờ duyệt, chưa code
+## 19. Điện nước Full MVP — U1/U2 chuẩn bị, U3 chờ duyệt
 
-**Cập nhật duyệt:** U1 và chính sách sao chép lịch sử đã CONFIRMED DB-D63 ngày27/10, chỉ chuẩn bị/test DB test. U2/U3 vẫn chờ trả lời; không đánh dấu cả§19 đã được duyệt. Migration U1 làm thay đổi điều kiện ghi bảng giá hiện hành, vì vậy lưu ở `database/migrations/pending/` và chỉ được test bằng đường dẫn tường minh; không đưa vào `migrate` mặc định khi API giá theo tòa chưa tích hợp. Đây là bản chuẩn bị triển khai, không phải bảng giá theo tòa đã hoạt động trong ứng dụng.
+**Cập nhật duyệt:** U1/hướng giữ lịch sử CONFIRMED DB-D63 và U2 CONFIRMED DB-D64 ngày27/10, chỉ chuẩn bị/test DB test. U3 vẫn chờ trả lời riêng; không đánh dấu cả§19 đã được duyệt. Migration U1 làm thay đổi điều kiện ghi bảng giá hiện hành, vì vậy lưu ở `database/migrations/pending/` và chỉ được test bằng đường dẫn tường minh; không đưa vào `migrate` mặc định khi API giá theo tòa chưa tích hợp. U2/M19 cũng chuẩn bị ở pending trước khi API/nghiệp vụ duyệt đủ điều kiện. Không suy bảng giá theo tòa hoặc gửi/duyệt chỉ số đã hoạt động từ migration/model.
 
 Nguồn yêu cầu 27/10: giá theo tòa; cư dân gửi chỉ số/ảnh chờ Admin xác nhận. Đây là mục tiêu được giao, nhưng cấu trúc và chuyển dữ liệu dưới đây chưa tự trở thành quyết định CONFIRMED. Snapshot dev sau ROOM-PUB: 1 tòa, 0 dòng utility_prices; chưa chạy Nhóm3. Không có dữ liệu giá dev cần gán lúc này, nhưng migration vẫn phải có chính sách cho database đã có lịch sử.
 
@@ -449,3 +449,7 @@ Nguồn yêu cầu 27/10: giá theo tòa; cư dân gửi chỉ số/ảnh chờ 
 **U2 — Yêu cầu gửi chỉ số (đề xuất):** thêm một bảng `meter_reading_submissions`, tăng thiết kế21bảng lên22; không đặt pending vào `meter_readings` chính thức. Trường: id, room_id, contract_id, service_id, period, reading_date, current_reading DECIMAL(10,2), status pending/approved/rejected, submitted_by, reviewed_by/at, rejection_reason, approved_meter_reading_id nullable UNIQUE FK RESTRICT, timestamps. Các FK lịch sử RESTRICT. Generated pending_slot + UNIQUE `(room_id,service_id,period,pending_slot)` chỉ chặn hơn một yêu cầu pending; bản từ chối không mất lịch sử và cho phép gửi lại. Cư dân chỉ gửi chỉ số tháng cho hợp đồng mình đang thuê; server gán người gửi/phòng/hợp đồng, không tin input giá hoặc tiền. Ảnh qua bảng attachments đã có trong thiết kế (M19 còn chưa triển khai), alias riêng/collection ảnh chỉ số, disk private, Policy Admin hoặc chủ yêu cầu. Admin duyệt trong transaction khóa dữ liệu liên quan rồi gọi cùng nghiệp vụ ghi chỉ số chính thức; duyệt lặp không tạo thêm chỉ số, từ chối không ghi số chính thức. Không mở quyền cho Technician/Guard hoặc chuyển ảnh thành public. API, migration M19/bảng mới và luồng duyệt chỉ triển khai sau phê duyệt cụ thể, không chạy dev.
 
 **U3 — Chống trùng cần giữ `kind`:** baseline M14 hiện UNIQUE `(room_id,service_id,period,kind)`, cho phép monthly và final cùng kỳ. Yêu cầu mới “một chỉ số trong cùng phòng, loại và kỳ” nếu hiểu là bỏ kind sẽ chặn chỉ số chốt khi trả phòng trong tháng đã ghi monthly. Đề xuất giữ phân biệt monthly/final và quy tắc khoảng tiêu thụ DB-D15, chặn trùng cùng kind; không suy diễn thành một dòng duy nhất cho mọi loại. Trường hợp nhiều lần bàn giao cùng phòng/tháng vẫn phải theo điểm mở R1–R17 ở Plan, không tự tạo chỉ số giả hoặc chia theo ngày.
+
+**Lưu ý mã hiện tại:** chỉ số tháng trong mô tả U3 là `periodic` ở `MeterReadingKind`, không phải giá trị enum monthly. M14/Enum đã commit giữ nguyên; U2 không có cột kind và chưa sinh chỉ số chính thức. Không đổi monthly/final của **InvoiceType** vì đó là loại hóa đơn khác khái niệm.
+
+**U2 chuẩn bị theo DB-D64:** M19 và create_meter_reading_submissions nằm trong pending; default migrate không chạy hai file, test gọi đường dẫn tường minh. Cấu trúc vật lý tại DB design§3.7/3.22. Enum/model/Policy và disk private=storage/app/evidence phục vụ lát cắt nền tảng, chưa có API/upload/download/duyệt. Không dùng root local đang phục vụ file cho ảnh cần Policy. Test down từ chối còn lịch sử/metadata, fixture rollback trước DDL; không chạy đồng thời với schema/browser khác. Bằng chứng cuối ở IMPLEMENTATION_PLAN§12.22.

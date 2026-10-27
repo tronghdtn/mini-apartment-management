@@ -30,6 +30,16 @@ return [
 
     'disks' => [
 
+        // U2: read through an authorized download controller only; never expose a disk URL.
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/evidence'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

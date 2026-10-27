@@ -627,3 +627,23 @@ Checkpoint CAT-03c `c129fbd` — `feat(settings): tích hợp cài đặt hệ t
 **Lỗi đã tái hiện/sửa:** chặn riêng chunk Amenities bằng Nginx test503; RouteErrorPage cũ hiện raw English/error URL và không nút thử lại. Đổi thông báo tiếng Việt an toàn + nút reload, giữ nhánh404. Tái hiện lại cùng lỗi trên bản cuối: đúng alert/nút, không URL; khôi phục config test và bấm Tải lại mở Amenities/API thật, không alert. Không sửa cấu hình Nginx dev. Console có lỗi503/chunk do chủ động giả lập; không báo cả phiên giả lập là sạch lỗi. Ảnh Settings trên bản cuối ở `backups/full-mvp-20261027/settings-final.png` (ignored).
 
 **Bàn giao:** U1 chỉ được duyệt chuẩn bị/test migration, chưa tự mở API theo tòa. U2/U3 được hỏi riêng; không tự duyệt thêm bảng22 hoặc bỏkind. Những quyết định thanh lý và migration dev vẫn giữ cổng riêng. Không tuyên bố hoàn thành Full MVP chỉ từ các module đã tích hợp. Hồi quy cuối: logout→mở Admin về login; Guard login→Admin bị từ chối. Đã dọn đúng năm tài khoản/phiên fixture, dừng hai container test/đóng tab tạm; snapshot dev khớp toàn bộ metadata/hash dữ liệu20 bảng/16 migration. Chủ dự án vừa duyệt U2 trên DB test; tiếp tục ở§12.22, không suy U3 hoặc migration dev được duyệt.
+
+### 12.22. U2 — nền tảng yêu cầu chỉ số và tệp private (27/10)
+
+PERF-01 checkpoint `e66c23f` — `perf(frontend): tải trang quản trị theo nhu cầu`. Chủ dự án duyệt U2 trên DB test (DB-D64); không migration dev. Checkpoint đã sạch trước sửa, chỉ ba thư mục ngoài phạm vi giữ nguyên.
+
+| Task | Phạm vi/tiêu chí | Trạng thái |
+|---|---|---|
+| U2-01 | Hai migration pending: M19 attachments đúng baseline, bảng22 submissions đúng§19/DB-D64; FK/index/UNIQUE và rollback bảo vệ lịch sử | Đã kiểm thử DB test; chỉ diễn tập bằng đường dẫn tường minh, không migrate mặc định/dev |
+| U2-02 | Enum/model/quan hệ/morph alias, không mass-assign người gửi/trạng thái/duyệt/path; Policy Admin/chủ yêu cầu; disk private không URL public | Đã kiểm thử nội bộ; chưa có upload/download API hoặc UI |
+| U2-03 | Request/HTTP/upload, gửi/duyệt/từ chối, gọi nghiệp vụ MTR chính thức, tích hợp React | Chưa làm; không thay bằng ghi chỉ số giả; cần contract/API và chi tiết MTR/FILE đủ điều kiện |
+
+U3 mô tả “chỉ số tháng/final”; mã enum hiện có **periodic/final**, không đổi thành monthly. Tạo cấu trúc pending/quyền đọc không phụ thuộc câu trả lời U3 và không tự phê duyệt mọi quy tắc khoảng tiêu thụ. Không gọi U2 đã hoàn thành toàn luồng từ test schema/model.
+
+**Kiểm thử mã cuối:** full backend **1178 test/10014 assertion PASS**, Pint **227 file PASS**; frontend chạy lại **71 test/build PASS, lint0 lỗi/9 cảnh báo cũ**. Bộ U2 mục tiêu10test/230assertion PASS, gồm schema/index/sáuFK RESTRICT, pending slot/gửi lại sau rejected, UNIQUE approved reading, quan hệ/casts/mass assignment, Gate năm vai trò/guest/locked/sai chủ, lịch sử sau thanh lý và rollback bảo toàn metadata. Trạng thái approved/rejected được gán trực tiếp trong fixture để thử ràng buộc, **không** coi là service duyệt đã chạy. M19 không có SQL FK đa hình theo thiết kế. Không thêm CHECK/đổi migration cũ hoặc giá trị kind.
+
+**Cô lập ảnh — lỗi tái hiện và sửa:** root private ban đầu cùng local. HTTP framework test tạo tệp UUID riêng: unsigned403 đúng, nhưng URL local có chữ ký200 khi mong404. Chuyển private sang storage/app/evidence, giữ local cũ storage/app/private; test sau sửa signed404/unsigned403, local/public không có tệp, không có route storage.private, xóa tệp trong finally. Nhận xét agent ban đầu cho rằng unsigned đọc được là sai vì framework cài đặt mặc định visibility=private; đã đọc nguồn ServeFile và sửa kết luận, không báo thành lỗ hổng unsigned. Rà soát Luna cuối không còn lỗi xác nhận được; không nhầm test HTTP framework với kiểm tra live download U2 chưa tồn tại.
+
+**Bảo toàn và cleanup:** setUp xác nhận hai bảng chưa tồn tại rồi nhận quyền dọn DDL trước up, nên cả lỗi tạo dở được dọn có điều kiện; fixture transaction bắt đầu sau up, rollback trước down. Down từ chối bảng có lịch sử hoặc ảnh đa hình mồ côi. Cuối fullsuite đọc lại bằng SQL identity mysql_test: **0 bảng pending còn lại/0 tệp evidence fixture**. Snapshot dev cuối khớp toàn bộ metadata và hash dữ liệu so trước lượt: **20 bảng/16 migration**, RUN_MIGRATIONS=false; không migration/seeder/ghi nghiệp vụ dev. Hai container UI test đã dừng từ PERF-01. Không push hoặc stage ba thư mục ngoài phạm vi.
+
+**Tiếp theo:** U2-03 phải có contract HTTP/AC gửi ảnh và gọi MTR thật; U3 vẫn chờ trả lời riêng, không tự đổi uniqueness chỉ số chính thức. U1 chỉ có migration chuẩn bị, chưa chuyển API giá theo tòa. Kích hoạt/cọc/thanh lý, các quyết định P còn mở và Sandbox thanh toán giữ đúng giới hạn hiện tại. Không dùng dữ liệu giả để lấp phần chưa hoạt động.
