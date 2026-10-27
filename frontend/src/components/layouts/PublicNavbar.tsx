@@ -64,12 +64,12 @@ export const PublicNavbar: React.FC = () => {
             </Link>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+            <nav className="hidden lg:flex items-center gap-1 lg:gap-2">
               {navLinks.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive(link.path)
                       ? 'text-sky-700 bg-sky-50/80 font-semibold'
                       : 'text-slate-600 hover:text-slate-950 hover:bg-slate-50'
@@ -81,23 +81,25 @@ export const PublicNavbar: React.FC = () => {
             </nav>
 
             {/* Desktop Actions */}
-            <div className="hidden sm:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               <Link to="/rooms">
                 <Button variant="secondary" size="sm" icon={<Search className="w-3.5 h-3.5" />}>
                   Xem phòng trống
                 </Button>
               </Link>
 
-              <AccountActions />
+              <AccountActions menu />
             </div>
 
             {/* Mobile Hamburger Button */}
-            <div className="flex md:hidden items-center gap-2">
+            <div className="flex lg:hidden items-center gap-2">
               <AccountActions compact />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 aria-label="Menu"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="public-mobile-navigation"
               >
                 {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -107,7 +109,7 @@ export const PublicNavbar: React.FC = () => {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 shadow-lg animate-in slide-in-from-top-2 duration-150">
+          <div id="public-mobile-navigation" className="lg:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 shadow-lg animate-in slide-in-from-top-2 duration-150">
             <div className="flex flex-col gap-1.5">
               {navLinks.map((link) => (
                 <Link
