@@ -11,6 +11,8 @@
 
 ## 1. Hiện trạng migrations
 
+**Cập nhật sau báo cáo27/10 — DB-D65/66/67:** U3 đã chốt periodic theo phòng/dịch vụ/kỳ, final theo hợp đồng/lần thanh lý; bỏ giới hạn một thanh lý/phòng/tháng. Cần ALTER mới thay UNIQUE M14 bằng generated conditional keys, không sửa file đã commit; kiểm tra dữ liệu trùng trước DDL và bảo vệ rollback nếu có nhiều final cùng phòng/tháng. P3/P9 và P6/P7/P8/P11 đã duyệt phương án §14.4: overdue_return +ghi chú, chủ nhà chấm dứt ngoài MVP, same_day không phí trước hạn; kiểm tra/damage/minh chứng theo DB-D67. Các mô tả CHỜ DUYỆT tương ứng bên dưới là lịch sử. Chưa chuẩn bị/chạy migration mới cho các quyết định này; chỉ DB test được phép, mọi migration dev vẫn chờ riêng.
+
 | Migration | Bảng | `mini_apartment` (dev) | `mini_apartment_test` |
 |---|---|---|---|
 | Framework `0001_01_01_000000…000002` | `users`, `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` | Ran (batch 1) | Ran |

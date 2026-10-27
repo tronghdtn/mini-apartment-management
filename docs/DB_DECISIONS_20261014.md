@@ -4,6 +4,14 @@
 
 ## A. Quyết định và tác động
 
+### Cập nhật ưu tiên 27/10 — sau kiểm kê Full MVP
+
+- **CONFIRMED DB-D65 / U3:** giữ enum `periodic/final`; không giới hạn một lần thanh lý/phòng/tháng. Periodic UNIQUE theo phòng/dịch vụ/kỳ; final gắn hợp đồng/lần thanh lý, không trùng cùng lần, không chỉ theo phòng/tháng. Giữ toàn bộ lịch sử, không tính trùng tiêu thụ giữa hóa đơn định kỳ và final. Chuẩn bị migration mới + test trên DB test, không sửa M14 cũ hoặc migration dev. Thiết kế chi tiết dùng generated conditional keys; chưa coi migration/API MTR đã được triển khai.
+- **CONFIRMED DB-D66 / P3/P9:** duyệt đề xuất trả quá hạn `overdue_return` với ghi chú bắt buộc; chủ nhà chấm dứt trước hạn ngoài MVP; nhận-trả cùng ngày không thu phí trước hạn, vẫn chốt điện nước/kiểm tra tài sản/đối soát cọc. Chỉ DB test.
+- **CONFIRMED DB-D67 / P6/P7/P8/P11:** duyệt cấu trúc kết quả/người/thời điểm/ghi chú kiểm tra trên contracts; Admin nhập từng dòng damage với lý do/căn cứ/ít nhất một ảnh private; loại dòng `damage`/`termination_fee`; alias contract và collections inspection_photo/damage_photo/waiver_evidence, Policy hợp đồng. MVP không yêu cầu cư dân ký trong hệ thống. Chỉ chuẩn bị/test DB test, không migration dev.
+
+Các mục cũ còn ghi U3/P3/P6/P7/P8/P9/P11 chưa duyệt là lịch sử, bị cập nhật này thay thế. Quyết định không tự đồng nghĩa đã code/test/API/UI; trạng thái triển khai tại IMPLEMENTATION_PLAN.
+
 | ID | Quyết định 14/10 | Nguồn cần chỉnh | Tác động |
 |---|---|---|---|
 | DB-D01 | **21 bảng** gồm 20 bảng cũ + `building_amenities` (PK ghép `building_id`, `amenity_id`). `room_amenities` chỉ cho tiện nghi riêng phòng; tiện nghi tòa không nhân bản xuống phòng. | `02` B.2.1, B.2.2; `PROJECT_CONTEXT` bảng; ERD; docs mô hình | Sửa 20→21, thêm N–N buildings/amenities; union amenities khi xem phòng |
