@@ -17,11 +17,28 @@ import {
   AdminInvoicesPage,
   AdminInvoiceDetailPage,
   AdminSettingsPage,
+  AdminProfilePage,
+  AdminAppointmentsPage,
+  AdminDebtsPage,
+  AdminMaintenancePage,
+  AdminMaintenanceDetailPage,
+  AdminNotificationsPage,
+  AdminPaymentsPage,
+  AdminResidentsPage,
 } from './adminPages'
 import { RequireAuth } from '@/features/auth/RequireAuth'
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate } from 'react-router'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
+import { ResidentLayout } from '@/components/layouts/ResidentLayout'
+import { StaffLayout } from '@/components/layouts/StaffLayout'
+import {
+  ResidentProfilePage, StaffProfilePage, ResidentOverviewPage,
+  ResidentContractsPage, ResidentContractDetailPage, ResidentInvoicesPage, ResidentInvoiceDetailPage,
+  ResidentRequestsPage, ResidentRequestNewPage, ResidentRequestDetailPage, ResidentNotificationsPage,
+  TechnicianTasksPage, TechnicianTaskDetailPage, GuardAppointmentsPage, StaffNotificationsPage,
+} from './rolePages'
+import { ForbiddenPage } from '@/pages/ForbiddenPage'
 import { HomePage } from '@/pages/public/HomePage'
 import { RoomListPage } from '@/pages/public/RoomListPage'
 import { RoomDetailPage } from '@/pages/public/RoomDetailPage'
@@ -34,8 +51,7 @@ import { RegisterPage } from '@/pages/public/RegisterPage'
 import { GuestAppointmentsPage } from '@/pages/public/GuestAppointmentsPage'
 import { GuestProfilePage } from '@/pages/public/GuestProfilePage'
 
-// Chỉ khai báo những màn hình đã thực sự có trang. Khu vực Cư dân (/resident) và
-// Nhân viên (/staff) chưa có trang nào nên chưa được đăng ký route.
+// Guard luôn ở ngoài layout; route chỉ thêm sau khi có trang tương ứng.
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -50,6 +66,7 @@ export const router = createBrowserRouter([
       { path: 'contact', element: <ContactPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'register', element: <RegisterPage /> },
+      { path: 'forbidden', element: <ForbiddenPage /> },
       { element: <RequireAuth />, children: [
         { path: 'account/appointments', element: <GuestAppointmentsPage /> },
         { path: 'account/profile', element: <GuestProfilePage /> },
@@ -73,6 +90,14 @@ export const router = createBrowserRouter([
       { path: 'services', element: <AdminServicesPage /> },
       { path: 'utility-prices', element: <AdminUtilityPricesPage /> },
       { path: 'settings', element: <AdminSettingsPage /> },
+      { path: 'profile', element: <AdminProfilePage /> },
+      { path: 'residents', element: <AdminResidentsPage /> },
+      { path: 'viewing-appointments', element: <AdminAppointmentsPage /> },
+      { path: 'payments', element: <AdminPaymentsPage /> },
+      { path: 'debts', element: <AdminDebtsPage /> },
+      { path: 'maintenance-requests', element: <AdminMaintenancePage /> },
+      { path: 'maintenance-requests/:requestId', element: <AdminMaintenanceDetailPage /> },
+      { path: 'notifications', element: <AdminNotificationsPage /> },
       { path: 'users', element: <AdminUsersPage /> },
       { path: 'users/:userId', element: <AdminUserDetailPage /> },
       { path: 'contracts', element: <AdminContractsPage /> },
@@ -86,5 +111,37 @@ export const router = createBrowserRouter([
       { path: '*', element: <NotFoundPage /> },
     ],
     }],
+  },
+  {
+    element: <RequireAuth roles={['resident']} />,
+    children: [{ path: '/resident', element: <ResidentLayout />, errorElement: <RouteErrorPage />, children: [
+      { index: true, element: <ResidentOverviewPage /> },
+      { path: 'profile', element: <ResidentProfilePage /> },
+      { path: 'contracts', element: <ResidentContractsPage /> },
+      { path: 'contracts/:contractId', element: <ResidentContractDetailPage /> },
+      { path: 'invoices', element: <ResidentInvoicesPage /> },
+      { path: 'invoices/:invoiceId', element: <ResidentInvoiceDetailPage /> },
+      { path: 'requests', element: <ResidentRequestsPage /> },
+      { path: 'requests/new', element: <ResidentRequestNewPage /> },
+      { path: 'requests/:requestId', element: <ResidentRequestDetailPage /> },
+      { path: 'notifications', element: <ResidentNotificationsPage /> },
+      { path: '*', element: <NotFoundPage /> },
+    ] }],
+  },
+  {
+    element: <RequireAuth roles={['technician', 'guard']} />,
+    children: [{ path: '/staff', element: <StaffLayout />, errorElement: <RouteErrorPage />, children: [
+      { index: true, element: <Navigate to="profile" replace /> },
+      { path: 'profile', element: <StaffProfilePage /> },
+      { path: 'notifications', element: <StaffNotificationsPage /> },
+      { element: <RequireAuth roles={['technician']} />, children: [
+        { path: 'maintenance-requests', element: <TechnicianTasksPage /> },
+        { path: 'maintenance-requests/:requestId', element: <TechnicianTaskDetailPage /> },
+      ] },
+      { element: <RequireAuth roles={['guard']} />, children: [
+        { path: 'appointments', element: <GuardAppointmentsPage /> },
+      ] },
+      { path: '*', element: <NotFoundPage /> },
+    ] }],
   },
 ])

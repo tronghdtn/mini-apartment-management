@@ -92,7 +92,7 @@ export const PublicNavbar: React.FC = () => {
             </div>
 
             {/* Mobile Hamburger Button */}
-            <div className="flex sm:hidden items-center gap-2">
+            <div className="flex md:hidden items-center gap-2">
               <AccountActions compact />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -107,7 +107,7 @@ export const PublicNavbar: React.FC = () => {
 
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 shadow-lg animate-in slide-in-from-top-2 duration-150">
+          <div className="md:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 shadow-lg animate-in slide-in-from-top-2 duration-150">
             <div className="flex flex-col gap-1.5">
               {navLinks.map((link) => (
                 <Link

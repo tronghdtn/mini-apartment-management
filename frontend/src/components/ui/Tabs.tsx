@@ -21,8 +21,8 @@ export function Tabs<T extends string = string>({
   className = '',
 }: TabsProps<T>) {
   const sizeStyles = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5',
-    md: 'text-xs sm:text-sm px-3.5 py-2 gap-2',
+    sm: 'text-xs sm:text-sm px-3 py-1.5 gap-1.5 font-medium',
+    md: 'text-sm px-4 py-2 gap-2 font-medium',
   }
 
   return (
@@ -45,7 +45,7 @@ export function Tabs<T extends string = string>({
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
-                className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                className={`text-xs px-2 py-0.5 rounded-full font-bold ${
                   isActive ? 'bg-sky-100 text-sky-800' : 'bg-slate-200 text-slate-600'
                 }`}
               >

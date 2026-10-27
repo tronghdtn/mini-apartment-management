@@ -17,11 +17,13 @@ import { managedUserRoleLabels } from '@/features/user-management/types'
 import type { ManagedUserRole, UserPage } from '@/features/user-management/types'
 
 const emptyFilters: UserFilters = { role: '', status: '', has_active_contract: '', q: '' }
+const residentFilters: UserFilters = { ...emptyFilters, role: 'resident' }
 const inputClass = 'w-full px-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-sky-500'
 
-export function AdminUsersPage() {
+export function AdminUsersPage({ residentsOnly = false }: { residentsOnly?: boolean }) {
+  const baseFilters = residentsOnly ? residentFilters : emptyFilters
   const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<UserFilters>(emptyFilters)
+  const [filters, setFilters] = useState<UserFilters>(baseFilters)
   const [result, setResult] = useState<UserPage | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setLoadError] = useState('')
@@ -30,7 +32,7 @@ export function AdminUsersPage() {
   const [success, setSuccess] = useState('')
   const savingStaff = useRef(false)
   const { register, handleSubmit, reset, setError, formState: { errors } } = useForm<UserFilters>({
-    resolver: zodResolver(userFiltersSchema), defaultValues: emptyFilters,
+    resolver: zodResolver(userFiltersSchema), defaultValues: baseFilters,
   })
 
   useEffect(() => {
@@ -51,12 +53,12 @@ export function AdminUsersPage() {
   const changePage = (next: number) => { setLoading(true); setLoadError(''); setPage(next) }
   const submit = handleSubmit(input => { setLoading(true); setLoadError(''); setPage(1); setFilters(input) })
   const closeStaffModal = () => { if (!savingStaff.current) setCreating(false) }
-  const clearFilters = () => { reset(emptyFilters); setLoading(true); setLoadError(''); setPage(1); setFilters({ ...emptyFilters }) }
+  const clearFilters = () => { reset(baseFilters); setLoading(true); setLoadError(''); setPage(1); setFilters({ ...baseFilters }) }
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-        <div><h1 className="text-2xl font-bold text-slate-900">Quản Lý Người Dùng & Cư Dân</h1><p className="text-xs text-slate-500 mt-1">Xem hồ sơ tài khoản và cấp mới Kỹ thuật viên/Bảo vệ. Đang thuê được xác định từ hợp đồng đang hiệu lực.</p></div>
-        <Button icon={<Plus className="w-4 h-4" />} onClick={() => { setSuccess(''); setCreating(true) }}>Tạo tài khoản nhân viên</Button>
+        <div><p className="mb-1 text-xs font-bold uppercase tracking-wider text-sky-600">{residentsOnly ? 'Quản lý cho thuê' : 'Hệ thống'}</p><h1 className="text-2xl font-bold text-slate-900">{residentsOnly ? 'Quản Lý Cư Dân' : 'Tài Khoản & Phân Quyền'}</h1><p className="text-sm text-slate-500 mt-1">{residentsOnly ? 'Tài khoản vai trò Cư dân, gồm cả lịch sử sau khi trả phòng.' : 'Xem hồ sơ tài khoản và cấp mới Kỹ thuật viên/Bảo vệ.'} Đang thuê được xác định từ hợp đồng đang hiệu lực.</p></div>
+        {residentsOnly ? <Link to="/admin/users"><Button variant="outline">Quản lý tài khoản</Button></Link> : <Button icon={<Plus className="w-4 h-4" />} onClick={() => { setSuccess(''); setCreating(true) }}>Tạo tài khoản nhân viên</Button>}
       </div>
       {success && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
       <form onSubmit={submit} noValidate className="p-4 bg-white rounded-2xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -65,7 +67,7 @@ export function AdminUsersPage() {
           <div className="relative"><Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" /><input id="user-q" {...register('q')} aria-invalid={!!errors.q} aria-describedby="user-q-error" placeholder="Tìm tên, SĐT, email" className={`${inputClass} pl-9`} /></div>
           <p id="user-q-error" className="text-xs text-rose-600 mt-1">{errors.q?.message}</p>
         </div>
-        <div>
+        <div hidden={residentsOnly}>
           <label htmlFor="user-role" className="block text-xs font-semibold text-slate-600 mb-1">Vai trò</label>
           <select id="user-role" {...register('role')} aria-invalid={!!errors.role} aria-describedby="user-role-error" className={inputClass}>
             <option value="">Tất cả vai trò</option>

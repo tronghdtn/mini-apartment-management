@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useId } from 'react'
 import { X } from 'lucide-react'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface ModalProps {
   isOpen: boolean
@@ -7,6 +8,8 @@ interface ModalProps {
   title?: string
   children: React.ReactNode
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
+  footer?: React.ReactNode
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -14,21 +17,12 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  maxWidth = 'md',
+  maxWidth,
+  size,
+  footer,
 }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      window.addEventListener('keydown', handleKeyDown)
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [isOpen, onClose])
+  const dialogRef = useDialogFocus(isOpen, onClose)
+  const titleId = useId()
 
   if (!isOpen) return null
 
@@ -51,13 +45,17 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Dialog */}
       <div
-        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 my-8`}
+        ref={dialogRef}
+        tabIndex={-1}
+        className={`relative w-full ${maxWidthStyles[size ?? maxWidth ?? 'md']} bg-white rounded-2xl shadow-2xl border border-slate-100 z-10 overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 my-8`}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : 'Hộp thoại'}
       >
         {title && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+            <h3 id={titleId} className="text-lg font-bold text-slate-900">{title}</h3>
             <button
               onClick={onClose}
               className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
@@ -68,6 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         <div className="p-6">{children}</div>
+        {footer && <div className="border-t border-slate-100 px-6 py-4">{footer}</div>}
       </div>
     </div>
   )

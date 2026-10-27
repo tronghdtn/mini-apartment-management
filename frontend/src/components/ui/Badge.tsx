@@ -5,6 +5,7 @@ export type BadgeTone = 'emerald' | 'sky' | 'amber' | 'slate' | 'rose' | 'purple
 interface BadgeProps {
   children: React.ReactNode
   tone?: BadgeTone
+  variant?: 'success' | 'warning' | 'danger' | 'info' | 'default' | 'primary'
   dot?: boolean
   size?: 'sm' | 'md'
   className?: string
@@ -12,11 +13,13 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({
   children,
-  tone = 'sky',
+  tone,
+  variant,
   dot = false,
   size = 'md',
   className = '',
 }) => {
+  const activeTone = tone ?? (variant ? ({ success: 'emerald', warning: 'amber', danger: 'rose', info: 'sky', default: 'slate', primary: 'sky' } as const)[variant] : 'sky')
   const toneStyles: Record<BadgeTone, { badge: string; dot: string }> = {
     emerald: { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/90', dot: 'bg-emerald-500' },
     sky: { badge: 'bg-sky-50 text-sky-700 border-sky-200/90', dot: 'bg-sky-500' },
@@ -28,15 +31,15 @@ export const Badge: React.FC<BadgeProps> = ({
   }
 
   const sizeStyles = {
-    sm: 'text-[11px] px-2 py-0.5',
-    md: 'text-xs px-2.5 py-1 font-medium',
+    sm: 'text-xs px-2.5 py-0.5 font-semibold',
+    md: 'text-xs sm:text-[13px] px-3 py-1 font-semibold',
   }
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${toneStyles[tone].badge} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border ${toneStyles[activeTone].badge} ${sizeStyles[size]} ${className}`}
     >
-      {dot && <span className={`w-1.5 h-1.5 rounded-full ${toneStyles[tone].dot}`} />}
+      {dot && <span className={`w-1.5 h-1.5 rounded-full ${toneStyles[activeTone].dot}`} />}
       {children}
     </span>
   )

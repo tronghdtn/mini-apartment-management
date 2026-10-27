@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { NavLink, Outlet, Link } from 'react-router'
 import {
   Wrench,
@@ -6,13 +6,13 @@ import {
   Bell,
   User,
 } from 'lucide-react'
-import { useApp } from '@/mocks/AppContext'
-import { RoleSwitcher } from '@/mocks/RoleSwitcher'
+import { useAuth } from '@/features/auth/useAuth'
+import { AccountActions } from '@/features/auth/AccountActions'
 
 export const StaffLayout: React.FC = () => {
-  const { role, currentUser, unreadCount } = useApp()
+  const { user } = useAuth()
 
-  const isGuard = role === 'guard'
+  const isGuard = user?.role === 'guard'
 
   const navItems = isGuard
     ? [
@@ -28,33 +28,34 @@ export const StaffLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col antialiased pb-20 md:pb-6">
+
       {/* Top Bar */}
-      <header className="h-16 bg-slate-900 text-white sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-md">
+      <header className="h-16 bg-white border-b border-slate-200/80 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between shadow-2xs backdrop-blur-md bg-white/95">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 text-white flex items-center justify-center font-bold shadow-xs">
             {isGuard ? <CalendarCheck className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
           </div>
           <div>
-            <span className="font-bold text-sm block leading-tight">
+            <span className="font-bold text-sm sm:text-base text-slate-900 block leading-tight">
               {isGuard ? 'Bảo vệ tòa nhà' : 'Kỹ thuật viên sửa chữa'}
             </span>
-            <span className="text-[11px] text-slate-400 block truncate">
-              {currentUser.name}
+            <span className="text-xs text-slate-500 block truncate mt-0.5">
+              {user?.full_name}
             </span>
           </div>
         </div>
 
         {/* Desktop Nav Items */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1.5">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `px-3.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                `px-4 py-2 rounded-xl text-sm font-semibold transition ${
                   isActive
-                    ? 'bg-slate-800 text-amber-400'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+                    ? 'bg-sky-50 text-sky-700 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`
               }
             >
@@ -65,23 +66,14 @@ export const StaffLayout: React.FC = () => {
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-2">
-          <Link
-            to="/staff/notifications"
-            className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl"
-            title="Thông báo"
-          >
-            <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500" />
-            )}
-          </Link>
-          <RoleSwitcher />
+          <Link to="/staff/notifications" aria-label="Thông báo" className="rounded-xl p-2 text-slate-500 hover:bg-slate-50"><Bell aria-hidden="true" className="h-5 w-5" /></Link>
+          <AccountActions menu />
         </div>
       </header>
 
       {/* Main Outlet */}
       <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6">
-        <Outlet />
+        <Suspense fallback={<p role="status" className="py-8 text-center text-slate-600">Đang tải trang…</p>}><Outlet /></Suspense>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
@@ -91,9 +83,9 @@ export const StaffLayout: React.FC = () => {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex flex-col items-center py-1 px-3 rounded-xl text-[11px] font-medium transition ${
+              `flex flex-col items-center py-1 px-3 rounded-xl text-xs font-medium transition ${
                 isActive
-                  ? 'text-amber-600 font-bold'
+                  ? 'text-sky-600 font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`
             }

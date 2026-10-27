@@ -27,9 +27,23 @@ test('password protects bcrypt byte boundary and NUL, including multibyte input'
   assert.equal(registerSchema.safeParse({ ...valid, password: 'x'.repeat(72), password_confirmation: 'x'.repeat(72) }).success, true)
   for (const password of ['x'.repeat(73), 'a'.repeat(7), 'é'.repeat(37), 'abcdefg\0h']) assert.equal(registerSchema.safeParse({ ...valid, password, password_confirmation: password }).success, false)
 })
-test('all five roles have an existing destination; only admin goes to admin area', () => {
-  for (const role of ['user', 'resident', 'technician', 'guard']) assert.equal(accountDestination({ ...user, role }), '/account/profile')
+test('all five roles land in their mounted area and only admin goes to admin area', () => {
+  assert.equal(accountDestination({ ...user, role: 'user' }), '/account/profile')
+  assert.equal(accountDestination({ ...user, role: 'resident' }), '/resident')
+  for (const role of ['technician', 'guard']) assert.equal(accountDestination({ ...user, role }), '/staff/profile')
   assert.equal(accountDestination({ ...user, role: 'admin' }), '/admin')
+})
+test('return-to distinguishes resident technician and guard routes without widening other roles', () => {
+  const resident = { ...user, role: 'resident' }
+  const technician = { ...user, role: 'technician' }
+  const guard = { ...user, role: 'guard' }
+  assert.equal(safeDestination('/resident/contracts/12', resident), '/resident/contracts/12')
+  assert.equal(safeDestination('/resident-other', resident), '/resident')
+  assert.equal(safeDestination('/staff/maintenance-requests/12', technician), '/staff/maintenance-requests/12')
+  assert.equal(safeDestination('/staff/appointments', technician), '/staff/profile')
+  assert.equal(safeDestination('/staff/appointments', guard), '/staff/appointments')
+  assert.equal(safeDestination('/staff/maintenance-requests/12', guard), '/staff/profile')
+  for (const account of [resident, technician, guard]) assert.equal(safeDestination('/admin/settings', account), accountDestination(account))
 })
 test('return-to prevents external URLs, backslashes and wrong-role paths', () => {
   for (const value of ['https://evil.test', '//evil.test', '/\\evil.test', '/admin', '/staff', '/resident', '/login', undefined]) assert.equal(safeDestination(value, user), '/account/profile')

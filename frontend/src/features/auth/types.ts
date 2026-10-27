@@ -16,7 +16,17 @@ export const roleLabels: Record<UserRole, string> = {
 }
 
 export function accountDestination(user: AuthUser) {
-  return user.role === 'admin' ? '/admin' : '/account/profile'
+  if (user.role === 'admin') return '/admin'
+  if (user.role === 'resident') return '/resident'
+  if (user.role === 'technician' || user.role === 'guard') return '/staff/profile'
+  return '/account/profile'
+}
+
+export function profileDestination(user: AuthUser) {
+  if (user.role === 'admin') return '/admin/profile'
+  if (user.role === 'resident') return '/resident/profile'
+  if (user.role === 'technician' || user.role === 'guard') return '/staff/profile'
+  return '/account/profile'
 }
 
 /** Không nhận URL ngoài ứng dụng hoặc đưa tài khoản vào vùng sai vai trò. */
@@ -28,5 +38,9 @@ export function safeDestination(value: unknown, user: AuthUser): string {
   if (url.origin !== window.location.origin) return accountDestination(user)
   if (['/account/profile', '/account/appointments'].includes(url.pathname)) return value
   if (user.role === 'admin' && (url.pathname === '/admin' || url.pathname.startsWith('/admin/'))) return value
+  if (user.role === 'resident' && (url.pathname === '/resident' || url.pathname.startsWith('/resident/'))) return value
+  if (['technician', 'guard'].includes(user.role) && ['/staff/profile', '/staff/notifications'].includes(url.pathname)) return value
+  if (user.role === 'technician' && (url.pathname === '/staff/maintenance-requests' || url.pathname.startsWith('/staff/maintenance-requests/'))) return value
+  if (user.role === 'guard' && url.pathname === '/staff/appointments') return value
   return accountDestination(user)
 }

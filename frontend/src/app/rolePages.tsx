@@ -1,0 +1,17 @@
+import { lazy } from 'react'
+
+export const ResidentContractDetailPage = lazy(() => import('@/pages/resident/ResidentContractDetailPage').then(module => ({ default: module.ResidentContractDetailPage })))
+export const ResidentContractsPage = lazy(() => import('@/pages/resident/ResidentContractsPage').then(module => ({ default: module.ResidentContractsPage })))
+export const ResidentInvoiceDetailPage = lazy(() => import('@/pages/resident/ResidentInvoiceDetailPage').then(module => ({ default: module.ResidentInvoiceDetailPage })))
+export const ResidentInvoicesPage = lazy(() => import('@/pages/resident/ResidentInvoicesPage').then(module => ({ default: module.ResidentInvoicesPage })))
+export const ResidentNotificationsPage = lazy(() => import('@/pages/resident/ResidentNotificationsPage').then(module => ({ default: module.ResidentNotificationsPage })))
+export const ResidentOverviewPage = lazy(() => import('@/pages/resident/ResidentOverviewPage').then(module => ({ default: module.ResidentOverviewPage })))
+export const ResidentProfilePage = lazy(() => import('@/pages/resident/ResidentProfilePage').then(module => ({ default: module.ResidentProfilePage })))
+export const ResidentRequestDetailPage = lazy(() => import('@/pages/resident/ResidentRequestDetailPage').then(module => ({ default: module.ResidentRequestDetailPage })))
+export const ResidentRequestNewPage = lazy(() => import('@/pages/resident/ResidentRequestNewPage').then(module => ({ default: module.ResidentRequestNewPage })))
+export const ResidentRequestsPage = lazy(() => import('@/pages/resident/ResidentRequestsPage').then(module => ({ default: module.ResidentRequestsPage })))
+export const GuardAppointmentsPage = lazy(() => import('@/pages/staff/GuardAppointmentsPage').then(module => ({ default: module.GuardAppointmentsPage })))
+export const StaffNotificationsPage = lazy(() => import('@/pages/staff/StaffNotificationsPage').then(module => ({ default: module.StaffNotificationsPage })))
+export const StaffProfilePage = lazy(() => import('@/pages/staff/StaffProfilePage').then(module => ({ default: module.StaffProfilePage })))
+export const TechnicianTaskDetailPage = lazy(() => import('@/pages/staff/TechnicianTaskDetailPage').then(module => ({ default: module.TechnicianTaskDetailPage })))
+export const TechnicianTasksPage = lazy(() => import('@/pages/staff/TechnicianTasksPage').then(module => ({ default: module.TechnicianTasksPage })))
