@@ -154,6 +154,25 @@ Kết quả LEASE-C 28/10: LC-T01 quyền/CSRF live API PASS; locked Admin chỉ
 
 Kết quả U1 28/10: A01 quyền/CSRF và input live API PASS, locked Admin chỉ Feature. A02 hai tòa giá riêng, trùng422 và live race201+422/đúng một dòng PASS. A03 D33 đúng tòa + issued snapshot chỉ Feature PASS, chưa live MTR. A04 copy lịch sử/rollback/legacy503 Feature PASS; chưa browser503. A05 options23tòa qua2trang/URL/F5/phân trang21dòng PASS, Back/response đảo chưa chạy. A06 save3500/4200 ở hai tòa/invalid0-ngày02/duplicate giữ input/pending/expired session browser PASS; Đóng/Escape đã thử. A07 tab chi tiết tòa/phân trang/link scope/tòa rỗng và Desktop/Mobile PASS theo phạm vi Plan§12.25; chưa browser đối chiếu trực tiếp prototype U1. A08 cleanup theo manifest/schema global/dev snapshots nguyên vẹn PASS. Backend1219/10529/Pint233; frontend80/build/lint0lỗi8cảnhbáocũ. Log/ảnh ignored backups/utility-scope-20261028.
 
+## MTR — nguồn brief§30, DB-D15/24–28/33–35/37/63/65/68
+
+Đang nghiệm thu, không nâng ca chưa chạy thành PASS. DDL/Feature/concurrency tuần tự trước browser/live fixture; Root điều phối cùng ba agent Luna. Không test schema khi manifest MTR tồn tại.
+
+| ID | Luồng/điều kiện | Bằng chứng cần có |
+|---|---|---|
+| MTR-A01 P0 | Guest401, bốn vai trò403, locked Admin hủy phiên, CSRF419; list/context/store | Feature + live API |
+| MTR-A02 P0 | Initial100→112.35, giá3500→43225; HALF_UP3501×0.5→1751, tiêu thụ0/ngày đo thực cũ nhập trễ | Feature + API/UI theo ca |
+| MTR-A03 P0 | Giá đúng tòa/kỳ, giá cũ giữ snapshot, thiếu giá không fallback; D33 chặn sau ghi | Feature + live API |
+| MTR-A04 P0 | Decimal chuỗi/precision/âm/date/period/unknown IDs; cấm tiền/owner/kind/final client | Feature + Node + API/UI |
+| MTR-A05 P0 | Thiếu kỳ/mốc, ngày bàn giao, khoảng cắt hợp đồng, legacy thiếu final/gap, vacancy tách riêng | Feature; chưa coi closure fixture là API thanh lý |
+| MTR-A06 P0 | Dòng thứ2 sai rollback dòng1; trùng lượt/trùng kỳ; không tạo invoice/payment | Feature + API/UI |
+| MTR-A07 P0 | Hai process ghi trùng201/409; U1 versus MTR khóa service/giá đọc hiện hành; issued invoice bất biến | Concurrency/Feature + live đọc lại |
+| MTR-A08 P1 | Lọc room/building/service/period/kind,21dòng phân2trang, URL/F5/Back/options23phòng | Browser + API/Node |
+| MTR-A09 P1 | Source/chính thức Desktop1440/Mobile390, single/batch/context422/pending/expired/error-retry | Browser; U2 tab chưa API không có mẫu |
+| MTR-A10 P0 | Fixture chỉ DB/account test, xác minh sở hữu, cleanup schema/manifest, dev snapshot nguyên vẹn | Root |
+
+Kết quả MTR28/10: A01 quyền/CSRF live PASS, locked Admin chỉ Feature. A02 lưu100→112.35/43225 browser + API PASS; HALF_UP/zero/nhập trễ chỉ Feature. A03 hai tòa43225/51870 và D33 live PASS, thiếu giá browser PASS. A04 unknown/forged/decimal/date/period live/Feature/Node PASS; lower reading đúng ô browser. A05 chuỗi/legacy/vacancy chỉ Feature, chưa có API thanh lý. A06 batch lỗi không ghi một phần live/Feature PASS; browser thử lỗi rồi sửa lưu2dòng35250/60000, không invoice/payment. A07 hai process và live race201/409/đúngmộtdòng PASS; issued snapshot chỉ Feature. A08 lịch sử21/trang2/kỳ01-2025/F5/options25phòng browser PASS, Back chưa chạy. A09 Desktop1440/Mobile390/scrollWidth382/single-batch/context422/Hủy-Escape/pending PASS; chưa expired-session/503retry/responseđảo riêng MTR. Ô date do công cụ fill không phát onChange; ArrowUp/Backspace phát sự kiện, xóa URL và tải đúng lịch sử, không sửa code để né test. A10 cleanup fixture/schema/manifest và dev snapshot20bảng16migration khớp PASS. Backend1257/11013/Pint244, frontend83/build/lint0lỗi8cảnhbáocũ. Chi tiết/ảnh/log và giới hạn tại Plan§12.27.
+
 ## U3 — conditional UNIQUE, DB-D65/68 (schema riêng, không UI)
 
 Đã chạy8test/106assertion trên mysql_test: giữ mọi giá trị cũ khi up; periodic/final riêng cho hai hợp đồng cùng phòng/tháng; trùng periodic cùng hợp đồng/kỳ hoặc vacancy cùng phòng/kỳ; trùng final cùng hợp đồng dù khác kỳ; final NULL bị CHECK chặn; sai/thiếu owner hoặc nhiều final cũ dừng trước DDL; metadata generated STORED/VARCHAR/FK RESTRICT; safe down giữ nguyên dòng và unsafe down không mất lịch sử. Fullsuite1227/10635 PASS, test schema khôi phục baseline; snapshot dev nguyên vẹn. Chưa có bề mặt HTTP/UI U3 nên không gán các test này thành nghiệp vụ MTR/thanh lý đã chạy. Chi tiết lỗi cleanup đã sửa và giới hạn ở Plan§12.26.

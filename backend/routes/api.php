@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MeterReadingController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -53,6 +54,8 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
     Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
     Route::get('utility-prices', [UtilityPriceController::class, 'index'])->name('utility-prices.index');
+    Route::get('meter-readings', [MeterReadingController::class, 'index'])->name('meter-readings.index');
+    Route::get('rooms/{room}/meter-reading-context', [MeterReadingController::class, 'context'])->whereNumber('room')->name('rooms.meter-reading-context');
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::get('rooms', [RoomController::class, 'index'])->name('rooms.index');
     Route::get('rooms/{room}', [RoomController::class, 'show'])->whereNumber('room')->name('rooms.show');
@@ -78,6 +81,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
         Route::post('services', [ServiceController::class, 'store'])->name('services.store');
         Route::match(['patch', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');
         Route::post('utility-prices', [UtilityPriceController::class, 'store'])->name('utility-prices.store');
+        Route::post('meter-readings', [MeterReadingController::class, 'store'])->name('meter-readings.store');
         Route::post('rooms', [RoomController::class, 'store'])->name('rooms.store');
         Route::match(['patch', 'put'], 'rooms/{room}', [RoomController::class, 'update'])->whereNumber('room')->name('rooms.update');
         Route::post('buildings', [BuildingController::class, 'store'])->name('buildings.store');

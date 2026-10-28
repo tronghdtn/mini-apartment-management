@@ -760,12 +760,12 @@ Các điểm sau do tài liệu này đề xuất để giao diện dùng đư�
 | Q5 | Có cho lập hợp đồng **nháp** cho phòng đang có người thuê (chuẩn bị cho người kế tiếp) không? |
 | Q6 | Khi lập hợp đồng, Admin có được **tạo tài khoản** cho người thuê chưa đăng ký không, hay người thuê bắt buộc tự đăng ký trước? |
 | Q7 | **CONFIRMED DB-D59 (24/10):** lấy giá danh mục và lưu snapshot; không thương lượng giá riêng. Chi tiết §25. |
-| Q8 | Cư dân đã thanh lý còn nợ có được gửi minh chứng thanh toán cho hóa đơn cũ không? (Tài liệu chỉ nói "chặn thao tác cần hợp đồng active"; prototype đang **cho phép** thanh toán nợ cũ.) |
+| Q8 | CONFIRMED DB-D70 ngày28/10: xem/thanh toán nợ cũ của chính mình sau thanh lý, không yêu cầu active; ảnh chỉ pending, thực nhận do Admin/provider xác nhận. Quy tắc §31. |
 | Q9 | Mức ưu tiên sửa chữa do cư dân chọn hay chỉ Admin đặt? |
 | Q10 | **Đã chốt quyền tự sửa:** tên hiển thị, đổi mật khẩu, thay email khi xác minh; không tự sửa SĐT đăng nhập/role/pháp lý. Chi tiết xác minh và người/quy trình nhập dữ liệu pháp lý cần Spec riêng trước triển khai. |
 | Q11 | **Đã chốt cách cấp:** Admin cấp technician/guard; Admin mới qua Artisan, bắt buộc email. Không suy ra được phép chuyển quyền tùy ý giữa các tài khoản; chức năng cấp nhân viên chưa triển khai. |
 | Q12 | Có cần trang Công nợ riêng (ADM-19) hay chỉ cần bộ lọc trong Hóa đơn? |
-| Q13 | Admin có được thêm dòng "Khoản khác" (`other`) thủ công vào hóa đơn nháp không? |
+| Q13 | CONFIRMED DB-D69 ngày28/10: Admin được thêm other vào nháp với tên/tiền/lý do-căn cứ hợp lệ, cư dân xem được, lưu lịch sử; bất biến sau phát hành. Quy tắc §31. |
 | Q14 | Nhân viên sửa chữa có được thấy tên và SĐT cư dân không (dữ liệu cá nhân)? |
 | Q15 | Tiền cọc được ghi nhận "đã nhận" khi nào và bởi thao tác nào (trước/sau kích hoạt)? Có bắt buộc nhận cọc trước khi kích hoạt không? |
 | Q16 | Danh sách sự kiện gửi thông báo chính thức (BR-NTF trong tài liệu `02` không có trong repo). |
@@ -959,3 +959,25 @@ Giữ GET/POST `/api/v1/utility-prices`, quyền Admin/SPA/Policy hiện có. PO
 Migration U1 đã commit giữ nguyên file/hash trong pending, chỉ áp dụng tường minh DB test. API đòi cột building_id, thiếu trả503 rõ ràng, không fallback global; dev chưa migrate nên chưa dùng API scoped. API tests áp dụng DDL trước transaction fixture, rollback fixture rồi trả schema global; không RefreshDatabase quanh DDL hoặc chạy đồng thời browser. Test migration sao chép lịch sử và chặn rollback mất dữ liệu tiếp tục giữ nguyên.
 
 Frontend: lọc tòa/dịch vụ/page bằng URL, giữ F5/Back và options bất đồng bộ; chọn tòa bắt buộc trong form, không mặc định tòa đầu. Chi tiết tòa có lịch sử phân trang/link quản lý đúng scope. Chỉ hiển thị lịch sử, không suy giá đang áp dụng từ dòng đầu hoặc tạo giá/ảnh mẫu. AC: quyền/CSRF; hai tòa cùng ngày giá khác nhau; trùng đúng scope422/race409; thiếu/sai tòa; D33 đúng tòa; snapshots issued bất biến; tòa mới không có giá; 503 legacy; create/F5/filter/mobile/error/browser trên DB test và cleanup/dev snapshot.
+
+## 30. MTR — chỉ số chính thức (DB-D15/24–28/33–35/37/63/65/68)
+
+Phạm vi được giao Full MVP: Admin ghi periodic thật, không mở final trực tiếp ngoài transaction thanh lý. GET `/api/v1/meter-readings` phân trang/lọc building_id,room_id,service_id,period,kind; POST cùng URL body `{readings:[{room_id,service_id,period,reading_date,current_reading}]}` tối đa100 dòng, mỗi phòng/dịch vụ một dòng/lượt. Chỉ số là chuỗi tối đa8 số nguyên/2 thập phân, kỳ ngày01 do Admin chọn; ngày đo không trước kỳ. Không nhận kind/contract_id/previous_reading/price/amount/invoice_id/actor từ client. GET `/api/v1/rooms/{room}/meter-reading-context` nhận service_id/period/reading_date, trả mốc trước/đơn giá/hợp đồng tham khảo; POST luôn đọc lại dưới khóa.
+
+Chỉ Admin active, SPA cookie/CSRF/Policy. Thiếu schema U1/U3 trả503, không global fallback. Khóa phòng/người/hợp đồng/dịch vụ đăng ký theoID rồi services (dùng cùng khóa U1), meter_readings/invoices; giá đọc bằng locking read đúng tòa, effective_from<=period. Một transaction toàn bộ batch, lỗi một dòng không ghi dòng nào; retry deadlock3, unique cuối409. Snapshot previous/current/consumption/unit_price/amount do Backend/Money tính, chỉ trả trường cần thiết qua Resource. Không cập nhật hoặc xóa chỉ số qua API này.
+
+Mốc hợp đồng đầu đã kích hoạt hoặc chỉ số thực liền trước; không tự lấy0. Phòng trống cần mốc thực; khoảng trộn người thuê/phòng trống hoặc thiếu mốc ngăn cách422. Kích hoạt mới dùng initial đã xác nhận, không tính phần gap cho người thuê mới; dữ liệu legacy vẫn kiểm final hợp đồng trước/chênh đã xác nhận/chỉ số đầu không giảm. Chặn nhập ngược/ngày trùng chỉ số, periodic ngày bàn giao, thiếu kỳ, chỉ số giảm, dịch vụ không phải Điện/Nước hệ thống hoặc chưa đăng ký. DB-D25 không cho gộp nhiều kỳ vào một đơn giá kể cả phòng trống: sau final chốt phần vacancy cùng kỳ, sau periodic vacancy cần kỳ kế tiếp; không tự chia lượng theo ngày. Không giới hạn N ngày từ ngày đo đến ngày nhập dữ liệu; vẫn kiểm chuỗi/người chịu phí/hóa đơn. Periodic UNIQUE hợp đồng/dịch vụ/kỳ khi đang thuê, phòng/dịch vụ/kỳ khi trống theoDB-D68; final một dòng mỗi hợp đồng/dịch vụ. Chặn ghi thêm làm thay đổi kỳ đã có hóa đơn tháng phát hành; chưa mở INV/PAY từ việc ghi chỉ số.
+
+ADM-15 giữ Sidebar/font/sky-teal/bảng/tab Antigravity: lịch sử thật và form nhập một/hàng loạt RHF/Zod; hiển thị snapshot Backend, không tự tính tiền hoặc điền current=previous+10. Tab ảnh cư dân ghi rõ chưa triển khai cho tới U2, không dùng status submitted/confirmed trong meter_readings chính thức. AC gồm quyền/CSRF/field giả, tiền HALF_UP, giá hai tòa/lịch sử, thiếu giá/kỳ/mốc/chuỗi cắt hợp đồng, batch rollback/duplicate, context stale, snapshot issued, concurrent U1/MTR; browser lưu/F5/lọc/invalid/pending/expired/error/mobile và cleanup DB test. Không suy schema hoặc test Service là UI xuyên suốt.
+
+## 31. INV/PAY — Business Rules Q13/Q8 đã chốt28/10
+
+**BR-INV-OTHER-01 (DB-D69):** chỉ Admin active có quyền được thêm Khoản khác vào hóa đơn draft. Bắt buộc tên khoản, số tiền nguyên VND và lý do/căn cứ thu hợp lệ hoặc thỏa thuận phù hợp. Không tự sinh phí không có căn cứ; frontend không tự tính tiền. Cư dân được đọc đầy đủ khoản thu thuộc hóa đơn của mình.
+
+**BR-INV-OTHER-02:** lưu người/thời điểm/thao tác và nội dung trước/sau để đối chiếu; không xóa mất lịch sử khi sửa/gỡ khoản nháp. Sau issued, cấm sửa trực tiếp dòng/tổng; sai sót theo DB-D27 (hủy/lập lại khi chưa có payment hoặc quy trình điều chỉnh khi đã xác nhận). Chưa triển khai API hoặc lưu lịch sử từ việc ghi quyết định này; cách lưu/API/AC chi tiết bổ sung trước code INV.
+
+**BR-PAY-HISTORY-01 (DB-D70):** người thuê đã terminated vẫn xem hóa đơn/công nợ cũ và gửi thanh toán của chính mình; không bắt buộc active contract. Mọi list/detail/file/submit phải kiểm owner qua hợp đồng, không tin user_id phía client. Không được xem/gửi/đọc ảnh thanh toán của người khác.
+
+**BR-PAY-HISTORY-02:** chuyển khoản kèm ảnh chỉ tạo pending, không trừ nợ hoặc báo thành công thu tiền. Chỉ Admin đối soát thực nhận hoặc xác nhận hợp lệ của provider mới chuyển confirmed/tính paid_amount/sinh RCP; từ chối phải có lý do. Online cần kiểm xác thực thông báo, số tiền/hóa đơn và chống xử lý lặp; chưa có provider/Sandbox được xác nhận thì chỉ triển khai Backend/giả lập tách biệt, không gọi thanh toán thật đã hoạt động. Cọc giữ riêng, không tự chuyển thành doanh thu thuê.
+
+AC INV/PAY: trái quyền/owner và người đã thanh lý, other thiếu tên-tiền-căn cứ, lịch sử sửa/gỡ, issued bất biến, pending không trừ nợ, confirm/reject thực nhận, xử lý lặp/cạnh tranh, dữ liệu provider không hợp lệ, ảnh private, UI cư dân nhìn thấy khoản/nợ đúng. Chỉ DB test; migration dev cần duyệt riêng.
