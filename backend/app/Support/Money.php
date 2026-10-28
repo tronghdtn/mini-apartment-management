@@ -13,6 +13,33 @@ use InvalidArgumentException;
  */
 final class Money
 {
+    public const MAX_VND = 9007199254740991;
+
+    /** Sum already-rounded lines, including signed discounts, without float or JSON precision loss. */
+    public static function sum(array $amounts): int
+    {
+        $total = '0';
+        foreach ($amounts as $amount) {
+            if (! is_int($amount)) {
+                throw new InvalidArgumentException('Các dòng tiền phải là số nguyên VND.');
+            }
+            $total = bcadd($total, (string) $amount, 0);
+        }
+        if (bccomp($total, (string) self::MAX_VND, 0) > 0 || bccomp($total, '-'.self::MAX_VND, 0) < 0) {
+            throw new InvalidArgumentException('Tổng tiền vượt phạm vi biểu diễn chính xác được hỗ trợ.');
+        }
+
+        return (int) $total;
+    }
+
+    public static function remaining(int $total, int $paid): int
+    {
+        self::assertNonNegative($total, 'total');
+        self::assertNonNegative($paid, 'paid');
+
+        return max(0, self::sum([$total, -$paid]));
+    }
+
     /** Số chữ số thập phân giữ lại ở bước trung gian; cắt bớt ở đây không làm đổi kết quả làm tròn. */
     private const SCALE = 10;
 

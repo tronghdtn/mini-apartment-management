@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
 use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
@@ -53,6 +54,20 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('meter-reading-submissions
         Route::post('/', [MeterReadingSubmissionController::class, 'store'])->name('store');
         Route::post('/{submission}/approve', [MeterReadingSubmissionController::class, 'approve'])->whereNumber('submission')->name('approve');
         Route::post('/{submission}/reject', [MeterReadingSubmissionController::class, 'reject'])->whereNumber('submission')->name('reject');
+    });
+});
+
+Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {
+    Route::get('/', [InvoiceController::class, 'index'])->name('index');
+    Route::get('/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('show');
+    Route::middleware('spa')->group(function () {
+        Route::post('/', [InvoiceController::class, 'store'])->name('store');
+        Route::post('/{invoice}/refresh', [InvoiceController::class, 'refresh'])->whereNumber('invoice')->name('refresh');
+        Route::post('/{invoice}/issue', [InvoiceController::class, 'issue'])->whereNumber('invoice')->name('issue');
+        Route::post('/{invoice}/cancel', [InvoiceController::class, 'cancel'])->whereNumber('invoice')->name('cancel');
+        Route::post('/{invoice}/other-items', [InvoiceController::class, 'addOther'])->whereNumber('invoice')->name('other-items.store');
+        Route::patch('/{invoice}/other-items/{item}', [InvoiceController::class, 'updateOther'])->whereNumber(['invoice', 'item'])->name('other-items.update');
+        Route::delete('/{invoice}/other-items/{item}', [InvoiceController::class, 'removeOther'])->whereNumber(['invoice', 'item'])->name('other-items.destroy');
     });
 });
 

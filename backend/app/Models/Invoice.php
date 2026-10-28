@@ -48,6 +48,12 @@ class Invoice extends Model
         return $this->status === InvoiceStatus::Draft;
     }
 
+    public function revision(): string
+    {
+        return hash('sha256', json_encode([$this->getRawOriginal(),
+            $this->items->sortBy('id')->map(fn ($item) => $item->getRawOriginal())->values()->all()], JSON_THROW_ON_ERROR));
+    }
+
     /** @return BelongsTo<Contract, $this> */
     public function contract(): BelongsTo
     {
