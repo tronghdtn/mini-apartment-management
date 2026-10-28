@@ -11,7 +11,7 @@
 
 ## 1. Hiện trạng migrations
 
-**Cập nhật sau báo cáo27/10 — DB-D65/66/67:** U3 đã chốt periodic theo phòng/dịch vụ/kỳ, final theo hợp đồng/lần thanh lý; bỏ giới hạn một thanh lý/phòng/tháng. Cần ALTER mới thay UNIQUE M14 bằng generated conditional keys, không sửa file đã commit; kiểm tra dữ liệu trùng trước DDL và bảo vệ rollback nếu có nhiều final cùng phòng/tháng. P3/P9 và P6/P7/P8/P11 đã duyệt phương án §14.4: overdue_return +ghi chú, chủ nhà chấm dứt ngoài MVP, same_day không phí trước hạn; kiểm tra/damage/minh chứng theo DB-D67. Các mô tả CHỜ DUYỆT tương ứng bên dưới là lịch sử. Chưa chuẩn bị/chạy migration mới cho các quyết định này; chỉ DB test được phép, mọi migration dev vẫn chờ riêng.
+**Cập nhật28/10 — DB-D65/66/67/68:** U3 đã chốt periodic có hợp đồng theo hợp đồng/dịch vụ/kỳ, periodic phòng trống theo phòng/dịch vụ/kỳ, final theo hợp đồng/lần thanh lý/dịch vụ; bỏ giới hạn một thanh lý/phòng/tháng. ALTER pending mới `2026_10_28_000001_scope_final_meter_readings_to_contracts.php` đã chuẩn bị/test tường minh: ba generated keys STORED + UNIQUE, CHECK final có contract_id; giữ enum/FK/index lịch sử và M14 nguyên vẹn. Kiểm tra dữ liệu sai/trùng trước một ALTER atomic MySQL8; down từ chối nếu UNIQUE cũ không còn chứa được lịch sử. Test riêng8/106, fullsuite1227/10635 PASS; sau test schema trở về baseline. Không đồng nghĩa MTR/INV/CLOSE đã tích hợp. P3/P9 và P6/P7/P8/P11 đã duyệt phương án §14.4, schema thanh lý chưa triển khai. Các mô tả CHỜ DUYỆT tương ứng bên dưới là lịch sử. Chỉ DB test được phép, mọi migration dev vẫn chờ riêng.
 
 | Migration | Bảng | `mini_apartment` (dev) | `mini_apartment_test` |
 |---|---|---|---|
