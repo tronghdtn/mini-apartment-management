@@ -12,6 +12,8 @@ class Attachment extends Model
 {
     public const METER_READING_PHOTO = 'meter_reading_photo';
 
+    public const PAYMENT_PROOF = 'payment_proof';
+
     protected function casts(): array
     {
         return ['is_cover' => 'boolean', 'sort_order' => 'integer', 'size_bytes' => 'integer'];

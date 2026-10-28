@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\MeterReadingSubmission;
+use App\Models\Payment;
 use App\Models\User;
 use App\Support\AuthIdentity;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -44,10 +45,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(5)->by('register-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
 
         // Cột *_type của quan hệ đa hình (attachments, notifications) lưu alias cố định thay vì tên class.
-        // Bổ sung 'room', 'maintenance_request', 'payment' khi tạo các Model tương ứng (docs/DATABASE_IMPLEMENTATION_PLAN.md).
+        // Bổ sung 'room', 'maintenance_request' khi tạo các Model tương ứng (docs/DATABASE_IMPLEMENTATION_PLAN.md).
         Relation::enforceMorphMap([
             'user' => User::class,
             'meter_reading_submission' => MeterReadingSubmission::class,
+            'payment' => Payment::class,
         ]);
     }
 }

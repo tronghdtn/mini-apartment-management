@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
 use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
+use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -56,6 +57,15 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('meter-reading-submissions
         Route::post('/{submission}/reject', [MeterReadingSubmissionController::class, 'reject'])->whereNumber('submission')->name('reject');
     });
 });
+
+Route::middleware(['auth:sanctum', 'active'])->prefix('payments')->name('api.v1.payments.')->group(function () {
+    Route::get('/', [PaymentController::class, 'index'])->name('index');
+    Route::get('/{payment}', [PaymentController::class, 'show'])->whereNumber('payment')->name('show');
+    Route::get('/{payment}/proof', [PaymentController::class, 'proof'])->whereNumber('payment')->name('proof');
+    Route::post('/{payment}/confirm', [PaymentController::class, 'confirm'])->middleware('spa')->whereNumber('payment')->name('confirm');
+    Route::post('/{payment}/reject', [PaymentController::class, 'reject'])->middleware('spa')->whereNumber('payment')->name('reject');
+});
+Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->middleware(['auth:sanctum', 'active', 'spa'])->whereNumber('invoice')->name('api.v1.invoices.payments.store');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {
     Route::get('/', [InvoiceController::class, 'index'])->name('index');
