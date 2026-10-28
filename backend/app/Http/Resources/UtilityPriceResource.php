@@ -11,6 +11,8 @@ class UtilityPriceResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'building_id' => $this->building_id,
+            'building' => ['id' => $this->building->id, 'name' => $this->building->name],
             'service_id' => $this->service_id,
             'service' => [
                 'id' => $this->service->id,

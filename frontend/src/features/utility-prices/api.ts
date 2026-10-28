@@ -1,10 +1,11 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
 import type { ApiResource } from '@/types/api'
-import type { MeteredService, UtilityPrice, UtilityPricePage } from './types'
+import type { MeteredService, UtilityPrice, UtilityPricePage, UtilityBuilding } from './types'
 import type { UtilityPriceInput } from './schemas'
+import { utilityPriceSchema } from './schemas'
 
-export async function getUtilityPrices(page: number, serviceId: string, signal?: AbortSignal): Promise<UtilityPricePage> {
-  return (await http.get<UtilityPricePage>('/utility-prices', { params: { page, service_id: serviceId || undefined }, signal })).data
+export async function getUtilityPrices(page: number, filters: { building_id: string; service_id: string }, signal?: AbortSignal): Promise<UtilityPricePage> {
+  return (await http.get<UtilityPricePage>('/utility-prices', { params: { page, building_id: filters.building_id || undefined, service_id: filters.service_id || undefined }, signal, timeout: 15000 })).data
 }
 export async function getMeteredServices(signal?: AbortSignal): Promise<MeteredService[]> {
   const services: MeteredService[] = []
@@ -18,8 +19,16 @@ export async function getMeteredServices(signal?: AbortSignal): Promise<MeteredS
   }
 }
 export async function createUtilityPrice(input: UtilityPriceInput): Promise<UtilityPrice> {
+  const body = utilityPriceSchema.parse(input)
   await fetchCsrfCookie()
-  return (await http.post<ApiResource<UtilityPrice>>('/utility-prices', {
-    service_id: input.service_id, unit_price: input.unit_price, effective_from: input.effective_from,
-  })).data.data
+  return (await http.post<ApiResource<UtilityPrice>>('/utility-prices', body)).data.data
+}
+
+export async function getUtilityBuildings(signal?: AbortSignal): Promise<UtilityBuilding[]> {
+  const buildings: UtilityBuilding[] = []
+  for (let page = 1; ; page++) {
+    const result = (await http.get<{ data: UtilityBuilding[]; meta: { last_page: number } }>('/buildings', { params: { page }, signal, timeout: 15000 })).data
+    buildings.push(...result.data.map(({ id, name }) => ({ id, name })))
+    if (page >= result.meta.last_page) return buildings
+  }
 }

@@ -95,6 +95,21 @@ Các ca dưới đây đang chuẩn bị/chạy, chưa tự đánh dấu PASS t�
 | LC-T08 P1 | Form duplicatewaiver hiện lỗi; context503 không confirm; offline/422/409/retry, focus/Escape/pending, F5active/mã/paid_at/services; desktop/mobile390 không tràn | browser + resolver |
 | LC-T09 P0 | Fixture mới có scope/run/SQLidentity, cleanup active đúng FK; không devmigration/seeder; so snapshotdev trước/sau; test/lint/build/Pint và stage đúng file | root |
 
+## U1 API/UI — giá theo tòa, brief§29 / DB-D63
+
+| ID | Ca kiểm tra và kỳ vọng | Track |
+|---|---|---|
+| U1-A01 P0 | Guest401/nonAdmin403/lockedAdmin403/CSRF419; missing/invalid/unknown building422 | Feature + liveAPI |
+| U1-A02 P0 | Hai tòa cùng dịch vụ/ngày có giá riêng; trùng đúng scope422/race409; không sửa/xóa lịch sử | Feature + liveAPI + browser |
+| U1-A03 P0 | D33 chỉ chặn giá đúng tòa/dịch vụ đã ghi kỳ; tòa khác không chặn; reading/item/issued total không đổi | Feature |
+| U1-A04 P0 | Giữ test copy lịch sử/ID/ngày/rollback phân kỳ; API legacy thiếu building_id503, không fallback global | migration/Feature + API |
+| U1-A05 P1 | URL building/service/page qua F5/Back; chọn tòa thứ23 sau options nhiều trang; thay filter không hiện bảng tòa trước | browser + Node |
+| U1-A06 P0 | Form chọn tòa bắt buộc, prefill scope, save201/F5 đúng tòa/giá; 422 giữ input; pending chặn double submit/đóng | browser + API |
+| U1-A07 P1 | Chi tiết tòa tab giá có bảng/link đúng scope, phân trang21dòng; tòa mới rỗng thật, không suy giá hiện hành; desktop/mobile | browser |
+| U1-A08 P0 | Test DDL tuần tự, fixture rollback trước down; helper sở hữu schema/runIDs; cleanup và snapshot dev không đổi | root |
+
+Các ca đang triển khai, chưa đánh dấu PASS từ code. Không chạy fullsuite/schema khi U1 browser fixture còn sống. Agent model gpt-6-luna như cấu hình chung.
+
 ## AG-UI — đối chiếu52 nguồn, layout5vai trò và bảo toàn API
 
 Nguồn/trace: yêu cầu trực tiếp27/10, SCREEN_INVENTORY§7–8, Plan§12.23; prototype52file, không tính SYS03 chính thức vào mẫu số. Dùng gpt-6-luna cho tester theo lựa chọn đã lưu. Root thực hiện browser CUA nối bản build chính thức/Nginx DB test và prototype Vite riêng; không dùng quyền demo làm bằng chứng Auth chính thức.
@@ -136,3 +151,5 @@ AG-T12 P0 — ô chọn tòa khi options tải bất đồng bộ: đã tái hi�
 ChốtAG-T11/12:72test/build PASS/lint0lỗi8cảnhbáocũ. Browser đã thấy6card/tổng21/7section, Hero/showcasequerycanonical, filters503→error→restorebyte/hash→Thửlại loading→dữ liệu thật hồi phục. Controllergiữtòa sauoptionsloaded/Áp dụng/F5; Tấtcả vàclear xóaquery đúng. SaucleanupHome0phòng/0fixture vẫn7section. Ảnh/log ignored ở backups/antigravity-integration-20261027; không nghiệm thu giá công khai/ảnh/booking hoặc mọi tổ hợpfilter. Public768và1024bản cuối đã xác minh sửaheader; SettingsskinDesktop/Mobile/invalid0 đã kiểm, valid-save chỉ có bằng chứng lịch sử§12.20, chưa chạy lại trong đợt này. Chi tiếtcleanup/snapshot/localcommits tại Plan§12.23.
 
 Kết quả LEASE-C 28/10: LC-T01 quyền/CSRF live API PASS; locked Admin chỉ Feature. LC-T02 terms NULL 422 bởi browser cọc0; none/duplicate waiver UI/1.50 UI/fixed API/snapshot chỉ đọc PASS. LC-T03/04 nhận cọc/kích hoạt/held edit-delete/F5 PASS. LC-T05 thấp/cao/vacancy/order chỉ Feature, chưa browser gap thật. LC-T06 Feature/hai process PHP + API PASS. LC-T07 revision cũ browser409 và pending chung PASS, chưa giả lập response đảo. LC-T08 modal Desktop/Mobile, 503 rồi phục hồi, hết phiên PASS; chưa giả lập mất mạng riêng. LC-T09 cleanup/snapshot dev nguyên vẹn PASS. Số cuối1212/10274/Pint232; frontend78/build/lint0 lỗi8 cảnh báo cũ. Chi tiết/giới hạn tại Plan §12.24; không nâng ca chưa chạy thành PASS.
+
+Kết quả U1 28/10: A01 quyền/CSRF và input live API PASS, locked Admin chỉ Feature. A02 hai tòa giá riêng, trùng422 và live race201+422/đúng một dòng PASS. A03 D33 đúng tòa + issued snapshot chỉ Feature PASS, chưa live MTR. A04 copy lịch sử/rollback/legacy503 Feature PASS; chưa browser503. A05 options23tòa qua2trang/URL/F5/phân trang21dòng PASS, Back/response đảo chưa chạy. A06 save3500/4200 ở hai tòa/invalid0-ngày02/duplicate giữ input/pending/expired session browser PASS; Đóng/Escape đã thử. A07 tab chi tiết tòa/phân trang/link scope/tòa rỗng và Desktop/Mobile PASS theo phạm vi Plan§12.25; chưa browser đối chiếu trực tiếp prototype U1. A08 cleanup theo manifest/schema global/dev snapshots nguyên vẹn PASS. Backend1219/10529/Pint233; frontend80/build/lint0lỗi8cảnhbáocũ. Log/ảnh ignored backups/utility-scope-20261028.

@@ -4,7 +4,7 @@ import { serviceSchema, serviceUpdateSchema } from '../src/features/services/sch
 import { utilityPriceSchema } from '../src/features/utility-prices/schemas.ts'
 
 const service = { code: ' internet ', name: ' Internet ', billing_type: 'per_room', unit: ' phòng ', price: 100000, description: '' }
-const price = { service_id: 1, unit_price: 3500, effective_from: '2026-12-01' }
+const price = { building_id: 1, service_id: 1, unit_price: 3500, effective_from: '2026-12-01' }
 
 test('service accepts exactly the three ordinary billing types and normalizes its identifier', () => {
   for (const billing_type of ['per_room', 'per_person', 'per_unit']) {

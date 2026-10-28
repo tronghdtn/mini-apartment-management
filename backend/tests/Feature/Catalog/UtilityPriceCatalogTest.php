@@ -4,11 +4,16 @@ namespace Tests\Feature\Catalog;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Building;
+use App\Models\Contract;
+use App\Models\Invoice;
 use App\Models\MeterReading;
+use App\Models\Room;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\UtilityPrice;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Schema\Builder;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
@@ -18,12 +23,48 @@ use Tests\TestCase;
 
 class UtilityPriceCatalogTest extends TestCase
 {
-    use InteractsWithSpaCookies, RefreshDatabase;
+    use InteractsWithSpaCookies;
+
+    private Building $building;
+
+    private ?Builder $realSchema = null;
+
+    private bool $ownsScope = false;
+
+    private function scopeMigration(): object
+    {
+        return require database_path('migrations/pending/2026_10_27_000002_scope_utility_prices_to_buildings.php');
+    }
 
     protected function setUp(): void
     {
         parent::setUp();
+        Artisan::call('migrate', ['--force' => true]);
+        $this->realSchema = DB::connection()->getSchemaBuilder();
+        $this->assertFalse($this->realSchema->hasColumn('utility_prices', 'building_id'), 'Scoped API tests must own their DDL and never borrow browser schema.');
+        $this->assertDatabaseCount('utility_prices', 0);
+        $this->scopeMigration()->up();
+        $this->ownsScope = true;
+        DB::beginTransaction(); // MySQL DDL must finish BEFORE starting fixture transactions.
         $this->initializeSpaClient();
+        $this->building = Building::factory()->create();
+    }
+
+    protected function tearDown(): void
+    {
+        try {
+            while (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            if ($this->ownsScope) {
+                Schema::swap($this->realSchema); // Restore the real builder after readiness-mock cases.
+                $this->assertDatabaseCount('utility_prices', 0);
+                $this->scopeMigration()->down();
+                $this->assertFalse($this->realSchema->hasColumn('utility_prices', 'building_id'));
+            }
+        } finally {
+            parent::tearDown();
+        }
     }
 
     private function signIn(UserRole $role = UserRole::Admin): User
@@ -41,7 +82,7 @@ class UtilityPriceCatalogTest extends TestCase
 
     private function input(Service $service): array
     {
-        return ['service_id' => $service->id, 'unit_price' => 3500, 'effective_from' => '2026-12-01'];
+        return ['building_id' => $this->building->id, 'service_id' => $service->id, 'unit_price' => 3500, 'effective_from' => '2026-12-01'];
     }
 
     /** @return array<string,array{string,string}> */
@@ -78,7 +119,7 @@ class UtilityPriceCatalogTest extends TestCase
         $input = $this->input($service);
         $response = $this->spa('POST', '/api/v1/utility-prices', $input)->assertCreated();
         $id = $response->json('data.id');
-        $response->assertExactJson(['data' => ['id' => $id] + $input + ['service' => ['id' => $service->id, 'code' => $service->code, 'name' => $service->name, 'unit' => 'kWh']]]);
+        $response->assertExactJson(['data' => ['id' => $id] + $input + ['building' => ['id' => $this->building->id, 'name' => $this->building->name], 'service' => ['id' => $service->id, 'code' => $service->code, 'name' => $service->name, 'unit' => 'kWh']]]);
         $this->assertDatabaseHas('utility_prices', $input + ['id' => $id]);
         $this->assertIsInt($response->json('data.unit_price'));
         $this->spa('GET', '/api/v1/utility-prices')->assertOk()->assertJsonPath('data.0.effective_from', '2026-12-01');
@@ -92,9 +133,9 @@ class UtilityPriceCatalogTest extends TestCase
         $water = Service::factory()->metered('WATER', 'm3')->create();
         for ($month = 1; $month <= 21; $month++) {
             $date = now()->setDate(2024, 1, 1)->startOfDay()->addMonths($month)->toDateString();
-            UtilityPrice::create(['service_id' => $electricity->id, 'unit_price' => 3000 + $month, 'effective_from' => $date]);
+            UtilityPrice::create(['building_id' => $this->building->id, 'service_id' => $electricity->id, 'unit_price' => 3000 + $month, 'effective_from' => $date]);
         }
-        $latest = UtilityPrice::create(['service_id' => $water->id, 'unit_price' => 15000, 'effective_from' => '2030-01-01']);
+        $latest = UtilityPrice::create(['building_id' => $this->building->id, 'service_id' => $water->id, 'unit_price' => 15000, 'effective_from' => '2030-01-01']);
         $first = $this->spa('GET', '/api/v1/utility-prices')->assertOk()->assertJsonCount(20, 'data')->assertJsonPath('meta.total', 22)->assertJsonPath('data.0.id', $latest->id)->assertJsonStructure(['data', 'links', 'meta']);
         $dates = array_column($first->json('data'), 'effective_from');
         $sorted = $dates;
@@ -108,6 +149,8 @@ class UtilityPriceCatalogTest extends TestCase
     public static function invalidInputs(): array
     {
         return [
+            'missing building' => [['building_id' => null], 'building_id'], 'unknown building' => [['building_id' => 9999999], 'building_id'],
+            'boolean building' => [['building_id' => true], 'building_id'], 'fraction building' => [['building_id' => 1.5], 'building_id'],
             'missing service' => [['service_id' => null], 'service_id'], 'unknown service' => [['service_id' => 9999999], 'service_id'],
             'zero price' => [['unit_price' => 0], 'unit_price'], 'negative price' => [['unit_price' => -1], 'unit_price'],
             'fraction price' => [['unit_price' => 3500.25], 'unit_price'], 'unsafe JSON price' => [['unit_price' => 9007199254740992], 'unit_price'],
@@ -158,7 +201,7 @@ class UtilityPriceCatalogTest extends TestCase
     {
         $this->signIn();
         $service = $this->metered();
-        $reading = MeterReading::factory()->create(['service_id' => $service->id, 'period' => '2026-10-01']);
+        $reading = MeterReading::factory()->create(['room_id' => Room::factory()->create(['building_id' => $this->building->id])->id, 'service_id' => $service->id, 'period' => '2026-10-01']);
         $before = (array) DB::table('meter_readings')->find($reading->id);
         $this->spa('POST', '/api/v1/utility-prices', array_replace($this->input($service), ['effective_from' => $date]))->assertUnprocessable()->assertJsonValidationErrors('effective_from');
         $this->assertDatabaseCount('utility_prices', 0);
@@ -203,6 +246,7 @@ class UtilityPriceCatalogTest extends TestCase
         $this->signIn();
         $input = $this->input($this->metered());
         Schema::shouldReceive('hasTable')->with('utility_prices')->andReturn($missing !== 'utility_prices');
+        Schema::shouldReceive('hasColumn')->with('utility_prices', 'building_id')->andReturn(true);
         Schema::shouldReceive('hasTable')->with('meter_readings')->andReturn($missing !== 'meter_readings');
         $response = $this->spa($method, '/api/v1/utility-prices', $input)->assertStatus(503)->assertJsonStructure(['message']);
         $this->assertArrayNotHasKey('data', $response->json());
@@ -214,7 +258,7 @@ class UtilityPriceCatalogTest extends TestCase
         $this->signIn();
         $service = $this->metered();
         Event::listen('eloquent.creating: '.UtilityPrice::class, function (UtilityPrice $price): void {
-            DB::table('utility_prices')->insert(['service_id' => $price->service_id, 'effective_from' => $price->effective_from->toDateString(), 'unit_price' => 99, 'created_at' => now(), 'updated_at' => now()]);
+            DB::table('utility_prices')->insert(['building_id' => $price->building_id, 'service_id' => $price->service_id, 'effective_from' => $price->effective_from->toDateString(), 'unit_price' => 99, 'created_at' => now(), 'updated_at' => now()]);
         });
         $response = $this->spa('POST', '/api/v1/utility-prices', $this->input($service))->assertConflict()->assertJsonStructure(['message']);
         $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
@@ -230,5 +274,45 @@ class UtilityPriceCatalogTest extends TestCase
             $this->assertContains($response->status(), [404, 405]);
         }
         $this->assertSame(3500, $price->fresh()->unit_price);
+    }
+
+    public function test_same_service_and_month_can_have_different_building_prices_and_filters_are_combined(): void
+    {
+        $this->signIn();
+        $service = $this->metered();
+        $other = Building::factory()->create();
+        $input = $this->input($service);
+        $this->spa('POST', '/api/v1/utility-prices', $input)->assertCreated();
+        $this->spa('POST', '/api/v1/utility-prices', [...$input, 'building_id' => $other->id, 'unit_price' => 4200])->assertCreated();
+        $this->spa('GET', '/api/v1/utility-prices?building_id='.$other->id.'&service_id='.$service->id)
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.unit_price', 4200)->assertJsonPath('data.0.building.id', $other->id);
+        $new = Building::factory()->create();
+        $this->spa('GET', '/api/v1/utility-prices?building_id='.$new->id)->assertOk()->assertJsonCount(0, 'data');
+        $this->spa('GET', '/api/v1/utility-prices?building_id=9999999')->assertUnprocessable()->assertJsonValidationErrors('building_id');
+    }
+
+    public function test_readings_in_another_building_do_not_block_this_buildings_price_and_issued_invoice_is_unchanged(): void
+    {
+        $this->signIn();
+        $service = $this->metered();
+        $other = Building::factory()->create();
+        $room = Room::factory()->create(['building_id' => $other->id]);
+        $contract = Contract::factory()->active()->create(['room_id' => $room->id]);
+        $invoice = Invoice::factory()->issued()->create(['contract_id' => $contract->id, 'total_amount' => 500000]);
+        $item = $invoice->items()->create(['item_type' => 'electricity', 'description' => 'Snapshot điện đã phát hành', 'quantity' => '100.00', 'unit_price' => 5000, 'amount' => 500000, 'meta' => ['basis' => 'issued snapshot']]);
+        $reading = MeterReading::factory()->create(['room_id' => $room->id, 'service_id' => $service->id, 'contract_id' => $contract->id, 'invoice_id' => $invoice->id, 'period' => '2027-01-01']);
+        $before = [$invoice->fresh()->getRawOriginal(), $item->fresh()->getRawOriginal(), $reading->fresh()->getRawOriginal()];
+        $this->spa('POST', '/api/v1/utility-prices', $this->input($service))->assertCreated();
+        $this->assertSame($before, [$invoice->fresh()->getRawOriginal(), $item->fresh()->getRawOriginal(), $reading->fresh()->getRawOriginal()]);
+        $this->spa('POST', '/api/v1/utility-prices', [...$this->input($service), 'building_id' => $other->id])->assertUnprocessable()->assertJsonValidationErrors('effective_from');
+    }
+
+    public function test_legacy_global_schema_is_explicitly_unavailable_instead_of_returning_global_prices(): void
+    {
+        $this->signIn();
+        Schema::shouldReceive('hasTable')->with('utility_prices')->andReturn(true);
+        Schema::shouldReceive('hasColumn')->with('utility_prices', 'building_id')->andReturn(false);
+        $this->spa('GET', '/api/v1/utility-prices')->assertStatus(503);
+        $this->spa('POST', '/api/v1/utility-prices', $this->input($this->metered()))->assertStatus(503);
     }
 }
