@@ -35,7 +35,7 @@ trait InteractsWithSpaCookies
         $this->spa('GET', '/sanctum/csrf-cookie')->assertNoContent();
     }
 
-    protected function spa(string $method, string $uri, array $data = [], array $server = [], bool $sendCsrf = true): TestResponse
+    protected function spa(string $method, string $uri, array $data = [], array $server = [], bool $sendCsrf = true, array $files = []): TestResponse
     {
         // Mỗi request nạp lại guard và session từ cookie + MySQL, tránh giữ user trong RAM.
         $this->app['auth']->forgetGuards();
@@ -45,7 +45,7 @@ trait InteractsWithSpaCookies
         $this->app->forgetInstance('session.store');
 
         $headers = [
-            'CONTENT_TYPE' => 'application/json',
+            'CONTENT_TYPE' => $files ? 'multipart/form-data' : 'application/json',
             'HTTP_ACCEPT' => 'application/json',
             'HTTP_ORIGIN' => 'http://localhost:8080',
             'HTTP_REFERER' => 'http://localhost:8080/',
@@ -54,7 +54,7 @@ trait InteractsWithSpaCookies
             $headers['HTTP_X_XSRF_TOKEN'] = $this->cookieJar['XSRF-TOKEN'];
         }
 
-        $response = $this->call($method, $uri, [], $this->cookieJar, [], array_replace($headers, $server), json_encode($data));
+        $response = $this->call($method, $uri, $files ? $data : [], $this->cookieJar, $files, array_replace($headers, $server), $files ? null : json_encode($data));
         foreach ($response->headers->getCookies() as $cookie) {
             $this->cookieJar[$cookie->getName()] = $cookie->getValue();
         }

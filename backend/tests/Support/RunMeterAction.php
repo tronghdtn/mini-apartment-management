@@ -2,7 +2,10 @@
 
 /** Independent child process for MTR/U1 real locking tests; only the guarded test DB. */
 
+use App\Models\MeterReadingSubmission;
+use App\Models\User;
 use App\Services\MeterReadingService;
+use App\Services\MeterReadingSubmissionService;
 use App\Services\UtilityPriceService;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Console\Kernel;
@@ -26,11 +29,13 @@ if ($identity->db !== 'mini_apartment_test' || $identity->account !== 'mini_apar
 $input = json_decode($argv[1], true, flags: JSON_THROW_ON_ERROR);
 echo "READY\n";
 flush();
-$status = 201;
+$status = in_array($input['action'], ['approve', 'reject'], true) ? 200 : 201;
 try {
     match ($input['action']) {
         'reading' => app(MeterReadingService::class)->storeBatch([$input['data']]),
         'price' => app(UtilityPriceService::class)->create($input['data']),
+        'approve' => app(MeterReadingSubmissionService::class)->approve(MeterReadingSubmission::findOrFail($input['data']['submission_id']), User::findOrFail($input['data']['actor_id'])),
+        'reject' => app(MeterReadingSubmissionService::class)->reject(MeterReadingSubmission::findOrFail($input['data']['submission_id']), User::findOrFail($input['data']['actor_id']), 'Ảnh cần gửi lại trong test tranh chấp'),
     };
 } catch (ValidationException) {
     $status = 422;

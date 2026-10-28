@@ -972,6 +972,10 @@ ADM-15 giữ Sidebar/font/sky-teal/bảng/tab Antigravity: lịch sử thật v�
 
 ## 31. INV/PAY — Business Rules Q13/Q8 đã chốt28/10
 
+**BR-INV-PERIOD-01 (DB-D71,28/10):** Admin được chuẩn bị draft trước tháng hóa đơn; chỉ issue khi ngày Việt Nam đã tới ngày01 của kỳ. Không đổi nội dung/due_date/total sau issued.
+
+**BR-INV-ZERO-01 (DB-D72,28/10):** tổng0 vẫn phát hành số/thời điểm hóa đơn, status=paid/paid_amount=0, không payment/RCP giả hoặc ghi doanh thu thực nhận.
+
 **BR-INV-OTHER-01 (DB-D69):** chỉ Admin active có quyền được thêm Khoản khác vào hóa đơn draft. Bắt buộc tên khoản, số tiền nguyên VND và lý do/căn cứ thu hợp lệ hoặc thỏa thuận phù hợp. Không tự sinh phí không có căn cứ; frontend không tự tính tiền. Cư dân được đọc đầy đủ khoản thu thuộc hóa đơn của mình.
 
 **BR-INV-OTHER-02:** lưu người/thời điểm/thao tác và nội dung trước/sau để đối chiếu; không xóa mất lịch sử khi sửa/gỡ khoản nháp. Sau issued, cấm sửa trực tiếp dòng/tổng; sai sót theo DB-D27 (hủy/lập lại khi chưa có payment hoặc quy trình điều chỉnh khi đã xác nhận). Chưa triển khai API hoặc lưu lịch sử từ việc ghi quyết định này; cách lưu/API/AC chi tiết bổ sung trước code INV.
@@ -981,3 +985,13 @@ ADM-15 giữ Sidebar/font/sky-teal/bảng/tab Antigravity: lịch sử thật v�
 **BR-PAY-HISTORY-02:** chuyển khoản kèm ảnh chỉ tạo pending, không trừ nợ hoặc báo thành công thu tiền. Chỉ Admin đối soát thực nhận hoặc xác nhận hợp lệ của provider mới chuyển confirmed/tính paid_amount/sinh RCP; từ chối phải có lý do. Online cần kiểm xác thực thông báo, số tiền/hóa đơn và chống xử lý lặp; chưa có provider/Sandbox được xác nhận thì chỉ triển khai Backend/giả lập tách biệt, không gọi thanh toán thật đã hoạt động. Cọc giữ riêng, không tự chuyển thành doanh thu thuê.
 
 AC INV/PAY: trái quyền/owner và người đã thanh lý, other thiếu tên-tiền-căn cứ, lịch sử sửa/gỡ, issued bất biến, pending không trừ nợ, confirm/reject thực nhận, xử lý lặp/cạnh tranh, dữ liệu provider không hợp lệ, ảnh private, UI cư dân nhìn thấy khoản/nợ đúng. Chỉ DB test; migration dev cần duyệt riêng.
+
+## 32. U2-03 — gửi ảnh và duyệt chỉ số (DB-D64, được giao Full MVP)
+
+Giữ hai pending migration M19/U2, không thêm bảng/cột/enum. GET `/api/v1/meter-reading-submissions` phân trang20, lọc status/period/page; Admin thêm room_id, Resident giới hạn submitted_by=self và contract.user_id=self. GET `.../context` chỉ Resident trả hợp đồng active/phòng/tòa và hai dịch vụ hệ thống. GET `.../{submission}` chi tiết; GET `.../{submission}/photo` stream private qua Policy, không URL disk/path. Resident hết hợp đồng vẫn đọc lịch sử của mình nhưng không gửi mới.
+
+POST cùng URL multipart: service_id,period,reading_date,current_reading chuỗi và đúng1 photo JPG/PNG/WebP tối đa5MB, kiểm MIME thật/extension; cấm owner/room/contract/status/giá/tiền. Server khóa phòng→user→contract, xác minh active/owner và khoảng MTR, lưu pending+ảnh metadata nguyên khối; DB thất bại dọn đúng file vừa tạo. Pending không tạo meter_readings/invoice/payment. UNIQUE pending giữ room/service/period, giữ lịch sử từ chối và cho gửi lại.
+
+POST `.../{submission}/approve` Admin, body rỗng: khóa cha MTR trước submission, kiểm lại owner/kỳ/mốc/giá/ảnh còn tồn tại, gọi storeBatch MTR và lưu approved_meter_reading_id/actor/time cùng transaction. Không sửa số đo khi duyệt; sai thì reject. Lặp approve trả cùng bản ghi/thời điểm, không sinh chỉ số mới; không đảo trạng thái. POST `.../{submission}/reject` bắt buộc rejection_reason, giữ ảnh/lịch sử; action trên trạng thái khác pending409. Khóa phòng tuần tự với nhập trực tiếp/kích hoạt/thanh lý; không khóa submission rồi quay lên cha. Contract thay đổi/kỳ đã ghi/issued phải lỗi, không gán chỉ số sang hợp đồng mới.
+
+Frontend: panel gửi/lịch sử tối thiểu trên Tổng quan cư dân (không gọi toàn màn hoàn chỉnh), tab duyệt ADM-15 theo style Antigravity; RHF/Zod, không mock KPI/ảnh/tiền. Ảnh qua http blob rồi revoke URL; không private path trong DOM. Pending khóa thao tác, lỗi thật/422/401/403/409/503 rõ ràng. AC: quyền5vai trò/owner/locked/CSRF, MIME-size/field giả, pending/trùng/reject-gửi lại, approve nguyên khối/lặp/ảnhprivate/chỉsốđãghi, cạnh tranh approve/nhập trực tiếp, Desktop-Mobile lưu-F5-ảnh-lỗi, cleanup DB test. Không migration dev.

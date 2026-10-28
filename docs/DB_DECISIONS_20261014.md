@@ -6,6 +6,9 @@
 
 ### Cập nhật ưu tiên 27/10 — sau kiểm kê Full MVP
 
+- **CONFIRMED DB-D71 / INV kỳ tương lai (28/10):** được chuẩn bị hóa đơn nháp trước kỳ, chỉ phát hành từ ngày đầu tháng hóa đơn theo giờ Việt Nam. Hóa đơn đã phát hành vẫn bất biến; không suy quyền migration dev.
+- **CONFIRMED DB-D72 / INV tổng0đ (28/10):** hóa đơn tổng0 được phát hành với status=paid (đã tất toán), paid_amount=0; không tạo payment hoặc mã biên nhận thu tiền giả. Vẫn giữ số hóa đơn/thời điểm phát hành và lịch sử, không coi0đ là tiền đã thực nhận.
+
 - **CONFIRMED DB-D69 / Q13 (28/10):** Admin có quyền được thêm Khoản khác vào hóa đơn nháp; bắt buộc tên khoản, số tiền VND và lý do/căn cứ thu hợp lệ. Cư dân xem được khoản thu của mình, lưu lịch sử thao tác. Không tự phát sinh khoản không có căn cứ/thỏa thuận, không sửa trực tiếp sau phát hành; sai sót theo quy trình điều chỉnh DB-D27. Chỉ triển khai/kiểm thử DB test, không migration dev.
 - **CONFIRMED DB-D70 / Q8 (28/10):** người thuê đã thanh lý vẫn xem và thanh toán hóa đơn/công nợ cũ của chính mình; không yêu cầu hợp đồng active cho thao tác này và không lộ dữ liệu người khác. Hỗ trợ online và gửi minh chứng chuyển khoản; ảnh không là xác nhận thu. Chỉ ghi nhận khi Admin đối soát thực nhận hoặc xác nhận hợp lệ từ nhà cung cấp. Chưa có Sandbox/provider được xác nhận, tiếp tục Backend/giả lập tách biệt, không coi online thật đã hoạt động. Không migration dev.
 - **CONFIRMED DB-D65 / U3:** giữ enum `periodic/final`; không giới hạn một lần thanh lý/phòng/tháng. Final gắn hợp đồng/lần thanh lý, không trùng cùng lần, không chỉ theo phòng/tháng. Phạm vi UNIQUE periodic được bổ sung bởi DB-D68 dưới đây. Giữ toàn bộ lịch sử, không tính trùng tiêu thụ giữa hóa đơn định kỳ và final. Chuẩn bị migration mới + test trên DB test, không sửa M14 cũ hoặc migration dev. Thiết kế chi tiết dùng generated conditional keys; chưa coi migration/API MTR đã được triển khai.

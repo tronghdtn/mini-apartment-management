@@ -92,7 +92,7 @@ class MeterReadingService
     }
 
     /** Parent locks stabilize ownership, then service locks serialize with U1 price changes. */
-    private function withLockedContext(array $entries, callable $action): mixed
+    public function withLockedContext(array $entries, callable $action): mixed
     {
         $this->ensureReady();
         $keys = [];

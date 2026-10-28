@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
+use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -40,6 +41,18 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('spa')->name('logout');
+    });
+});
+
+Route::middleware(['auth:sanctum', 'active'])->prefix('meter-reading-submissions')->name('api.v1.meter-reading-submissions.')->group(function () {
+    Route::get('/', [MeterReadingSubmissionController::class, 'index'])->name('index');
+    Route::get('/context', [MeterReadingSubmissionController::class, 'context'])->name('context');
+    Route::get('/{submission}', [MeterReadingSubmissionController::class, 'show'])->whereNumber('submission')->name('show');
+    Route::get('/{submission}/photo', [MeterReadingSubmissionController::class, 'photo'])->whereNumber('submission')->name('photo');
+    Route::middleware('spa')->group(function () {
+        Route::post('/', [MeterReadingSubmissionController::class, 'store'])->name('store');
+        Route::post('/{submission}/approve', [MeterReadingSubmissionController::class, 'approve'])->whereNumber('submission')->name('approve');
+        Route::post('/{submission}/reject', [MeterReadingSubmissionController::class, 'reject'])->whereNumber('submission')->name('reject');
     });
 });
 
