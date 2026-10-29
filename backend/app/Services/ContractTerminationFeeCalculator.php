@@ -25,7 +25,8 @@ class ContractTerminationFeeCalculator
             throw ValidationException::withMessages(['actual_end_date' => 'Ngày bàn giao không được trước ngày bắt đầu.']);
         }
         if ($handover->equalTo($start)) {
-            abort(409, 'Quy tắc phí nhận và trả cùng ngày chưa được xác nhận (P9).');
+            // DB-D66/P9: same-day handover has no early termination fee.
+            return 0;
         }
         if ($handover->greaterThanOrEqualTo($plannedHandover)) {
             return 0;

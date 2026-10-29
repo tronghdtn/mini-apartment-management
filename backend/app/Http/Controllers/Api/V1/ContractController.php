@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contract\ClosurePreviewRequest;
 use App\Http\Requests\Contract\ContractLifecycleRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateDraftServicesRequest;
+use App\Http\Resources\ClosurePreviewResource;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
+use App\Services\ContractClosureService;
 use App\Services\ContractService;
 use App\Services\ContractTermsService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +29,11 @@ class ContractController extends Controller
         Gate::authorize('viewAny', Contract::class);
 
         return ContractResource::collection($this->contracts->paginate($request->validated()));
+    }
+
+    public function closurePreview(ClosurePreviewRequest $request, string $contract, ContractClosureService $closure): ClosurePreviewResource
+    {
+        return new ClosurePreviewResource($closure->preview($contract, $request->validated()));
     }
 
     public function show(string $contract): ContractResource

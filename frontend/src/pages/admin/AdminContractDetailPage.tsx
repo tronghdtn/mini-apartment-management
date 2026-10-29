@@ -59,6 +59,7 @@ export function AdminContractDetailPage() {
       {contract.status === 'draft' && <div className="flex flex-wrap gap-2"><Link to={`/admin/contracts/${contract.id}/edit`}><Button variant="outline" icon={<Pencil className="w-4 h-4" />}>Sửa bản nháp</Button></Link><Button variant="danger" disabled={contract.deposit_status !== 'unpaid'} icon={<Trash2 className="w-4 h-4" />} onClick={() => { setDeleteError(''); setDeleting(true) }}>Xóa bản nháp</Button></div>}
     </div>
     {contract.status === 'active' && <p className="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-2 text-sm text-slate-600"><Lock className="w-4 h-4 shrink-0 mt-0.5" />Hợp đồng đang hiệu lực: thông tin phòng, người thuê, thời hạn, tiền thuê và cọc chỉ đọc.</p>}
+    {contract.status === 'active' && <Link className="inline-flex rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white" to={`/admin/contracts/${contract.id}/terminate`}>Xem trước bàn giao</Link>}
     <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'invoices', label: 'Lịch sử hóa đơn' }]} activeTab={tab} onChange={setTab} />
     <ContractLifecycleActions key={`actions-${contract.id}`} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} />
     <div hidden={tab !== 'info'}><div className="grid grid-cols-1 md:grid-cols-2 gap-6">

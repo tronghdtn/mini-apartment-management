@@ -6,7 +6,6 @@ use App\Models\Contract;
 use App\Services\ContractTerminationFeeCalculator;
 use Illuminate\Validation\ValidationException;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /** No DB writes: exercise the independent fee calculation, not the unimplemented closure flow. */
@@ -97,14 +96,13 @@ class ContractTerminationFeeCalculatorTest extends TestCase
         app(ContractTerminationFeeCalculator::class)->calculate($this->contract(), $handover);
     }
 
-    public function test_same_day_fee_is_blocked_until_p9_is_decided(): void
+    public function test_same_day_fee_is_zero_under_approved_p9_even_with_signed_fixed_fee(): void
     {
-        try {
-            app(ContractTerminationFeeCalculator::class)->calculate($this->contract(), '2026-10-01');
-            $this->fail('P9 chưa được duyệt.');
-        } catch (HttpException $exception) {
-            $this->assertSame(409, $exception->getStatusCode());
-        }
+        $calculator = app(ContractTerminationFeeCalculator::class);
+        $this->assertSame(0, $calculator->calculate($this->contract(), '2026-10-01'));
+        $this->assertSame(0, $calculator->calculate($this->contract([
+            'early_termination_fee_type' => 'fixed', 'early_termination_fee_amount' => 2000000,
+        ]), '2026-10-01'));
     }
 
     public function test_unsafe_fee_amount_is_rejected_instead_of_rounded_by_json(): void

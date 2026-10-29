@@ -246,3 +246,5 @@ PAY-02/03 — kết quả thực chạy 28/10: PAY-A01..08/API và Feature PASS 
 | DEBT-A06 | P1 | literal search, invalid filter/page, pagination/empty/error | wildcard là literal, validate 422; summary global ổn định qua filter/page; loading/error/empty rõ |
 | DEBT-A07 | P1 | UI Admin Desktop/Mobile, link to contract invoice filter, F5/Back | Antigravity layout giữ nguyên; số lấy từ API; mobile/table scroll; không mock |
 DEBT kết quả29/10: Feature5/73PASS bao gồm quyền/nợterminated/pending/filterliteral/ngàyVN/pagination21/precisionchuỗi/linkinvoicecontract. Full log1302/11753PASS trước bổ sung ca mới; frontend93/build/lintPASS; Pint277PASS. DEBT-A07 browser chưa chạy: công cụ bị tắt trong Work settings, không đánh PASS.
+
+CLOSE-02a: POST closure-preview chỉ Adminactive, Guest401/role403/locked403/CSRF419; invaliddate/thiếulýdo/forgedfee422; state/stalerevision409; missing404; same_day0/earlyfixed2000000/đúnghạn0/quáhạn0; DBcontract/room giữ nguyên, invoices/payments/meters0. Feature3test và calculator23test tổng26/98PASS. Frontend94test/build/lintPASS, browser bịtắt chưa nghiệmthu. Fullsuite/Pint kết quả ghi tại Plan§12.32.

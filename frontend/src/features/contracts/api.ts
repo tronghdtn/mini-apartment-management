@@ -1,4 +1,5 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
+import { closurePreviewSchema, type ClosurePreview, type ClosurePreviewInput } from './closure'
 import type { ApiResource } from '@/types/api'
 import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema } from './schemas'
 import type { ContractFilters, DraftContractInput, DraftContractServicesInput } from './schemas'
@@ -85,4 +86,11 @@ export async function activateContract(id: number, input: ActivateContractInput,
   const body = activateContractSchema.parse(input)
   await fetchCsrfCookie()
   return (await http.post<ApiResource<Contract>>(`/contracts/${id}/activate`, { ...body, expected_revision: expectedRevision })).data.data
+}
+
+export async function previewContractClosure(id: number, input: ClosurePreviewInput, expectedRevision: string): Promise<ClosurePreview> {
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<ClosurePreview>>(`/contracts/${id}/closure-preview`, {
+    ...closurePreviewSchema.parse(input), expected_revision: expectedRevision,
+  })).data.data
 }

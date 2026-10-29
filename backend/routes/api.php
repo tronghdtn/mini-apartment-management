@@ -105,6 +105,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('amenities/{amenity}', [AmenityController::class, 'show'])->name('amenities.show');
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
+        Route::post('contracts/{contract}/closure-preview', [ContractController::class, 'closurePreview'])->whereNumber('contract')->name('contracts.closure-preview');
         Route::put('contracts/{contract}/terms', [ContractController::class, 'updateTerms'])->whereNumber('contract')->name('contracts.terms.update');
         Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');
         Route::post('contracts/{contract}/activate', [ContractController::class, 'activate'])->whereNumber('contract')->name('contracts.activate');
