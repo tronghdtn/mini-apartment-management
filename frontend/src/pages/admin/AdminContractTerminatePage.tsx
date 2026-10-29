@@ -63,7 +63,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
       if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
     } finally { flight.current = false; setBusy(false) }
   }
-  return <><form noValidate onSubmit={handleSubmit(submit)} className="rounded-2xl border border-slate-200 bg-white p-5"><fieldset disabled={busy} className="space-y-4">
+  return <><form noValidate onSubmit={event => { void handleSubmit(submit)(event) }} className="rounded-2xl border border-slate-200 bg-white p-5"><fieldset disabled={busy} className="space-y-4">
     <h2 className="font-bold text-slate-900">1. Ngày bàn giao và lý do</h2>
     <label className="block text-sm font-bold">Ngày bàn giao thực tế<input type="date" {...register('actual_end_date')} min={contract.start_date} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 sm:max-w-xs" />{errors.actual_end_date && <span role="alert" className="mt-1 block text-rose-700">{errors.actual_end_date.message}</span>}</label>
     <label className="block text-sm font-bold">Lý do và ghi chú<textarea {...register('closure_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />{errors.closure_note && <span role="alert" className="mt-1 block text-rose-700">{errors.closure_note.message}</span>}</label>
