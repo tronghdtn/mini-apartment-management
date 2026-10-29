@@ -237,3 +237,6 @@ Kỹ thuật viên chỉ khi đang được phân công yêu cầu pending/in_pr
 
 ### DB-D76 / Q17 — CONFIRMED 30/10/2026
 Giữ phòng occupied khi còn hợp đồng active. Sự cố theo dõi qua yêu cầu sửa chữa; chỉ Admin được chuyển trạng thái bảo trì/ngừng sử dụng khi không còn hợp đồng active. Không thêm trạng thái kết hợp, không đổi enum/schema, không migrationdev.
+
+### DB-D77 / Q3 — CONFIRMED 30/10/2026
+Nhận lịch xem phòng tương lai trong 08:00–20:00 giờ Việt Nam. Người đã đăng nhập được tự hủy lịch của mình khi chưa tới giờ hẹn và chưa check-in; khách vãng lai liên hệ Admin để hủy. Đổi giờ qua Admin trước check-in, đưa về pending rồi xác nhận lại. Giữ schema/enum đã duyệt, chỉ DB test; không migrationdev. Q16 thông báo confirmed/cancelled áp dụng đúng người đặt đã đăng nhập, không phát thông báo giả cho khách không có tài khoản.
