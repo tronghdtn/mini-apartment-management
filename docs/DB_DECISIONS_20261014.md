@@ -228,3 +228,6 @@ Các mục cũ còn ghi U3/P3/P6/P7/P8/P9/P11 chưa duyệt là lịch sử, b�
 
 ### DB-D73 / Q16 — CONFIRMED 29/10/2026
 Chủ dự án duyệt bộ sự kiện thông báo trong ứng dụng: invoiceissued/paymentreview→chủhợpđồng; meter submitted→Adminactive, approved/rejected→ngườigửi; maintenance created→Adminactive, assigned→technician, statuschanged→ngườigửi; appointment confirmed/cancelled→ngườiđặt đãđăngnhập; contractactivated/terminated→ngườithuê. Guard xem APIlịchhômnay riêng, không phát rộng sai vai trò. Mỗi người nhận một dòng sau commit, chống gửi trùng; chỉ chủ tài khoản xem/đánh dấuđọc. Chỉ DB test, chưa email/SMS/push ngoài hệ thống, không migrationdev. Nghiệp vụ nguồn chưa triển khai thì chưa phát sự kiện giả; không tự thêm thông báo soạn tay/broadcast.
+
+### DB-D74 / Q9 — CONFIRMED 30/10/2026
+Cư dân chọn mức ưu tiên ban đầu khi gửi yêu cầu sửa chữa (low/normal/high/urgent). Admin được điều chỉnh khi tiếp nhận/phân công; kỹ thuật viên chỉ đọc mức ưu tiên. Giữ trường priority và enum/schema đã duyệt, không thêm requested_priority hoặc migrationdev. Q14/Q17 còn chờ lựa chọn riêng, không suy quyền hiển thị liên hệ hoặc đổi trạng thái phòng từ Q9.
