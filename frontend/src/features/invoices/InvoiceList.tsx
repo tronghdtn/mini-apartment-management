@@ -34,17 +34,17 @@ export function InvoiceList({ admin = false }: { admin?: boolean }) {
   const [busy, setBusy] = useState(false)
   const [retry, setRetry] = useState(0)
   const [result, setResult] = useState<{ key: string; data?: InvoicePage; error?: string }>()
-  const status = params.get('status') ?? '', period = params.get('period') ?? '', overdue = params.get('overdue') ?? '', page = params.get('page') ?? '1'
-  const key = `${status}:${period}:${overdue}:${page}:${retry}`
-  const valid = invoiceFiltersSchema.safeParse({ status, period, overdue, page }).success
+  const status = params.get('status') ?? '', period = params.get('period') ?? '', overdue = params.get('overdue') ?? '', contract_id = params.get('contract_id') ?? '', page = params.get('page') ?? '1'
+  const key = `${status}:${period}:${overdue}:${contract_id}:${page}:${retry}`
+  const valid = invoiceFiltersSchema.safeParse({ status, period, overdue, contract_id, page }).success
   useEffect(() => {
     if (!valid) return
     const abort = new AbortController()
-    getInvoices(invoiceFiltersSchema.parse({ status, period, overdue, page }), abort.signal)
+    getInvoices(invoiceFiltersSchema.parse({ status, period, overdue, contract_id, page }), abort.signal)
       .then(data => { if (!abort.signal.aborted) setResult({ key, data }) })
       .catch(failure => { if (!abort.signal.aborted) { setResult({ key, error: apiErrorMessage(failure) }); if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) void refresh() } })
     return () => abort.abort()
-  }, [key, status, period, overdue, page, valid, refresh])
+  }, [key, status, period, overdue, contract_id, page, valid, refresh])
   const data = result?.key === key ? result.data : undefined
   const error = !valid ? 'Bộ lọc không hợp lệ. Hãy xóa hoặc chọn lại.' : result?.key === key ? result.error : undefined
   const base = admin ? '/admin/invoices' : '/resident/invoices'
@@ -53,7 +53,7 @@ export function InvoiceList({ admin = false }: { admin?: boolean }) {
     if (name !== 'page') next.delete('page'); setParams(next)
   }
   const tabs = [{ id: '', label: 'Tất cả' }, ...(admin ? [{ id: 'draft', label: 'Bản nháp' }] : []), { id: 'issued', label: 'Đã phát hành' }, { id: 'partially_paid', label: 'Một phần' }, { id: 'paid', label: 'Đã tất toán' }, { id: 'cancelled', label: 'Đã hủy' }]
-  return <div className="space-y-6"><header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5"><div><p className="text-xs font-bold uppercase text-sky-700">{admin ? 'Tài chính / Hóa đơn' : 'Cư dân / Hóa đơn'}</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-extrabold text-slate-900"><FileText className="h-6 w-6 text-sky-600" />{admin ? 'Quản lý hóa đơn & công nợ' : 'Hóa đơn & Tiền phòng của tôi'}</h1><p className="mt-2 text-sm text-slate-500">{admin ? 'Khoản thu có căn cứ, số tiền và trạng thái được ghi nhận từ hệ thống.' : 'Xem hóa đơn và công nợ của bạn, kể cả sau khi đã trả phòng.'}</p></div>{admin && <Button disabled={busy || !data || !!error} icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>Lập hóa đơn tháng</Button>}</header>
+  return <div className="space-y-6"><header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5"><div><p className="text-xs font-bold uppercase text-sky-700">{admin ? 'Tài chính / Hóa đơn' : 'Cư dân / Hóa đơn'}</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-extrabold text-slate-900"><FileText className="h-6 w-6 text-sky-600" />{admin ? 'Quản lý hóa đơn & công nợ' : 'Hóa đơn & Tiền phòng của tôi'}</h1><p className="mt-2 text-sm text-slate-500">{admin ? 'Khoản thu có căn cứ, số tiền và trạng thái được ghi nhận từ hệ thống.' : 'Xem hóa đơn và công nợ của bạn, kể cả sau khi đã trả phòng.'}</p>{admin && contract_id && <p role="status" className="mt-2 text-sm text-sky-800">Đang xem hóa đơn của hợp đồng #{contract_id}</p>}</div>{admin && <Button disabled={busy || !data || !!error} icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>Lập hóa đơn tháng</Button>}</header>
     <fieldset disabled={busy} className="space-y-4"><nav aria-label="Trạng thái hóa đơn" className="flex overflow-x-auto border-b border-slate-200">{tabs.map(tab => <button key={tab.id} type="button" onClick={() => filter('status', tab.id)} className={`shrink-0 border-b-2 px-4 py-3 text-sm font-bold ${status === tab.id ? 'border-sky-600 text-sky-700' : 'border-transparent text-slate-500'}`}>{tab.label}</button>)}</nav>
       <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200 bg-white p-4"><label className="text-sm font-bold">Kỳ hóa đơn<input type="date" value={period} onChange={event => filter('period', event.target.value)} className="mt-1 block rounded-xl border border-slate-300 p-2.5" /></label><label className="flex items-center gap-2 py-3 text-sm"><input type="checkbox" checked={overdue === '1'} onChange={event => filter('overdue', event.target.checked ? '1' : '')} />Chỉ hóa đơn quá hạn</label><Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc</Button></div>
     </fieldset>

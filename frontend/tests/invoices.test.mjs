@@ -15,6 +15,8 @@ test('manual charge requires integer VND and lawful basis, no server metadata', 
 test('invoice filters preserve overdue as a derived flag and reject invalid pages', () => {
   const input={status:'issued',period:'2026-10-01',overdue:'1',page:'2'}
   assert.deepEqual(invoiceFiltersSchema.parse(input),input)
+  assert.equal(invoiceFiltersSchema.parse({...input,contract_id:'23'}).contract_id,'23')
+  assert.equal(invoiceFiltersSchema.safeParse({...input,contract_id:'0'}).success,false)
   assert.equal(invoiceFiltersSchema.safeParse({...input,status:'overdue'}).success,false)
   assert.equal(invoiceFiltersSchema.safeParse({...input,page:'0'}).success,false)
 })

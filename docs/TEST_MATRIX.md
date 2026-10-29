@@ -233,3 +233,16 @@ Kết quả INV28/10: A01 live auth77điểm quyền/CSRF/owner PASS; locked và
 | PAY-A10 P0 | thiếuM19/schema, cleanup ID/file/metadata/manifest/devsnapshot | 503trướcqueryID, exactownership, không devmigration; Feature/root |
 
 PAY-02/03 — kết quả thực chạy 28/10: PAY-A01..08/API và Feature PASS theo phạm vi quyền, input, pending/confirmed/rejected, biên nhận, bất biến invoice và process races; PAY-A09 browser Desktop Admin payment list/detail/direct-cash/RCP và Resident invoice/payment form đọc trạng thái PASS. Chưa thao tác được Resident file-picker submit trong CUA, chưa kiểm viewport Mobile riêng; file thật và policy đã kiểm qua live API/test. PAY-A10 cleanup fixture/ảnh/metadata, Nginx hash gốc và dev snapshot 20 bảng/16 migration nguyên vẹn PASS. Full backend1298/11694; Pint272; frontend91/build/lint PASS (0 lỗi, 8 cảnh báo cũ; main chunk602.19KB). Không có VNPAY/Sandbox thật; không migration dev.
+
+## DEBT-01 — ADM-19 Công nợ riêng, Q12
+
+| ID | Ưu tiên | Tình huống | Kết quả cần kiểm và bằng chứng |
+|---|---|---|---|
+| DEBT-A01 | P0 | Guest/resident/technician/guard/locked/Admin | Chỉ Admin active đọc; lỗi401/403 phù hợp, không lộ invoice/tenant data |
+| DEBT-A02 | P0 | issued/partial/paid/zero/draft/cancelled, multiple invoice/contract | Gom đúng theo contract; chỉ balance>0; exclude draft/cancelled/paid/zero |
+| DEBT-A03 | P0 | pending/confirmed/rejected payment, stale/corrupt cached amount | Pending/rejected không giảm; confirmed ledger là nguồn nợ đã ghi nhận; summary/invoice一致 |
+| DEBT-A04 | P0 | due today, overdue yesterday, future due, VN timezone | Chỉ due_date trước ngày VN là quá hạn; summary, tab và invoice label cùng quy tắc |
+| DEBT-A05 | P1 | terminated/soft-deleted contract/tenant | Nợ lịch sử vẫn xuất hiện và mở đúng invoice; không truy cập dữ liệu khác |
+| DEBT-A06 | P1 | literal search, invalid filter/page, pagination/empty/error | wildcard là literal, validate 422; summary global ổn định qua filter/page; loading/error/empty rõ |
+| DEBT-A07 | P1 | UI Admin Desktop/Mobile, link to contract invoice filter, F5/Back | Antigravity layout giữ nguyên; số lấy từ API; mobile/table scroll; không mock |
+DEBT kết quả29/10: Feature5/73PASS bao gồm quyền/nợterminated/pending/filterliteral/ngàyVN/pagination21/precisionchuỗi/linkinvoicecontract. Full log1302/11753PASS trước bổ sung ca mới; frontend93/build/lintPASS; Pint277PASS. DEBT-A07 browser chưa chạy: công cụ bị tắt trong Work settings, không đánh PASS.

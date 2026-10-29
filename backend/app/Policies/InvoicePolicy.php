@@ -9,6 +9,11 @@ use App\Models\User;
 
 class InvoicePolicy
 {
+    public function viewDebts(User $user): bool
+    {
+        return $user->isActive() && $user->hasRole(UserRole::Admin);
+    }
+
     public function viewAny(User $user): bool
     {
         return $user->isActive() && in_array($user->role, [UserRole::Admin, UserRole::Resident], true);

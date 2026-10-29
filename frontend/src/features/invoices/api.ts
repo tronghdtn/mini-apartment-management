@@ -3,7 +3,7 @@ import { createInvoiceSchema, invoiceFiltersSchema, otherChargeSchema, type Crea
 import type { Invoice, InvoiceContractOption, InvoicePage } from './types'
 export async function getInvoices(filters: InvoiceFilters, signal?: AbortSignal): Promise<InvoicePage> {
   const input = invoiceFiltersSchema.parse(filters)
-  return (await http.get<InvoicePage>('/invoices', { params: { page: input.page, status: input.status || undefined, period: input.period || undefined, overdue: input.overdue || undefined }, signal })).data
+  return (await http.get<InvoicePage>('/invoices', { params: { page: input.page, status: input.status || undefined, period: input.period || undefined, overdue: input.overdue || undefined, contract_id: input.contract_id ? Number(input.contract_id) : undefined }, signal })).data
 }
 export async function getInvoice(id: string, signal?: AbortSignal) { return (await http.get<{ data: Invoice }>(`/invoices/${encodeURIComponent(id)}`, { signal })).data.data }
 export async function createInvoice(input: CreateInvoiceInput) { return (await http.post<{ data: Invoice }>('/invoices', createInvoiceSchema.parse(input))).data.data }

@@ -7,7 +7,9 @@ export const otherChargeSchema = z.object({ description: z.string().trim().min(1
   basis: z.string().trim().min(1, 'Cần lý do/căn cứ thu hợp lệ.').max(2000, 'Tối đa 2000 ký tự.') })
 export const invoiceReasonSchema = z.object({ reason: z.string().trim().min(1, 'Cần lý do.').max(2000, 'Tối đa 2000 ký tự.') })
 export const invoiceFiltersSchema = z.object({ status: z.enum(['', 'draft', 'issued', 'partially_paid', 'paid', 'cancelled']),
-  period: z.union([z.literal(''), period]), overdue: z.enum(['', '1']), page: z.string().regex(/^[1-9]\d*$/).refine(value => Number.isSafeInteger(Number(value)) && Number(value) <= 2147483647) })
+  period: z.union([z.literal(''), period]), overdue: z.enum(['', '1']),
+  contract_id: z.union([z.literal(''), z.string().regex(/^[1-9]\d*$/).refine(value => Number.isSafeInteger(Number(value)) && Number(value) <= 2147483647)]).optional(),
+  page: z.string().regex(/^[1-9]\d*$/).refine(value => Number.isSafeInteger(Number(value)) && Number(value) <= 2147483647) })
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>
 export type OtherChargeInput = z.infer<typeof otherChargeSchema>
 export type InvoiceReasonInput = z.infer<typeof invoiceReasonSchema>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
+use App\Http\Controllers\Api\V1\DebtController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
@@ -66,6 +67,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('payments')->name('api.v1.
     Route::post('/{payment}/reject', [PaymentController::class, 'reject'])->middleware('spa')->whereNumber('payment')->name('reject');
 });
 Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->middleware(['auth:sanctum', 'active', 'spa'])->whereNumber('invoice')->name('api.v1.invoices.payments.store');
+Route::get('debts', [DebtController::class, 'index'])->middleware(['auth:sanctum', 'active'])->name('api.v1.debts.index');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {
     Route::get('/', [InvoiceController::class, 'index'])->name('index');
