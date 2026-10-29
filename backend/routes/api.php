@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
 use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\RoomController;
@@ -68,6 +69,8 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('payments')->name('api.v1.
 });
 Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->middleware(['auth:sanctum', 'active', 'spa'])->whereNumber('invoice')->name('api.v1.invoices.payments.store');
 Route::get('debts', [DebtController::class, 'index'])->middleware(['auth:sanctum', 'active'])->name('api.v1.debts.index');
+Route::get('notifications', [NotificationController::class, 'index'])->middleware(['auth:sanctum', 'active'])->name('api.v1.notifications.index');
+Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->middleware(['auth:sanctum', 'active', 'spa'])->whereUuid('notification')->name('api.v1.notifications.read');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {
     Route::get('/', [InvoiceController::class, 'index'])->name('index');

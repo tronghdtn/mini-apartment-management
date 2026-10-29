@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Contract;
+use App\Models\Invoice;
 use App\Models\MeterReadingSubmission;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Support\AuthIdentity;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -28,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        foreach ([Contract::class, Invoice::class, Payment::class, MeterReadingSubmission::class] as $source) {
+            $source::saved(fn ($model) => app(NotificationService::class)->saved($model));
+        }
         // Dự án chỉ dùng SPA cookie; không tra cứu bảng personal_access_tokens.
         Sanctum::getAccessTokenFromRequestUsing(fn () => null);
 
