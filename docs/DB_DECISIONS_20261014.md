@@ -231,3 +231,9 @@ Chủ dự án duyệt bộ sự kiện thông báo trong ứng dụng: invoicei
 
 ### DB-D74 / Q9 — CONFIRMED 30/10/2026
 Cư dân chọn mức ưu tiên ban đầu khi gửi yêu cầu sửa chữa (low/normal/high/urgent). Admin được điều chỉnh khi tiếp nhận/phân công; kỹ thuật viên chỉ đọc mức ưu tiên. Giữ trường priority và enum/schema đã duyệt, không thêm requested_priority hoặc migrationdev. Q14/Q17 còn chờ lựa chọn riêng, không suy quyền hiển thị liên hệ hoặc đổi trạng thái phòng từ Q9.
+
+### DB-D75 / Q14 — CONFIRMED 30/10/2026
+Kỹ thuật viên chỉ khi đang được phân công yêu cầu pending/in_progress mới thấy tên và SĐT người gửi để liên hệ. Sau khi xử lý xong/rejected thì ẩn SĐT; không bao giờ trả CCCD/email/hồ sơ hợp đồng qua Resource kỹ thuật viên. Người bị gỡ phân công không còn quyền xem yêu cầu đó theo Policy assigned_to=self. Chỉ DB test; không tự mở rộng quyền hoặc migrationdev.
+
+### DB-D76 / Q17 — CONFIRMED 30/10/2026
+Giữ phòng occupied khi còn hợp đồng active. Sự cố theo dõi qua yêu cầu sửa chữa; chỉ Admin được chuyển trạng thái bảo trì/ngừng sử dụng khi không còn hợp đồng active. Không thêm trạng thái kết hợp, không đổi enum/schema, không migrationdev.
