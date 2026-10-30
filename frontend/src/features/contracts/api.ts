@@ -1,5 +1,5 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
-import { closurePreviewSchema, type ClosurePreview, type ClosurePreviewInput } from './closure'
+import { closurePreviewSchema, finalMeterPreviewSchema, type ClosurePreview, type ClosurePreviewInput, type FinalMeterPreview, type FinalMeterPreviewInput } from './closure'
 import { contractInspectionSchema, type ContractInspectionInput } from './inspection'
 import type { ApiResource } from '@/types/api'
 import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema } from './schemas'
@@ -93,6 +93,13 @@ export async function previewContractClosure(id: number, input: ClosurePreviewIn
   await fetchCsrfCookie()
   return (await http.post<ApiResource<ClosurePreview>>(`/contracts/${id}/closure-preview`, {
     ...closurePreviewSchema.parse(input), expected_revision: expectedRevision,
+  })).data.data
+}
+
+export async function previewFinalContractMeters(id: number, input: FinalMeterPreviewInput, expectedRevision: string): Promise<FinalMeterPreview> {
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<FinalMeterPreview>>(`/contracts/${id}/final-meter-preview`, {
+    ...finalMeterPreviewSchema.parse(input), expected_revision: expectedRevision,
   })).data.data
 }
 

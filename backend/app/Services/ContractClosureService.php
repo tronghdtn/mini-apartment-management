@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ContractClosureReason;
 use App\Enums\ContractStatus;
+use App\Models\Contract;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +19,15 @@ class ContractClosureService
         $this->contracts->ensureReady();
         abort_unless(Schema::hasColumn('contracts', 'early_termination_fee_type'), 503, 'Điều khoản hợp đồng chưa sẵn sàng trên môi trường này.');
         $contract = $this->contracts->find($id);
-        abort_unless($contract->status === ContractStatus::Active, 409, 'Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.');
+
+        return $this->assess($contract, $data);
+    }
+
+    /** Reuses the same read-only date/fee rules with a contract already locked by a caller. */
+    public function assess(Contract $contract, array $data): array
+    {
+        abort_unless($contract->status === ContractStatus::Active && $contract->activated_at !== null && ! $contract->trashed(),
+            409, 'Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.');
         abort_unless(hash_equals($contract->lifecycleRevision(), $data['expected_revision']), 409, 'Hợp đồng vừa thay đổi. Vui lòng tải lại.');
         $date = $data['actual_end_date'];
         $start = $contract->start_date->format('Y-m-d');

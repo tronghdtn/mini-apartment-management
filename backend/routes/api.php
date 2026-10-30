@@ -147,6 +147,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
         Route::post('contracts/{contract}/closure-preview', [ContractController::class, 'closurePreview'])->whereNumber('contract')->name('contracts.closure-preview');
+        Route::post('contracts/{contract}/final-meter-preview', [ContractController::class, 'finalMeterPreview'])->whereNumber('contract')->name('contracts.final-meter-preview');
         Route::post('contracts/{contract}/inspection', [ContractController::class, 'recordInspection'])->whereNumber('contract')->name('contracts.inspection.store');
         Route::put('contracts/{contract}/terms', [ContractController::class, 'updateTerms'])->whereNumber('contract')->name('contracts.terms.update');
         Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');

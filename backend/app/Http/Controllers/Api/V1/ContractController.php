@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\ClosurePreviewRequest;
 use App\Http\Requests\Contract\ContractInspectionRequest;
 use App\Http\Requests\Contract\ContractLifecycleRequest;
+use App\Http\Requests\Contract\FinalMeterPreviewRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
@@ -17,6 +18,7 @@ use App\Services\ContractClosureService;
 use App\Services\ContractInspectionService;
 use App\Services\ContractService;
 use App\Services\ContractTermsService;
+use App\Services\FinalMeterReadingPreviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -39,6 +41,14 @@ class ContractController extends Controller
     public function closurePreview(ClosurePreviewRequest $request, string $contract, ContractClosureService $closure): ClosurePreviewResource
     {
         return new ClosurePreviewResource($closure->preview($contract, $request->validated()));
+    }
+
+    public function finalMeterPreview(FinalMeterPreviewRequest $request, string $contract, FinalMeterReadingPreviewService $preview): ClosurePreviewResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('view', $model);
+
+        return new ClosurePreviewResource($preview->preview($model, $request->user(), $request->validated()));
     }
 
     public function recordInspection(ContractInspectionRequest $request, string $contract, ContractInspectionService $inspection): ContractResource

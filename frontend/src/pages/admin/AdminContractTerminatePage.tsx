@@ -3,10 +3,10 @@ import { Link, useParams } from 'react-router'
 import { isAxiosError } from 'axios'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, FileText } from 'lucide-react'
+import { Camera, Droplets, FileText, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { getContract, previewContractClosure, saveContractInspection } from '@/features/contracts/api'
-import { closurePreviewSchema, closureReasonLabels, type ClosurePreview, type ClosurePreviewInput } from '@/features/contracts/closure'
+import { getContract, previewFinalContractMeters, saveContractInspection } from '@/features/contracts/api'
+import { finalMeterPreviewSchema, closureReasonLabels, type FinalMeterPreview, type FinalMeterPreviewInput } from '@/features/contracts/closure'
 import { contractInspectionSchema, type ContractInspectionInput } from '@/features/contracts/inspection'
 import type { Contract } from '@/features/contracts/types'
 import { useAuth } from '@/features/auth/useAuth'
@@ -50,32 +50,55 @@ export function AdminContractTerminatePage() {
 function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract; onAuthFailure: () => void; onReload: () => void }) {
   const [busy, setBusy] = useState(false)
   const flight = useRef(false)
-  const [result, setResult] = useState<{ key: string; revision: string; data: ClosurePreview }>()
-  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<ClosurePreviewInput>({ resolver: zodResolver(closurePreviewSchema), defaultValues: { actual_end_date: '', closure_note: '' } })
+  const [result, setResult] = useState<{ key: string; revision: string; data: FinalMeterPreview }>()
+  const { register, handleSubmit, control, setError, formState: { errors } } = useForm<FinalMeterPreviewInput>({ resolver: zodResolver(finalMeterPreviewSchema), defaultValues: {
+    actual_end_date: '', closure_note: '', electricity_reading: '', water_reading: '',
+  } })
   const values = useWatch({ control })
   const key = JSON.stringify(values)
   const preview = result?.key === key && result.revision === contract.lifecycle_revision ? result.data : undefined
-  async function submit(input: ClosurePreviewInput) {
+  async function submit(input: FinalMeterPreviewInput) {
     if (flight.current) return
     flight.current = true; setBusy(true); setResult(undefined)
     try {
-      const data = await previewContractClosure(contract.id, input, contract.lifecycle_revision ?? '')
+      const data = await previewFinalContractMeters(contract.id, input, contract.lifecycle_revision ?? '')
       setResult({ key, revision: contract.lifecycle_revision ?? '', data })
     } catch (failure) {
-      applyApiErrors(failure, setError, ['actual_end_date', 'closure_note'])
+      applyApiErrors(failure, setError, ['actual_end_date', 'closure_note', 'electricity_reading', 'water_reading'])
       if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
     } finally { flight.current = false; setBusy(false) }
   }
   return <><form noValidate onSubmit={event => { void handleSubmit(submit)(event) }} className="rounded-2xl border border-slate-200 bg-white p-5"><fieldset disabled={busy} className="space-y-4">
-    <h2 className="font-bold text-slate-900">1. Ngày bàn giao và lý do</h2>
+    <h2 className="font-bold text-slate-900">1. Ngày bàn giao và chỉ số chốt</h2>
     <label className="block text-sm font-bold">Ngày bàn giao thực tế<input type="date" {...register('actual_end_date')} min={contract.start_date} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 sm:max-w-xs" />{errors.actual_end_date && <span role="alert" className="mt-1 block text-rose-700">{errors.actual_end_date.message}</span>}</label>
     <label className="block text-sm font-bold">Lý do và ghi chú<textarea {...register('closure_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />{errors.closure_note && <span role="alert" className="mt-1 block text-rose-700">{errors.closure_note.message}</span>}</label>
     <p className="text-sm text-slate-500">Bắt buộc ghi lý do khi nhận–trả cùng ngày, trả trước hạn hoặc quá hạn. Ngày bàn giao không tính tiền phòng cho hợp đồng cũ.</p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="block text-sm font-bold"><span className="inline-flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" />Chỉ số điện cuối (kWh)</span>
+        <input inputMode="decimal" autoComplete="off" {...register('electricity_reading')} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" placeholder="Ví dụ: 125.00" />
+        {errors.electricity_reading && <span role="alert" className="mt-1 block text-rose-700">{errors.electricity_reading.message}</span>}
+      </label>
+      <label className="block text-sm font-bold"><span className="inline-flex items-center gap-2"><Droplets className="h-4 w-4 text-sky-600" />Chỉ số nước cuối (m³)</span>
+        <input inputMode="decimal" autoComplete="off" {...register('water_reading')} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" placeholder="Ví dụ: 13.00" />
+        {errors.water_reading && <span role="alert" className="mt-1 block text-rose-700">{errors.water_reading.message}</span>}
+      </label>
+    </div>
+    <p className="text-sm text-slate-500">Giá và mốc trước do hệ thống lấy theo hợp đồng, chuỗi chỉ số và tòa nhà. Số cuối phải được Admin đọc thực tế tại bàn giao.</p>
     {errors.root && <p role="alert" className="text-sm text-rose-700">{errors.root.message}</p>}
-    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>{busy ? 'Đang kiểm tra…' : 'Xem trước phí bàn giao'}</Button><Button type="button" variant="outline" onClick={onReload}>Tải lại hợp đồng</Button></div></fieldset></form>
-    {preview && <section role="status" className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5"><h2 className="font-bold text-teal-900">{closureReasonLabels[preview.closure_reason]}</h2>
-      <p className="text-sm">Ngày bàn giao đúng hạn: {formatDate(preview.planned_handover_date)}</p><p className="font-bold">Phí chấm dứt trước hạn: {formatVND(preview.early_termination_fee)}</p>
-      <p className="text-sm text-slate-700">Đây chỉ là bản xem trước theo điều khoản hợp đồng. Chưa chốt điện nước, hóa đơn tất toán hoặc hoàn/khấu trừ cọc; hợp đồng và trạng thái phòng chưa thay đổi.</p></section>}
+    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>{busy ? 'Đang kiểm tra…' : 'Xem trước bàn giao'}</Button><Button type="button" variant="outline" onClick={onReload}>Tải lại hợp đồng</Button></div></fieldset></form>
+    {preview && <section role="status" className="space-y-4 rounded-2xl border border-teal-200 bg-teal-50 p-5"><div><h2 className="font-bold text-teal-900">{closureReasonLabels[preview.closure_reason]}</h2>
+      <p className="mt-1 text-sm">Ngày bàn giao đúng hạn: {formatDate(preview.planned_handover_date)} · Kỳ chốt: {formatDate(preview.period)}</p>
+      <p className="mt-2 font-bold">Phí chấm dứt trước hạn theo điều khoản: {formatVND(preview.early_termination_fee)}</p></div>
+      <div className="grid gap-3 sm:grid-cols-2">{preview.readings.map(reading => <article key={reading.service_code} className="rounded-xl border border-teal-100 bg-white p-4">
+        <h3 className="font-bold text-slate-900">{reading.service_name}</h3><dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+          <dt className="text-slate-500">Mốc trước</dt><dd className="text-right tabular-nums">{reading.previous_reading} {reading.unit}</dd>
+          <dt className="text-slate-500">Chỉ số cuối</dt><dd className="text-right tabular-nums">{reading.current_reading} {reading.unit}</dd>
+          <dt className="text-slate-500">Tiêu thụ</dt><dd className="text-right tabular-nums">{reading.consumption} {reading.unit}</dd>
+          <dt className="text-slate-500">Đơn giá</dt><dd className="text-right">{formatVND(reading.unit_price)}/{reading.unit}</dd>
+          <dt className="border-t border-slate-100 pt-1 font-semibold">Tạm tính</dt><dd className="border-t border-slate-100 pt-1 text-right font-semibold">{formatVND(reading.amount)}</dd>
+        </dl></article>)}</div>
+      <p className="font-bold text-teal-950">Tổng điện nước chốt: {formatVND(preview.meter_amount)}</p>
+      <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Giao dịch thanh lý sẽ kiểm tra lại toàn bộ dữ liệu.</p></section>}
   </>
 }
 
@@ -107,7 +130,7 @@ function InspectionForm({ contract, onAuthFailure, onSaved }: { contract: Contra
 
   return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
     <header className="flex items-start gap-3"><Camera className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="font-bold text-slate-900">2. Kiểm tra tài sản</h2>
-      <p className="mt-1 text-sm text-slate-500">Ghi kết quả và ảnh bàn giao. Hạng mục hư hỏng, căn cứ và số tiền sẽ được lưu riêng ở hóa đơn tất toán.</p></div></header>
+      <p className="mt-1 text-sm text-slate-500">Ghi kết quả và ảnh bàn giao. Đây là bước bắt buộc trước khi lập hóa đơn tất toán; hư hỏng phải có căn cứ và ảnh riêng tư.</p></div></header>
     {contract.inspection_result && <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
       <p className="font-semibold">Kết quả gần nhất: {contract.inspection_result === 'damaged' ? 'Có hư hỏng' : 'Không có hư hỏng'}</p>
       {contract.inspected_at && <p className="mt-1 text-slate-500">Đã ghi nhận {formatDateTime(contract.inspected_at)}.</p>}
