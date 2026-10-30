@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,6 +29,10 @@ class ContractResource extends JsonResource
             'early_termination_fee_amount' => $this->early_termination_fee_amount,
             'early_termination_fee_multiplier' => $this->early_termination_fee_multiplier,
             'early_termination_waiver_conditions' => $this->early_termination_waiver_conditions,
+            'inspection_result' => $this->inspection_result?->value,
+            'inspected_by' => $this->inspected_by,
+            'inspected_at' => $this->inspected_at?->utc()->toISOString(),
+            'inspection_note' => $this->inspection_note,
             'meter_gap_reason' => $this->meter_gap_reason,
             'meter_gap_confirmed_by' => $this->meter_gap_confirmed_by,
             'occupant_count' => $this->occupant_count,
@@ -43,6 +48,14 @@ class ContractResource extends JsonResource
                 'service' => ['code' => $line->service->code, 'name' => $line->service->name, 'unit' => $line->service->unit,
                     'billing_type' => $line->service->billing_type->value, 'status' => $line->service->status->value],
             ])),
+            'inspection_photos' => $this->whenLoaded('attachments', fn () => $this->attachments
+                ->where('collection', Attachment::CONTRACT_INSPECTION_PHOTO)->where('disk', 'private')
+                ->sortBy('sort_order')->values()->map(fn (Attachment $attachment) => [
+                    'id' => $attachment->id,
+                    'url' => '/api/v1/contracts/'.$this->id.'/attachments/'.$attachment->id,
+                    'mime_type' => $attachment->mime_type,
+                    'size_bytes' => $attachment->size_bytes,
+                ])),
             'room' => [
                 'id' => $this->room->id,
                 'code' => $this->room->code,

@@ -132,9 +132,9 @@ Không tự xóa nhà khi còn phòng/hợp đồng. `rooms.floor_number` phải
 | Cột | MySQL | Ràng buộc |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
-| `attachable_type` | VARCHAR(100) | NN, morphMap cố định `room/maintenance_request/payment`; U2 thêm `meter_reading_submission` |
+| `attachable_type` | VARCHAR(100) | NN, morphMap cố định `room/maintenance_request/payment/contract`; U2 thêm `meter_reading_submission` |
 | `attachable_id` | BIGINT UNSIGNED | NN |
-| `collection` | VARCHAR(50) | NN, `room_gallery/maintenance_photo/payment_proof`; U2 thêm `meter_reading_photo` |
+| `collection` | VARCHAR(50) | NN, `room_gallery/maintenance_photo/payment_proof/inspection_photo/damage_photo/waiver_evidence`; U2 thêm `meter_reading_photo` |
 | `disk` | VARCHAR(20) | NN, `public/private` |
 | `path` | VARCHAR(500) | NN |
 | `original_name` | VARCHAR(255) | NN |
@@ -143,7 +143,7 @@ Không tự xóa nhà khi còn phòng/hợp đồng. `rooms.floor_number` phải
 | `is_cover` | BOOLEAN | NN, DEF false |
 | `sort_order` | INT UNSIGNED | NN, DEF 0 |
 
-Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQL đa bảng. Ảnh phòng public; ảnh sửa chữa/minh chứng thanh toán private và truy cập theo Policy cha; MIME thật, ảnh jpg/png/webp, PDF khi feature tài liệu cho phép, tối đa 5 MB/tệp. Payment do cư dân gửi kèm **đúng 1** `payment_proof` (kiểm tra ở Service). Sự cố tối đa 5 ảnh. Việc xóa file vật lý phải phối hợp với transaction; không tạo đường dẫn public cho file riêng tư.
+Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQL đa bảng. Ảnh phòng public; ảnh sửa chữa/minh chứng thanh toán/kiểm kê tài sản/bồi thường/miễn phí private và truy cập theo Policy cha; MIME thật, ảnh jpg/png/webp, PDF khi feature tài liệu cho phép, tối đa 5 MB/tệp. Payment do cư dân gửi kèm **đúng 1** `payment_proof` (kiểm tra ở Service). Sự cố/ảnh kiểm kê tối đa 5 ảnh mỗi lần gửi; mỗi dòng damage phải gắn ít nhất một ảnh. Việc xóa file vật lý phải phối hợp với transaction; không tạo đường dẫn public cho file riêng tư.
 
 ### 3.8 `contracts` (timestamps + `deleted_at` cho draft)
 
@@ -175,10 +175,14 @@ Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQ
 | `deposit_paid_at` | TIMESTAMP | NULL; cọc>0 phải được xác nhận thực nhận đủ (`held` + thời điểm thu) trước kích hoạt; cọc0 không cần thu (DB-D62) |
 | `deposit_deducted_amount`, `deposit_refund_amount` | BIGINT UNSIGNED | NN, DEF 0 |
 | `deposit_settled_at` | TIMESTAMP | NULL |
+| `inspection_result` | VARCHAR(20) | NULL; `no_damage` / `damaged` (DB-D67); bắt buộc trước khi thanh lý (DB-D49) |
+| `inspected_by` | BIGINT UNSIGNED | NULL, FK → users.id, RESTRICT; chỉ Backend gán Admin đã xác thực |
+| `inspected_at` | TIMESTAMP | NULL; thời điểm kiểm kê lưu UTC |
+| `inspection_note` | TEXT | NULL; ghi chú tình trạng tài sản |
 | `renewed_from_id` | BIGINT UNSIGNED | NULL, UQ, FK → contracts.id, RESTRICT |
-| `closure_reason` | VARCHAR(50) | NULL khi chưa thanh lý; **mã phân loại** (DB-D46): `on_time`, `early_termination`, `same_day` — phải nhất quán với `actual_end_date` (mã bổ sung: đề xuất P3) |
+| `closure_reason` | VARCHAR(50) | NULL khi chưa thanh lý; **mã phân loại** (DB-D46/D66): `on_time`, `early_termination`, `same_day`, `overdue_return` — phải nhất quán với `actual_end_date`; chủ nhà chấm dứt trước hạn ngoài MVP |
 | `closed_at` | TIMESTAMP | NULL |
-| `closure_note`, `note` | TEXT | NULL; `closure_note` = giải thích chi tiết, **bắt buộc** khi `closure_reason` ∈ {`early_termination`, `same_day`} (DB-D46) |
+| `closure_note`, `note` | TEXT | NULL; `closure_note` = giải thích chi tiết, **bắt buộc** khi `closure_reason` ∈ {`early_termination`, `same_day`, `overdue_return`} (DB-D46/D66) |
 | `deleted_at` | TIMESTAMP | NULL; chỉ soft-delete draft |
 
 Index `(room_id,status,start_date)`, `(user_id,status)`, `(status,end_date)`. **Một active mỗi phòng và mỗi đại diện:** dùng generated columns có UNIQUE (xem §6) và transaction `lockForUpdate()` trên room/user/contract. `occupant_count` **gồm người đại diện**, các hàng `contract_occupants` chỉ lưu người ở cùng. Kích hoạt tự tạo đăng ký `ELECTRICITY` và `WATER`; cập nhật phòng occupied và vai trò user→resident cùng transaction. Không đổi phòng, người thuê, tiền thuê, cọc, ngày bắt đầu/kết thúc sau khi active. Gia hạn SHOULD tạo hợp đồng mới `renewed_from_id`, không sửa đè hợp đồng cũ; `expired` (status) và `transferred` (deposit_status) chỉ khai báo sẵn, MVP chưa mở chuyển trạng thái (DB-D38). **Ngày tính tiền** của hợp đồng = `[start_date, actual_end_date)`; bàn giao cùng ngày D thì ngày D chỉ thuộc hợp đồng mới (DB-D32). **Sau thanh lý** người thuê **giữ** `role = resident` để xem lịch sử; "đang thuê" suy ra từ hợp đồng `active`, thao tác cần hợp đồng active phải kiểm tra điều đó (DB-D36). Chỉ số đầu hợp đồng mới **cao hơn chỉ số chốt gần nhất** của phòng/dịch vụ chỉ được chấp nhận khi Admin xác nhận: lý do lưu `meter_gap_reason`, người xác nhận `meter_gap_confirmed_by`, thời điểm là `activated_at`; phần chênh không tính cho ai; **thấp hơn** thì chặn (DB-D31, DB-D40). Hai cột này chỉ ghi trong transaction kích hoạt, không sửa được qua form cập nhật hợp đồng thông thường. **Quá `end_date`** mà vẫn `active` thì tiếp tục tính tiền sử dụng thực tế (DB-D43). **Phân loại thanh lý** (DB-D46) suy từ ngày bàn giao: `same_day` ⇔ `actual_end_date = start_date`; `on_time` ⇔ `actual_end_date = end_date + 1`; `early_termination` ⇔ `start_date < actual_end_date ≤ end_date`; trả quá hạn chưa có mã (P3). **Nhận và trả cùng ngày** (DB-D41, DB-D45): số ngày tính tiền phòng = 0, bắt buộc `closure_note`, chốt chỉ số thực tế, đối soát cọc theo quy trình, vẫn dùng `terminated`. **Bồi thường trả trước hạn** (DB-D47): điều khoản xác định khi ký — không bồi thường / số tiền cố định / hệ số × `monthly_rent` đã snapshot — không mặc định một tháng tiền thuê; hệ thống tự tính khi thanh lý; điều khoản bất biến sau kích hoạt. **Miễn bồi thường** (DB-D48) chỉ khi đáp ứng điều kiện đã ghi trong hợp đồng, Admin xác nhận điều kiện áp dụng kèm căn cứ. **Kiểm tra tài sản** (DB-D49) bắt buộc trước thanh lý; không hư hỏng bất thường → phí tài sản 0; có hư hỏng thuộc trách nhiệm người thuê → hạng mục, lý do, số tiền có căn cứ, ảnh minh chứng; tách biệt với phí trả trước hạn. Cấu trúc lưu điều khoản, điều kiện miễn và kết quả kiểm tra: **chưa chốt** (`DATABASE_IMPLEMENTATION_PLAN.md` §14, P4–P6).

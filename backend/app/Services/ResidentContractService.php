@@ -25,8 +25,13 @@ class ResidentContractService
 
     public function detail(User $user, int $id): Contract
     {
-        return $this->query($user)->with(['contractServices.service', 'occupants',
-            'invoices' => fn ($query) => $query->where('type', 'final')->whereNotNull('issued_at')->where('status', '!=', 'cancelled')->orderByDesc('id')])
-            ->findOrFail($id);
+        $query = $this->query($user)->with(['contractServices.service', 'occupants',
+            'invoices' => fn ($query) => $query->where('type', 'final')->whereNotNull('issued_at')->where('status', '!=', 'cancelled')->orderByDesc('id')]);
+        if (Schema::hasColumns('contracts', ['inspection_result', 'inspected_by', 'inspected_at', 'inspection_note'])
+            && Schema::hasTable('attachments')) {
+            $query->with(['attachments' => fn ($attachments) => $attachments->where('disk', 'private')->orderBy('sort_order')->orderBy('id')]);
+        }
+
+        return $query->findOrFail($id);
     }
 }

@@ -27,6 +27,9 @@ export interface ResidentContractDetail extends ResidentContract {
   deposit_refund_amount: number
   closure_reason: string | null
   inspection_result: string | null
+  inspected_at: string | null
+  inspection_note: string | null
+  inspection_photos?: { id: number; url: string; mime_type: string; size_bytes: number }[]
   final_invoice_id: number | null
   contract_services: { id: number; name: string; billing_type: string; unit: string | null; quantity: string; unit_price: number | null; start_date: string; end_date: string | null }[]
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Attachment;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -29,7 +30,17 @@ class ResidentContractResource extends JsonResource
                 'deposit_paid_at' => $this->deposit_paid_at?->toISOString(), 'deposit_settled_at' => $this->deposit_settled_at?->toISOString(),
                 'deposit_deducted_amount' => $this->deposit_deducted_amount, 'deposit_refund_amount' => $this->deposit_refund_amount,
                 'closure_reason' => $this->closure_reason,
-                'inspection_result' => $this->getRawOriginal('inspection_result'),
+                'inspection_result' => $this->inspection_result?->value,
+                'inspected_at' => $this->inspected_at?->utc()->toISOString(),
+                'inspection_note' => $this->inspection_note,
+                'inspection_photos' => $this->whenLoaded('attachments', fn () => $this->attachments
+                    ->where('collection', Attachment::CONTRACT_INSPECTION_PHOTO)->where('disk', 'private')
+                    ->sortBy('sort_order')->values()->map(fn (Attachment $attachment) => [
+                        'id' => $attachment->id,
+                        'url' => '/api/v1/contracts/'.$this->id.'/attachments/'.$attachment->id,
+                        'mime_type' => $attachment->mime_type,
+                        'size_bytes' => $attachment->size_bytes,
+                    ])),
                 'final_invoice_id' => $this->invoices->first()?->id,
                 'contract_services' => $this->contractServices->map(fn ($line) => ['id' => $line->id, 'name' => $line->service->name,
                     'billing_type' => $line->service->billing_type->value, 'unit' => $line->service->unit,

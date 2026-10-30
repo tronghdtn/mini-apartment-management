@@ -27,6 +27,11 @@ export interface Contract {
   early_termination_fee_amount: number | null
   early_termination_fee_multiplier: string | null
   early_termination_waiver_conditions: { code: string; description: string }[] | null
+  inspection_result: 'no_damage' | 'damaged' | null
+  inspected_by: number | null
+  inspected_at: string | null
+  inspection_note: string | null
+  inspection_photos?: { id: number; url: string; mime_type: string; size_bytes: number }[]
   meter_gap_reason: string | null
   meter_gap_confirmed_by: number | null
   occupant_count: number

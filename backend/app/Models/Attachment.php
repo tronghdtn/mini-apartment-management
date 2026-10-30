@@ -16,6 +16,12 @@ class Attachment extends Model
 
     public const PAYMENT_PROOF = 'payment_proof';
 
+    public const CONTRACT_INSPECTION_PHOTO = 'inspection_photo';
+
+    public const CONTRACT_DAMAGE_PHOTO = 'damage_photo';
+
+    public const CONTRACT_WAIVER_EVIDENCE = 'waiver_evidence';
+
     protected function casts(): array
     {
         return ['is_cover' => 'boolean', 'sort_order' => 'integer', 'size_bytes' => 'integer'];

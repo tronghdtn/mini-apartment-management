@@ -4,7 +4,7 @@
 
 ## A. Quyết định và tác động
 
-### Cập nhật ưu tiên 27/10 — sau kiểm kê Full MVP
+### Các quyết định bổ sung 27–30/10 — sau kiểm kê Full MVP
 
 - **CONFIRMED DB-D71 / INV kỳ tương lai (28/10):** được chuẩn bị hóa đơn nháp trước kỳ, chỉ phát hành từ ngày đầu tháng hóa đơn theo giờ Việt Nam. Hóa đơn đã phát hành vẫn bất biến; không suy quyền migration dev.
 - **CONFIRMED DB-D72 / INV tổng0đ (28/10):** hóa đơn tổng0 được phát hành với status=paid (đã tất toán), paid_amount=0; không tạo payment hoặc mã biên nhận thu tiền giả. Vẫn giữ số hóa đơn/thời điểm phát hành và lịch sử, không coi0đ là tiền đã thực nhận.
@@ -13,8 +13,8 @@
 - **CONFIRMED DB-D70 / Q8 (28/10):** người thuê đã thanh lý vẫn xem và thanh toán hóa đơn/công nợ cũ của chính mình; không yêu cầu hợp đồng active cho thao tác này và không lộ dữ liệu người khác. Hỗ trợ online và gửi minh chứng chuyển khoản; ảnh không là xác nhận thu. Chỉ ghi nhận khi Admin đối soát thực nhận hoặc xác nhận hợp lệ từ nhà cung cấp. Chưa có Sandbox/provider được xác nhận, tiếp tục Backend/giả lập tách biệt, không coi online thật đã hoạt động. Không migration dev.
 - **CONFIRMED DB-D65 / U3:** giữ enum `periodic/final`; không giới hạn một lần thanh lý/phòng/tháng. Final gắn hợp đồng/lần thanh lý, không trùng cùng lần, không chỉ theo phòng/tháng. Phạm vi UNIQUE periodic được bổ sung bởi DB-D68 dưới đây. Giữ toàn bộ lịch sử, không tính trùng tiêu thụ giữa hóa đơn định kỳ và final. Chuẩn bị migration mới + test trên DB test, không sửa M14 cũ hoặc migration dev. Thiết kế chi tiết dùng generated conditional keys; chưa coi migration/API MTR đã được triển khai.
 - **CONFIRMED DB-D68 / U3 bổ sung28/10:** chủ dự án chọn “Periodic theo hợp đồng khi đang thuê”: UNIQUE `(contract_id,service_id,period)` cho periodic có hợp đồng; periodic phòng trống vẫn UNIQUE `(room_id,service_id,period)`. Hai hợp đồng A/B cùng phòng/tháng có thể có periodic riêng, không để chỉ số A chặn hóa đơn B. Vẫn giữ kind periodic/final và final UNIQUE hợp đồng/dịch vụ; chuỗi mốc thực tế và snapshot hóa đơn phải chống tính trùng. Chỉ DB test, không migration dev.
-- **CONFIRMED DB-D66 / P3/P9:** duyệt đề xuất trả quá hạn `overdue_return` với ghi chú bắt buộc; chủ nhà chấm dứt trước hạn ngoài MVP; nhận-trả cùng ngày không thu phí trước hạn, vẫn chốt điện nước/kiểm tra tài sản/đối soát cọc. Chỉ DB test.
-- **CONFIRMED DB-D67 / P6/P7/P8/P11:** duyệt cấu trúc kết quả/người/thời điểm/ghi chú kiểm tra trên contracts; Admin nhập từng dòng damage với lý do/căn cứ/ít nhất một ảnh private; loại dòng `damage`/`termination_fee`; alias contract và collections inspection_photo/damage_photo/waiver_evidence, Policy hợp đồng. MVP không yêu cầu cư dân ký trong hệ thống. Chỉ chuẩn bị/test DB test, không migration dev.
+- **CONFIRMED DB-D66 / P3/P9 (30/10):** duyệt trả quá hạn `overdue_return` với ghi chú bắt buộc; chủ nhà chấm dứt trước hạn ngoài MVP; nhận-trả cùng ngày không thu phí trước hạn, vẫn chốt điện nước/kiểm tra tài sản/đối soát cọc. Chỉ DB test.
+- **CONFIRMED DB-D67 / P6/P7/P8/P11 (30/10):** duyệt cấu trúc kết quả/người/thời điểm/ghi chú kiểm tra trên contracts; Admin nhập từng dòng damage với lý do/căn cứ/ít nhất một ảnh private; loại dòng `damage`/`termination_fee`; alias contract và collections inspection_photo/damage_photo/waiver_evidence, Policy hợp đồng. MVP không yêu cầu cư dân ký trong hệ thống. Chỉ chuẩn bị/test DB test, không migration dev.
 
 Các mục cũ còn ghi U3/P3/P6/P7/P8/P9/P11 chưa duyệt là lịch sử, bị cập nhật này thay thế. Quyết định không tự đồng nghĩa đã code/test/API/UI; trạng thái triển khai tại IMPLEMENTATION_PLAN.
 

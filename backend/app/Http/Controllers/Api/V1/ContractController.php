@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\ClosurePreviewRequest;
+use App\Http\Requests\Contract\ContractInspectionRequest;
 use App\Http\Requests\Contract\ContractLifecycleRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
@@ -13,12 +14,16 @@ use App\Http\Resources\ClosurePreviewResource;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Services\ContractClosureService;
+use App\Services\ContractInspectionService;
 use App\Services\ContractService;
 use App\Services\ContractTermsService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContractController extends Controller
 {
@@ -34,6 +39,27 @@ class ContractController extends Controller
     public function closurePreview(ClosurePreviewRequest $request, string $contract, ContractClosureService $closure): ClosurePreviewResource
     {
         return new ClosurePreviewResource($closure->preview($contract, $request->validated()));
+    }
+
+    public function recordInspection(ContractInspectionRequest $request, string $contract, ContractInspectionService $inspection): ContractResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+        $data = $request->safe()->except('photos');
+
+        return new ContractResource($inspection->record($model, $request->user(), $data, $request->file('photos', [])));
+    }
+
+    public function inspectionPhoto(Request $request, string $contract, int $attachment, ContractInspectionService $inspection): StreamedResponse
+    {
+        $photo = $inspection->photo($request->user(), (int) $contract, $attachment);
+        abort_unless(Storage::disk('private')->exists($photo->path), 404);
+        $extension = match ($photo->mime_type) {
+            'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', default => abort(404),
+        };
+
+        return Storage::disk('private')->response($photo->path, 'contract-'.$contract.'-inspection-'.$photo->id.'.'.$extension,
+            ['Content-Type' => $photo->mime_type, 'Content-Disposition' => 'inline', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
     }
 
     public function show(string $contract): ContractResource

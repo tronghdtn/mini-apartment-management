@@ -275,6 +275,7 @@ class ContractLifecycleTest extends TestCase
         $this->assertSame(ContractStatus::Draft, $draft->fresh()->status);
         $this->admin();
         Schema::shouldReceive('hasTable')->andReturnUsing(fn ($table) => $table !== 'meter_readings');
+        Schema::shouldReceive('hasColumns')->andReturnFalse();
         $this->spa('POST', "/api/v1/contracts/{$draft->id}/activate", $this->readings())->assertStatus(503);
     }
 

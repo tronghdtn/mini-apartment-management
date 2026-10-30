@@ -290,3 +290,15 @@ Tự động3/66PASS đầu lượt; fullsuite đang chạy, chưafixturebrowser
 | MAINT-A08 | P1 | Q16: created/assigned/status notifications đúng người sau commit, dedupe và owner-only read |
 
 Kết quả 30/10: MaintenanceRequestApiTest **3/126 PASS**; full Backend **1326/12348 PASS** exit0; Pint **315 file PASS**; frontend **102 test/build PASS**, lint **0 lỗi/8 cảnh báo cũ**. Feature test áp dụng tường minh M17/M19/M20 trên mysql_test và teardown gọi down; không migration dev. Browser MAINT chưa chạy vì Work settings tắt browser; tự động không thay nghiệm thu giao diện.
+
+## CLOSE-02b — kiểm kê hợp đồng
+
+| ID | Mức | Phạm vi |
+|---|---|---|
+| CLOSE-A01 | P0 | Admin active ghi `no_damage`/`damaged`, ghi chú, actor/time server; hợp đồng active và expected_revision đúng |
+| CLOSE-A02 | P0 | 401/403, foreign/locked role, trạng thái không active, stale revision; không ghi kết quả khi lỗi |
+| CLOSE-A03 | P0 | 0..5 ảnh JPG/PNG/WebP ≤5MB; chặn SVG/6 ảnh/>5MB; lỗi ghi xóa file vừa upload |
+| CLOSE-A04 | P0 | Ảnh disk private, owner/Admin xem; foreign Resident/Technician không xem, `nosniff` và `private/no-store` |
+| CLOSE-A05 | P0 | Migration P6 thêm cột nullable/FK RESTRICT trên DB test; snapshot cũ không đổi; rollback sạch |
+
+Kết quả 30/10: `ContractInspectionApiTest` **4/77 PASS**; ContractDraft + ContractLifecycle + ContractInspection **132/1287 PASS**. Full backend **1330/12425 PASS**, 481.99s, exit0; Pint **320 file PASS**; frontend **104 test PASS**, build PASS, lint **0 lỗi/9 cảnh báo**. Full-suite lần đầu phát hiện lookup attachments khi schema P6 thiếu; cổng yêu cầu đồng thời P6 columns và M19 table, test mock được cập nhật; lần chạy toàn phần tiếp theo đạt. P6/M19 được apply/down tường minh chỉ trong mysql_test; không migration dev. Browser trực quan chưa chạy vì local browser bị tắt trong Work settings. CLOSE-A01..05 không kiểm thử damage lines, final invoice hoặc đối soát cọc.

@@ -62,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
             'meter_reading_submission' => MeterReadingSubmission::class,
             'payment' => Payment::class,
             'maintenance_request' => MaintenanceRequest::class,
+            'contract' => Contract::class,
         ]);
     }
 }

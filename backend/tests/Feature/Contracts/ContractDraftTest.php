@@ -453,6 +453,7 @@ class ContractDraftTest extends TestCase
             $this->spa($method, '/api/v1/contracts'.($method === 'POST' ? '' : '/'.$draft->id), $input, sendCsrf: false)->assertStatus(419);
         }
         Schema::shouldReceive('hasTable')->andReturnUsing(fn ($table) => $table !== 'contracts');
+        Schema::shouldReceive('hasColumns')->andReturnFalse();
         foreach (self::endpoints() as [$method, $suffix]) {
             $this->spa($method, '/api/v1/contracts'.($suffix === '' ? '' : sprintf($suffix, $draft->id)), $input)->assertStatus(503);
         }
@@ -497,6 +498,7 @@ class ContractDraftTest extends TestCase
         $this->signIn();
         $input = $this->input();
         Schema::shouldReceive('hasTable')->andReturnUsing(fn ($table) => ! in_array($table, ['invoices', 'invoice_items', 'payments', 'meter_readings'], true));
+        Schema::shouldReceive('hasColumns')->andReturnFalse();
         $id = $this->spa('POST', '/api/v1/contracts', $input)->assertCreated()->json('data.id');
         $this->spa('GET', '/api/v1/contracts')->assertOk()->assertJsonPath('data.0.id', $id);
         $this->spa('GET', '/api/v1/contracts/'.$id)->assertOk();

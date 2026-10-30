@@ -69,8 +69,13 @@ class ContractService
     public function find(string|int $id): Contract
     {
         $this->ensureReady();
+        $contract = $this->query(true)->findOrFail($id);
+        if (Schema::hasColumns('contracts', ['inspection_result', 'inspected_by', 'inspected_at', 'inspection_note'])
+            && Schema::hasTable('attachments')) {
+            $contract->load(['attachments' => fn ($attachments) => $attachments->where('disk', 'private')->orderBy('sort_order')->orderBy('id')]);
+        }
 
-        return $this->query(true)->findOrFail($id);
+        return $contract;
     }
 
     public function create(#[\SensitiveParameter] array $data): Contract

@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Attachment;
+use App\Models\Contract;
 use App\Models\MaintenanceRequest;
 use App\Models\MeterReadingSubmission;
 use App\Models\Payment;
@@ -15,6 +16,14 @@ class AttachmentPolicy
     {
         if (! $user->isActive() || $attachment->disk !== 'private') {
             return false;
+        }
+
+        if ($attachment->attachable_type === 'contract' && in_array($attachment->collection, [
+            Attachment::CONTRACT_INSPECTION_PHOTO, Attachment::CONTRACT_DAMAGE_PHOTO, Attachment::CONTRACT_WAIVER_EVIDENCE,
+        ], true)) {
+            $contract = $attachment->attachable;
+
+            return $contract instanceof Contract && ($user->can('view', $contract) || $user->can('viewOwnContract', $contract));
         }
 
         if ($attachment->attachable_type === 'payment' && $attachment->collection === Attachment::PAYMENT_PROOF) {

@@ -1,5 +1,6 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
 import { closurePreviewSchema, type ClosurePreview, type ClosurePreviewInput } from './closure'
+import { contractInspectionSchema, type ContractInspectionInput } from './inspection'
 import type { ApiResource } from '@/types/api'
 import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema } from './schemas'
 import type { ContractFilters, DraftContractInput, DraftContractServicesInput } from './schemas'
@@ -93,4 +94,15 @@ export async function previewContractClosure(id: number, input: ClosurePreviewIn
   return (await http.post<ApiResource<ClosurePreview>>(`/contracts/${id}/closure-preview`, {
     ...closurePreviewSchema.parse(input), expected_revision: expectedRevision,
   })).data.data
+}
+
+export async function saveContractInspection(id: number, input: ContractInspectionInput, expectedRevision: string): Promise<Contract> {
+  const valid = contractInspectionSchema.parse(input)
+  const body = new FormData()
+  body.append('inspection_result', valid.inspection_result)
+  body.append('inspection_note', valid.inspection_note)
+  body.append('expected_revision', expectedRevision)
+  valid.photos.forEach(photo => body.append('photos[]', photo))
+
+  return (await http.post<ApiResource<Contract>>(`/contracts/${id}/inspection`, body)).data.data
 }

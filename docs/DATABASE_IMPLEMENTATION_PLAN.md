@@ -52,7 +52,7 @@ Tài khoản MySQL riêng `mini_apartment_test`, kết nối `mysql_test` gán c
 | 1 | M01–M05 | ✔ dev + test |
 | 2 | M06–M12 (M09 thêm `meter_gap_reason`, `meter_gap_confirmed_by` — DB-D40) | ✔ dev + test; dev batch4 theo §18 |
 | 3 | M13–M16 | ✔ test |
-| 4 | M17 maintenance_requests, M18 viewing_appointments, M19 attachments, M20 notifications | M17–M20 pending/test-only; M17 API đã code và Feature test áp dụng/down cùng attachments/notifications. Không migration dev, không đưa vào default migrate.
+| 4 | M17 maintenance_requests, M18 viewing_appointments, M19 attachments, M20 notifications, M21 inspection fields | M17–M21 pending/test-only; M17/M19/M20 và M21 được áp dụng/down tường minh trong Feature tests. Không migration dev, không đưa vào default migrate.
 | 5 | Seeder hệ thống `ELECTRICITY`/`WATER`, khóa `settings` | Chưa |
 
 ---
@@ -259,7 +259,9 @@ Hệ quả nghiệp vụ cần lưu ý: cảnh báo "sắp hết hạn" (`contra
 
 ### 14.4 Đề xuất chờ duyệt
 
-**Cập nhật 27/10/2026:** P4 và P5-B đã được duyệt theo DB-D61, chỉ chuẩn bị ALTER mới và kiểm thử trên DB test. Tám cột mới trên `contracts`: ba cột điều khoản phí và năm cột snapshot/xác nhận miễn nêu trong DB09§3.8; tất cả nullable, không gán phí/điều kiện cho dữ liệu cũ. FK người xác nhận dùng RESTRICT. Không sửa M09 đã commit, không thêm bảng, không thay lịch sử tiền/cọc/hợp đồng. `down()` chỉ tháo đúng FK và tám cột mới, phải kiểm thử trên DB test; không tự rollback dev. P6/P7/P8 và P3/P9/P11 vẫn chưa được duyệt; ảnh/căn cứ tệp chưa triển khai. Q15 đã chốt DB-D62, không cần đổi schema cọc trong lượt nền tảng này. Chưa mở route/JSON mới hoặc quy trình kích hoạt/thanh lý.
+**Cập nhật 27/10/2026 (lịch sử):** P4 và P5-B đã được duyệt theo DB-D61, chỉ chuẩn bị ALTER mới và kiểm thử trên DB test. Tám cột mới trên `contracts`: ba cột điều khoản phí và năm cột snapshot/xác nhận miễn nêu trong DB09§3.8; tất cả nullable, không gán phí/điều kiện cho dữ liệu cũ. FK người xác nhận dùng RESTRICT. Không sửa M09 đã commit, không thêm bảng, không thay lịch sử tiền/cọc/hợp đồng. `down()` chỉ tháo đúng FK và tám cột mới, phải kiểm thử trên DB test; không tự rollback dev. Tại thời điểm ghi mục này P3/P6/P7/P8/P9/P11 chưa được duyệt; trạng thái hiện hành đã được chốt tại phần cập nhật 30/10 bên dưới. Q15 đã chốt DB-D62.
+
+**Cập nhật 30/10/2026 — quyết định hiện hành:** P3/P9 theo DB-D66 và P6/P7/P8/P11 theo DB-D67 đã được duyệt để chuẩn bị migration và kiểm thử **chỉ trên `mini_apartment_test`**. `overdue_return` bắt buộc ghi chú; chấm dứt trước hạn do chủ nhà ngoài MVP; nhận–trả cùng ngày không thu phí trước hạn. Kiểm kê tài sản lưu kết quả/người/thời điểm/ghi chú trên `contracts`; Admin nhập hạng mục damage với lý do, căn cứ và ít nhất một ảnh private; invoice item có `damage`/`termination_fee`; ảnh dùng morph alias `contract` và collections `inspection_photo`, `damage_photo`, `waiver_evidence`, Policy theo hợp đồng; không cần chữ ký cư dân điện tử. P12 vẫn yêu cầu kiểm tra tài sản với mọi lần thanh lý. Không chạy migration dev. CLOSE-02b hiện mới có migration pending, API và UI lưu kết quả/ảnh kiểm tra; chưa có damage invoice items, final invoice, đối soát cọc hoặc thanh lý.
 
 **Đối chiếu Sprint23/10:** không phải mọi P là blocker MVP. P1 giữ baseline end_date>start_date; chỉ phương án mở1ngày mới cần duyệt. P2 giữ một lý do chung đã chốt D40; tách cột là mở rộng. P10 đã gộpP3. P12 đã CONFIRMED theo D49 (bắt buộc mọi thanh lý), không hỏi lại; cấu trúc lưu P6 vẫn chưa duyệt. Chủ dự án CHƯA DUYỆT gói P4/P5-B/P6/P7/P8 trong lượt Sprint; không tự ALTER. Không để các mục này chặn Tòa/Tiện nghi/Phòng cơ bản.
 
@@ -274,10 +276,10 @@ Hệ quả nghiệp vụ cần lưu ý: cảnh báo "sắp hết hạn" (`contra
 | B | Giữ `meter_gap_reason` chung + thêm 2 cột lượng chênh | Ít cột; lý do không tách theo dịch vụ |
 | C | Chuyển chỉ số đầu + chênh lệch sang dòng `contract_services` metered | Tổng quát cho N dịch vụ metered nhưng đổi cấu trúc lớn; không đề xuất cho MVP |
 
-**P3 — Mã thanh lý bổ sung.** Hệ thống **tự suy** mã từ ngày (Admin không chọn mã trái với ngày bàn giao).
-- `overdue_return` — trả quá hạn (`actual_end_date > end_date + 1`): hiện **không có mã nào hợp lệ** cho trường hợp này nên cần thêm; tiền đã tính theo sử dụng thực tế (DB-D43); đề xuất ghi chú **bắt buộc** (giải thích lý do ở quá hạn).
+**P3 — Mã thanh lý bổ sung (đã duyệt DB-D66).** Hệ thống **tự suy** mã từ ngày (Admin không chọn mã trái với ngày bàn giao).
+- `overdue_return` — trả quá hạn (`actual_end_date > end_date + 1`): tiền đã tính theo sử dụng thực tế (DB-D43); ghi chú **bắt buộc** để giải thích lý do quá hạn.
 - `renewed` — đóng hợp đồng cũ khi gia hạn sang hợp đồng mới (`renewed_from_id`); **khai báo sẵn**, chưa mở trong MVP (như `expired`).
-- **Câu hỏi:** chủ nhà/Admin đơn phương chấm dứt trước hạn (vi phạm hợp đồng…) — theo ngày thì rơi vào `early_termination` và sẽ **tự tính phí bồi thường cho người thuê**, có thể sai. Phương án: (a) thêm mã `landlord_termination` (không tính phí người thuê); (b) thêm cột `terminated_by_party` (`tenant`/`landlord`); (c) ngoài phạm vi MVP.
+- Chủ nhà/Admin đơn phương chấm dứt trước hạn: **ngoài MVP**; không tạo phí cho người thuê theo trường hợp chưa có quy tắc được duyệt.
 
 **P4 — Lưu điều khoản bồi thường trước hạn** (trên `contracts`, ghi khi soạn draft, bất biến sau kích hoạt):
 - `early_termination_fee_type VARCHAR(20) NULL` — Enum `none` / `fixed` / `rent_multiple`; NULL được khi draft, **bắt buộc** khi kích hoạt (không có default ⇒ không mặc định mức nào).
@@ -285,7 +287,7 @@ Hệ quả nghiệp vụ cần lưu ý: cảnh báo "sắp hết hạn" (`contra
 - `early_termination_fee_multiplier DECIMAL(5,2) NULL` — chỉ với `rent_multiple` (> 0); phí = `Money::multiply(monthly_rent, multiplier)` HALF_UP.
 - Phí chỉ áp dụng khi `closure_reason = early_termination` (và `same_day` tùy P9), không được miễn hợp lệ.
 
-**P5 — Cấu trúc điều kiện miễn bồi thường** (DB-D48 — chưa chốt, **không tự quyết**):
+**P5 — Cấu trúc điều kiện miễn bồi thường (đã duyệt P5-B, DB-D61):**
 
 | Phương án | Khi ký hợp đồng | Khi áp dụng miễn | Nhận xét |
 |---|---|---|---|
@@ -294,26 +296,26 @@ Hệ quả nghiệp vụ cần lưu ý: cảnh báo "sắp hết hạn" (`contra
 | C | Như B + danh mục mẫu ở `settings` (`contract.waiver_condition_templates`, JSON) để chọn khi ký rồi snapshot | Như B | Nhập nhanh, nhất quán giữa các hợp đồng; thêm 1 khóa settings |
 | D | Bảng `contract_waiver_conditions` | — | Vượt 21 bảng — **không đề xuất** |
 
-Câu hỏi kèm: miễn **toàn bộ** hay cho phép **miễn một phần** (giảm %)? Đề xuất MVP: chỉ miễn toàn bộ.
+MVP miễn **toàn bộ** phí theo điều kiện snapshot; không miễn một phần.
 
-**P6 — Lưu kết quả kiểm tra tài sản** (dùng `contracts`, `invoice_items`, `attachments`, không thêm bảng):
+**P6 — Lưu kết quả kiểm tra tài sản (đã duyệt DB-D67; dùng `contracts`, `invoice_items`, `attachments`, không thêm bảng):**
 - Trên `contracts`: `inspection_result VARCHAR(20) NULL` (Enum `no_damage` / `damaged`), `inspected_by` FK users NULL, `inspected_at TIMESTAMP NULL`, `inspection_note TEXT NULL`. Thanh lý bị chặn (409) nếu `inspection_result` NULL.
 - Hạng mục hư hỏng: dòng `invoice_items` loại `damage` trên hóa đơn `final` — `description` = hạng mục, `quantity`/`unit_price`/`amount` = số tiền, `meta` = `{reason, basis (căn cứ: báo giá/hóa đơn sửa/định mức), attachment_ids}`.
 - Ảnh: `attachments` gắn vào **hợp đồng** (alias `contract`), collection `inspection_photo` (tình trạng chung) và `damage_photo` (theo hạng mục, liên kết qua `meta.attachment_ids`) — ảnh không mất khi hóa đơn `final` bị hủy và lập lại.
 - Hủy/lập lại `final`: Service sao chép nguyên các dòng `damage` từ hóa đơn bị hủy; muốn đổi hạng mục thì phải kiểm tra lại (cập nhật cột `inspection_*`, ghi đè lần trước — **không** giữ lịch sử nhiều lần kiểm tra trong MVP).
 - *Phương án khác:* lưu danh sách hư hỏng dạng JSON trên `contracts` làm nguồn, sinh `invoice_items` từ đó (giữ được nguồn khi lập lại nhưng trùng dữ liệu).
 
-**P7 — Loại dòng hóa đơn mới:** `termination_fee` (phí trả trước hạn; `early_termination_fee` dài 21 ký tự vượt `VARCHAR(20)`) và `damage` (bồi thường tài sản). Miễn phí hợp lệ ⇒ **không** tạo dòng phí (thông tin miễn nằm trên `contracts`).
+**P7 — Loại dòng hóa đơn mới (đã duyệt DB-D67):** `termination_fee` (phí trả trước hạn; `early_termination_fee` dài 21 ký tự vượt `VARCHAR(20)`) và `damage` (bồi thường tài sản). Miễn phí hợp lệ ⇒ **không** tạo dòng phí (thông tin miễn nằm trên `contracts`).
 
-**P8 — `attachments` (Nhóm 4):** thêm morph alias `contract`; collection `inspection_photo`, `damage_photo`, `waiver_evidence` (đều disk private, truy cập theo Policy của hợp đồng).
+**P8 — `attachments` (đã duyệt DB-D67):** thêm morph alias `contract`; collection `inspection_photo`, `damage_photo`, `waiver_evidence` (đều disk private, truy cập theo Policy của hợp đồng).
 
-**P9 — Nhận–trả cùng ngày có tính phí trước hạn không?** Quyết định chưa nói. (a) Không tính (coi như hủy nhận phòng); (b) Tính theo điều khoản như `early_termination`.
+**P9 — Nhận–trả cùng ngày (đã duyệt DB-D66):** không tính phí trước hạn; vẫn chốt điện nước, kiểm tra tài sản và đối soát cọc.
 
 **P10 — Gộp vào P3** (chủ nhà chấm dứt).
 
-**P11 — Số tiền bồi thường tài sản:** do Admin nhập từng hạng mục kèm căn cứ (bắt buộc `basis` + ít nhất 1 ảnh); MVP **không** yêu cầu người thuê ký xác nhận trong hệ thống. Cần xác nhận.
+**P11 — Số tiền bồi thường tài sản (đã duyệt DB-D67):** Admin nhập từng hạng mục; bắt buộc có lý do, căn cứ (`basis`) và ít nhất một ảnh private. MVP **không** yêu cầu người thuê ký xác nhận trong hệ thống.
 
-**P12 — Đã chốt nguyên tắc DB-D49:** kiểm tra tài sản bắt buộc với mọi mã thanh lý (kể cả `same_day`, `on_time`). Không còn là câu hỏi cần duyệt; chỉ cách lưu P6 chưa duyệt.
+**P12 — DB-D49:** kiểm tra tài sản bắt buộc với mọi mã thanh lý (kể cả `same_day`, `on_time`); cách lưu đã duyệt theo P6.
 
 ### 14.5 Quy trình thanh lý mục tiêu (để đối chiếu khi viết Service)
 
@@ -456,8 +458,10 @@ Nguồn yêu cầu 27/10: giá theo tòa; cư dân gửi chỉ số/ảnh chờ 
 
 **U2 chuẩn bị theo DB-D64:** M19 và create_meter_reading_submissions nằm trong pending; default migrate không chạy hai file, test gọi đường dẫn tường minh. Cấu trúc vật lý tại DB design§3.7/3.22. Enum/model/Policy và disk private=storage/app/evidence phục vụ lát cắt nền tảng, chưa có API/upload/download/duyệt. Không dùng root local đang phục vụ file cho ảnh cần Policy. Test down từ chối còn lịch sử/metadata, fixture rollback trước DDL; không chạy đồng thời với schema/browser khác. Bằng chứng cuối ở IMPLEMENTATION_PLAN§12.22.
 
-## 20. VIEW/M18, MAINT/M17 và NOTIF/M20 — cập nhật triển khai 30/10/2026
+## 20. VIEW/M18, MAINT/M17, NOTIF/M20 và CLOSE/M21 — cập nhật triển khai 30/10/2026
 
 Q3 đã CONFIRMED DB-D77; Q16 DB-D73. M18 và M20 đúng schema kế hoạch, áp dụng tường minh trên MySQL test với identity guard cho Feature/fixture HTTP, dữ liệu fixture đã dọn và migration đã down; không default migrate/dev. M17 nay nằm trong pending đúng thiết kế §3.17 và đã được áp dụng/down trong MaintenanceRequestApiTest trên mysql_test; API/UI MAINT có kiểm thử tự động, xem Plan §12.36. Không thêm bảng/enum ngoài duyệt.
 
 Cập nhật MAINT 30/10: Q9/Q14/Q17 và Q16 đã CONFIRMED; M17 tạo maintenance_requests ở pending, được áp dụng tường minh trong MaintenanceRequestApiTest trên mysql_test rồi down khi teardown. M19/M20 chỉ dùng trong test; default migrate không chạy, không migration dev. M17 đúng thiết kế §3.17, không thêm cột/enum. API/UI MAINT có Feature test; chi tiết Plan §12.36. Truy vấn hasTable độc lập sau suite không chạy được do Docker API pipe bị từ chối, nên không ghi nhận truy vấn thủ công schema cuối suite.
+
+Cập nhật CLOSE-02b 30/10: P6 migration `2026_10_30_400021_add_contract_inspection_fields.php` ở pending; thêm bốn cột nullable trên `contracts`, FK `inspected_by` RESTRICT. Chỉ test path tường minh trên mysql_test sau khi kiểm tra không có schema pending tồn dư; test giữ snapshot hợp đồng cũ, rollback fixture rồi `down()` P6/M19. Không đổi bảng đếm, không sửa M09, không migrate dev. API/UI hiện ghi kết quả và ảnh inspection; damage evidence, final readings/invoice, đối soát cọc và terminate vẫn chưa hoàn thành.

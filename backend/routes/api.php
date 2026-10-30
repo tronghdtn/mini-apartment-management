@@ -53,6 +53,9 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('resident/contracts')->nam
     Route::get('/{contract}', [ResidentContractController::class, 'show'])->whereNumber('contract')->name('show');
 });
 
+Route::middleware(['auth:sanctum', 'active'])->get('contracts/{contract}/attachments/{attachment}', [ContractController::class, 'inspectionPhoto'])
+    ->whereNumber(['contract', 'attachment'])->name('api.v1.contracts.attachments.show');
+
 Route::post('viewing-appointments', [ViewingAppointmentController::class, 'store'])->middleware(['spa', 'throttle:viewing-booking'])->name('api.v1.viewing-appointments.store');
 Route::middleware(['auth:sanctum', 'active'])->prefix('viewing-appointments')->name('api.v1.viewing-appointments.')->group(function () {
     Route::get('/', [ViewingAppointmentController::class, 'index'])->name('index');
@@ -144,6 +147,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
         Route::post('contracts/{contract}/closure-preview', [ContractController::class, 'closurePreview'])->whereNumber('contract')->name('contracts.closure-preview');
+        Route::post('contracts/{contract}/inspection', [ContractController::class, 'recordInspection'])->whereNumber('contract')->name('contracts.inspection.store');
         Route::put('contracts/{contract}/terms', [ContractController::class, 'updateTerms'])->whereNumber('contract')->name('contracts.terms.update');
         Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');
         Route::post('contracts/{contract}/activate', [ContractController::class, 'activate'])->whereNumber('contract')->name('contracts.activate');

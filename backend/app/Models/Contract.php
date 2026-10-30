@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ContractStatus;
 use App\Enums\DepositStatus;
 use App\Enums\EarlyTerminationFeeType;
+use App\Enums\InspectionResult;
 use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -66,6 +68,8 @@ class Contract extends Model
             'early_termination_fee_multiplier' => 'decimal:2',
             'early_termination_waiver_conditions' => 'array',
             'early_termination_waived_at' => 'datetime',
+            'inspection_result' => InspectionResult::class,
+            'inspected_at' => 'datetime',
             'occupant_count' => 'integer',
             'initial_electricity_reading' => 'decimal:2',
             'initial_water_reading' => 'decimal:2',
@@ -154,6 +158,12 @@ class Contract extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /** @return MorphMany<Attachment, $this> */
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 
     /** Chỉ số mà hợp đồng chịu phí (contract_id do backend xác định — DB-D15). @return HasMany<MeterReading, $this> */
