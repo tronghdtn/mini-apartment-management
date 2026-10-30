@@ -473,9 +473,12 @@ Admin "Từ chối" (từ Chờ xử lý / Đang xử lý) ──► Từ chối
 Admin "Mở lại" (từ Đã xử lý) ──► Đang xử lý
 ```
 - Màn hình: RES-06/07/08, ADM-20/21, STF-01/02.
+- Cư dân đang có hợp đồng active gửi yêu cầu và chọn mức ưu tiên `low/normal/high/urgent`; Admin có thể điều chỉnh khi tiếp nhận/phân công, kỹ thuật viên chỉ đọc (Q9, DB-D74).
 - Nhân viên chỉ thấy việc của mình; truy cập việc khác → trang 403.
-- Ảnh là riêng tư (chỉ người liên quan xem).
-- Thông báo khi: có yêu cầu mới (Admin), được phân công (nhân viên), đổi trạng thái (cư dân) — [ĐỀ XUẤT UI], danh sách sự kiện chính thức chưa có trong repo (Q16).
+- Kỹ thuật viên được phân công chỉ thấy tên + SĐT người gửi trong trạng thái Chờ xử lý/Đang xử lý; sau khi xong ẩn SĐT, không trả CCCD/email/hồ sơ hợp đồng (Q14, DB-D75).
+- Ảnh tối đa 5 ảnh/yêu cầu, jpg/png/webp ≤5 MB/ảnh, lưu private; chỉ chủ yêu cầu, Admin và kỹ thuật viên đang được phân công xem.
+- Tạo yêu cầu mới thông báo Admin active; phân công thông báo kỹ thuật viên nhận việc; đổi trạng thái thông báo người gửi sau commit, một lần/người nhận theo Q16, DB-D73.
+- Khi hợp đồng còn active, phòng vẫn `occupied`; theo dõi sự cố qua yêu cầu sửa chữa. Admin chỉ đổi sang bảo trì/ngừng sử dụng khi không còn hợp đồng active (Q17, DB-D76).
 - Lịch sử chi tiết từng lần đổi trạng thái (`maintenance_status_logs`) là [SHOULD]; MVP chỉ có mốc thời gian phân công / bắt đầu / hoàn thành.
 
 ### 8.8 Lịch hẹn xem phòng [MVP]
@@ -761,15 +764,15 @@ Các điểm sau do tài liệu này đề xuất để giao diện dùng đư�
 | Q6 | Khi lập hợp đồng, Admin có được **tạo tài khoản** cho người thuê chưa đăng ký không, hay người thuê bắt buộc tự đăng ký trước? |
 | Q7 | **CONFIRMED DB-D59 (24/10):** lấy giá danh mục và lưu snapshot; không thương lượng giá riêng. Chi tiết §25. |
 | Q8 | CONFIRMED DB-D70 ngày28/10: xem/thanh toán nợ cũ của chính mình sau thanh lý, không yêu cầu active; ảnh chỉ pending, thực nhận do Admin/provider xác nhận. Quy tắc §31. |
-| Q9 | Mức ưu tiên sửa chữa do cư dân chọn hay chỉ Admin đặt? |
+| Q9 | **CONFIRMED DB-D74:** Cư dân chọn mức ưu tiên ban đầu; Admin được điều chỉnh khi tiếp nhận/phân công; kỹ thuật viên chỉ đọc. |
 | Q10 | **Đã chốt quyền tự sửa:** tên hiển thị, đổi mật khẩu, thay email khi xác minh; không tự sửa SĐT đăng nhập/role/pháp lý. Chi tiết xác minh và người/quy trình nhập dữ liệu pháp lý cần Spec riêng trước triển khai. |
 | Q11 | **Đã chốt cách cấp:** Admin cấp technician/guard; Admin mới qua Artisan, bắt buộc email. Không suy ra được phép chuyển quyền tùy ý giữa các tài khoản; chức năng cấp nhân viên chưa triển khai. |
 | Q12 | CONFIRMED 28/10: có trang Công nợ riêng ADM-19, nhóm hóa đơn còn nợ theo hợp đồng/người thuê kể cả đã thanh lý; số dư do Backend tính, pending không giảm nợ. Không cần bảng mới. Chi tiết §34. |
 | Q13 | CONFIRMED DB-D69 ngày28/10: Admin được thêm other vào nháp với tên/tiền/lý do-căn cứ hợp lệ, cư dân xem được, lưu lịch sử; bất biến sau phát hành. Quy tắc §31. |
-| Q14 | Nhân viên sửa chữa có được thấy tên và SĐT cư dân không (dữ liệu cá nhân)? |
+| Q14 | **CONFIRMED DB-D75:** kỹ thuật viên đang được phân công chỉ thấy tên + SĐT khi pending/in_progress; ẩn SĐT sau xử lý, không trả CCCD/email/hồ sơ hợp đồng. |
 | Q15 | Tiền cọc được ghi nhận "đã nhận" khi nào và bởi thao tác nào (trước/sau kích hoạt)? Có bắt buộc nhận cọc trước khi kích hoạt không? |
 | Q16 | CONFIRMED DB-D73: đã duyệt bộ sự kiện thông báo trong ứng dụng, người nhận đúng vai trò/ownership; chưa email/SMS/push ngoài hệ thống. Phạm vi API và đợt đầu tại §36. |
-| Q17 | Admin có được tự chuyển phòng sang "Đang bảo trì"/"Ngừng sử dụng" khi đang có hợp đồng active không? |
+| Q17 | **CONFIRMED DB-D76:** giữ occupied khi còn hợp đồng active; chỉ đổi trạng thái phòng khi không còn hợp đồng active. |
 
 ### 14.3 Mâu thuẫn tài liệu đã phát hiện (đã xử lý theo quyết định mới nhất)
 

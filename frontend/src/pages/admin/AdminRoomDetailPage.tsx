@@ -12,6 +12,7 @@ import { formatVND } from '@/lib/format'
 import { getRoom } from '@/features/room-management/api'
 import { RoomForm } from '@/features/room-management/RoomForm'
 import { AmenityAssignmentPanel } from '@/features/amenity-assignment/AmenityAssignmentPanel'
+import { MaintenanceRequestList } from '@/features/maintenance-requests/MaintenanceRequestList'
 import { roomStatusLabels } from '@/features/room-management/types'
 import type { Room } from '@/features/room-management/types'
 
@@ -76,7 +77,8 @@ export function AdminRoomDetailPage() {
       <AmenityAssignmentPanel key={room.id} targetType="rooms" targetId={room.id} archivedVisibility="show" />
       <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. Ảnh phòng chưa được tích hợp.</p></div>
       {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
-      {['utilities', 'maintenance', 'appointments'].includes(tab) && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'utilities' ? 'Chỉ số điện nước' : tab === 'maintenance' ? 'Yêu cầu sửa chữa' : 'Lịch xem phòng'}</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
+      {tab === 'maintenance' && <MaintenanceRequestList audience="admin" roomId={room.id} />}
+      {['utilities', 'appointments'].includes(tab) && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'utilities' ? 'Chỉ số điện nước' : 'Lịch xem phòng'}</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
       <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
         <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
       </Modal>

@@ -275,3 +275,18 @@ RCTR-A03 P0 snapshotfee/waiver/serviceprice/decimal preserved, nointernalnote/CC
 RCTR-A04 P1 status/page21/empty/filterinvalid422, IDmissing404; schema503 trướcquery.
 RCTR-A05 P1 Desktop/Mobile/URL/F5/tabs/back/linkinvoice và thôngbáokíchhoạt tới detail; error/retry/auth, không mockfallback.
 Tự động3/66PASS đầu lượt; fullsuite đang chạy, chưafixturebrowser/liveAPI. Không PHPUnit khi fixture tồn tại. ModelQA đã chọnLuna từ trước.
+
+## MAINT — yêu cầu sửa chữa (DB-D74/75/76, Q16)
+
+| ID | Mức | Luồng và tiêu chí |
+|---|---|---|
+| MAINT-A01 | P0 | Guest/role sai/locked/401-403; Resident chỉ gửi khi active contract và chỉ xem yêu cầu của mình |
+| MAINT-A02 | P0 | Priority/title/description/mass assignment/page/filter; 422 input sai, không nhận status/actor/room/contract |
+| MAINT-A03 | P0 | 0..5 ảnh JPG/PNG/WebP <=5MB; chặn SVG/6 ảnh/>5MB; private metadata và MIME/nosniff/no-store |
+| MAINT-A04 | P0 | Admin chỉnh priority/note, chỉ gán technician active; reject có căn cứ/reopen; conflict 409 |
+| MAINT-A05 | P0 | Technician chỉ xem việc assigned; start→resolve đúng trạng thái, resolve cần note; foreign/locked bị từ chối |
+| MAINT-A06 | P0 | Q14: tên+SĐT trong pending/in_progress; sau resolved không SĐT; không CCCD/email/hồ sơ |
+| MAINT-A07 | P0 | Q17: yêu cầu không đổi phòng occupied khi còn hợp đồng; không sinh khoản thu/hóa đơn giả |
+| MAINT-A08 | P1 | Q16: created/assigned/status notifications đúng người sau commit, dedupe và owner-only read |
+
+Kết quả 30/10: MaintenanceRequestApiTest **3/126 PASS**; full Backend **1326/12348 PASS** exit0; Pint **315 file PASS**; frontend **102 test/build PASS**, lint **0 lỗi/8 cảnh báo cũ**. Feature test áp dụng tường minh M17/M19/M20 trên mysql_test và teardown gọi down; không migration dev. Browser MAINT chưa chạy vì Work settings tắt browser; tự động không thay nghiệm thu giao diện.

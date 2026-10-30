@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Models\Contract;
 use App\Models\Invoice;
+use App\Models\MaintenanceRequest;
 use App\Models\MeterReadingSubmission;
 use App\Models\Notification;
 use App\Models\Payment;
@@ -60,6 +61,17 @@ class NotificationService
                 $event = 'meter.'.$status;
                 $recipient = $model->submitted_by;
             }
+        } elseif ($model instanceof MaintenanceRequest) {
+            if ($model->wasRecentlyCreated && $status === 'pending') {
+                $event = 'maintenance.created';
+            } elseif ($model->wasChanged('assigned_to') && $model->assigned_to !== null) {
+                $event = 'maintenance.assigned';
+                $recipient = (int) $model->assigned_to;
+            } elseif ($model->wasChanged('status')) {
+                $event = 'maintenance.status_changed';
+                $recipient = (int) $model->user_id;
+                $variant = ':'.$status.':'.($model->updated_at?->format('U.u') ?? '');
+            }
         }
         if ($event === null) {
             return;
@@ -72,7 +84,7 @@ class NotificationService
                 if (! Schema::hasTable('notifications')) {
                     return; // Pending M20 must not block existing financial modules or migrate dev implicitly.
                 }
-                $ids = $event === 'meter.submitted'
+                $ids = in_array($event, ['meter.submitted', 'maintenance.created'], true)
                     ? User::where('role', UserRole::Admin)->where('status', 'active')->pluck('id')->all()
                     : [$recipient];
                 foreach ($ids as $id) {
@@ -108,6 +120,9 @@ class NotificationService
             'meter.rejected' => ['Yêu cầu chỉ số bị từ chối', 'Mở lịch sử gửi chỉ số để xem lý do.', '/resident'],
             'appointment.confirmed' => ['Lịch xem phòng đã xác nhận', 'Mở lịch hẹn để xem thời gian đã được xác nhận.', '/account/appointments'],
             'appointment.cancelled' => ['Lịch xem phòng đã hủy', 'Mở lịch hẹn của bạn để kiểm tra trạng thái.', '/account/appointments'],
+            'maintenance.created' => ['Có yêu cầu sửa chữa mới', 'Một cư dân vừa gửi yêu cầu cần tiếp nhận.', '/admin/maintenance-requests/'.$sourceId],
+            'maintenance.assigned' => ['Bạn được phân công sửa chữa', 'Mở yêu cầu để xem thông tin công việc.', '/staff/maintenance-requests/'.$sourceId],
+            'maintenance.status_changed' => ['Yêu cầu sửa chữa được cập nhật', 'Trạng thái yêu cầu của bạn đã thay đổi.', '/resident/requests/'.$sourceId],
         };
 
         return compact('title', 'body', 'link');

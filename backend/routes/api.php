@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\ContractController;
 use App\Http\Controllers\Api\V1\DebtController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
+use App\Http\Controllers\Api\V1\MaintenanceRequestController;
 use App\Http\Controllers\Api\V1\MeterReadingController;
 use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
 use App\Http\Controllers\Api\V1\NotificationController;
@@ -31,6 +32,21 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+
+Route::middleware(['auth:sanctum', 'active'])->prefix('maintenance-requests')->name('api.v1.maintenance-requests.')->group(function () {
+    Route::get('/context', [MaintenanceRequestController::class, 'context'])->name('context');
+    Route::get('/', [MaintenanceRequestController::class, 'index'])->name('index');
+    Route::post('/', [MaintenanceRequestController::class, 'store'])->name('store');
+    Route::get('/{maintenanceRequest}', [MaintenanceRequestController::class, 'show'])->whereNumber('maintenanceRequest')->name('show');
+    Route::patch('/{maintenanceRequest}', [MaintenanceRequestController::class, 'update'])->whereNumber('maintenanceRequest')->name('update');
+    Route::post('/{maintenanceRequest}/assign', [MaintenanceRequestController::class, 'assign'])->whereNumber('maintenanceRequest')->name('assign');
+    Route::post('/{maintenanceRequest}/start', [MaintenanceRequestController::class, 'start'])->whereNumber('maintenanceRequest')->name('start');
+    Route::post('/{maintenanceRequest}/resolve', [MaintenanceRequestController::class, 'resolve'])->whereNumber('maintenanceRequest')->name('resolve');
+    Route::post('/{maintenanceRequest}/reject', [MaintenanceRequestController::class, 'reject'])->whereNumber('maintenanceRequest')->name('reject');
+    Route::post('/{maintenanceRequest}/reopen', [MaintenanceRequestController::class, 'reopen'])->whereNumber('maintenanceRequest')->name('reopen');
+    Route::get('/{maintenanceRequest}/attachments/{attachment}', [MaintenanceRequestController::class, 'photo'])
+        ->whereNumber('maintenanceRequest')->whereNumber('attachment')->name('photo');
+});
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('resident/contracts')->name('api.v1.resident.contracts.')->group(function () {
     Route::get('/', [ResidentContractController::class, 'index'])->name('index');

@@ -52,7 +52,7 @@ Tài khoản MySQL riêng `mini_apartment_test`, kết nối `mysql_test` gán c
 | 1 | M01–M05 | ✔ dev + test |
 | 2 | M06–M12 (M09 thêm `meter_gap_reason`, `meter_gap_confirmed_by` — DB-D40) | ✔ dev + test; dev batch4 theo §18 |
 | 3 | M13–M16 | ✔ test |
-| 4 | M17 `maintenance_requests`, M18 `viewing_appointments`, M19 `attachments`, M20 `notifications` | M19 đang chuẩn bị/test riêng cho U2 theo DB-D64, pending; không mở alias/collection thanh lý P8. Các bảng còn lại chưa triển khai |
+| 4 | M17 maintenance_requests, M18 viewing_appointments, M19 attachments, M20 notifications | M17–M20 pending/test-only; M17 API đã code và Feature test áp dụng/down cùng attachments/notifications. Không migration dev, không đưa vào default migrate.
 | 5 | Seeder hệ thống `ELECTRICITY`/`WATER`, khóa `settings` | Chưa |
 
 ---
@@ -456,6 +456,8 @@ Nguồn yêu cầu 27/10: giá theo tòa; cư dân gửi chỉ số/ảnh chờ 
 
 **U2 chuẩn bị theo DB-D64:** M19 và create_meter_reading_submissions nằm trong pending; default migrate không chạy hai file, test gọi đường dẫn tường minh. Cấu trúc vật lý tại DB design§3.7/3.22. Enum/model/Policy và disk private=storage/app/evidence phục vụ lát cắt nền tảng, chưa có API/upload/download/duyệt. Không dùng root local đang phục vụ file cho ảnh cần Policy. Test down từ chối còn lịch sử/metadata, fixture rollback trước DDL; không chạy đồng thời với schema/browser khác. Bằng chứng cuối ở IMPLEMENTATION_PLAN§12.22.
 
-## 20. VIEW/M18 và NOTIF/M20 — cập nhật triển khai 30/10/2026
+## 20. VIEW/M18, MAINT/M17 và NOTIF/M20 — cập nhật triển khai 30/10/2026
 
-Q3 đã CONFIRMED DB-D77; Q16 DB-D73. M18 mới tại pending/2026_10_14_400018_create_viewing_appointments_table.php đúng §3.18: FK RESTRICT, code nullable unique, status VARCHAR, bốn index đã thiết kế; down từ chối còn lịch sử. M20 đã checkpoint66047ce. Hai bảng được áp dụng tường minh trên MySQL test có identity guard cho Feature và fixtureHTTP, đã dọn dữ liệu sở hữu và down sau kiểm thử. Không đưa vào default migrate hoặc áp dụng dev. Không thêm bảng/enum ngoài thiết kế. M17 sửa chữa còn chưa triển khai; schema không đồng nghĩa module đủUI/API, bằng chứng VIEW tại Plan§12.34, NOTIF§12.33.
+Q3 đã CONFIRMED DB-D77; Q16 DB-D73. M18 và M20 đúng schema kế hoạch, áp dụng tường minh trên MySQL test với identity guard cho Feature/fixture HTTP, dữ liệu fixture đã dọn và migration đã down; không default migrate/dev. M17 nay nằm trong pending đúng thiết kế §3.17 và đã được áp dụng/down trong MaintenanceRequestApiTest trên mysql_test; API/UI MAINT có kiểm thử tự động, xem Plan §12.36. Không thêm bảng/enum ngoài duyệt.
+
+Cập nhật MAINT 30/10: Q9/Q14/Q17 và Q16 đã CONFIRMED; M17 tạo maintenance_requests ở pending, được áp dụng tường minh trong MaintenanceRequestApiTest trên mysql_test rồi down khi teardown. M19/M20 chỉ dùng trong test; default migrate không chạy, không migration dev. M17 đúng thiết kế §3.17, không thêm cột/enum. API/UI MAINT có Feature test; chi tiết Plan §12.36. Truy vấn hasTable độc lập sau suite không chạy được do Docker API pipe bị từ chối, nên không ghi nhận truy vấn thủ công schema cuối suite.

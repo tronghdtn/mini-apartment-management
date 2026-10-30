@@ -12,6 +12,8 @@ class Attachment extends Model
 {
     public const METER_READING_PHOTO = 'meter_reading_photo';
 
+    public const MAINTENANCE_PHOTO = 'maintenance_photo';
+
     public const PAYMENT_PROOF = 'payment_proof';
 
     protected function casts(): array
