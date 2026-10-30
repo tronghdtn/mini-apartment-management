@@ -10,16 +10,19 @@ use App\Http\Requests\Contract\CreateFinalInvoiceRequest;
 use App\Http\Requests\Contract\FinalMeterPreviewRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
+use App\Http\Requests\Contract\TerminateContractRequest;
 use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateDraftServicesRequest;
 use App\Http\Resources\ClosurePreviewResource;
 use App\Http\Resources\ContractResource;
+use App\Http\Resources\ContractSettlementResource;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Contract;
 use App\Services\ContractClosureService;
 use App\Services\ContractFinalInvoiceService;
 use App\Services\ContractInspectionService;
 use App\Services\ContractService;
+use App\Services\ContractSettlementService;
 use App\Services\ContractTermsService;
 use App\Services\FinalMeterReadingPreviewService;
 use Illuminate\Http\JsonResponse;
@@ -159,5 +162,21 @@ class ContractController extends Controller
         Gate::authorize('update', $model);
 
         return new ContractResource($this->contracts->activate($model, $request->user(), $request->validated()));
+    }
+
+    public function settlementPreview(Request $request, string $contract, ContractSettlementService $settlement): ContractSettlementResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractSettlementResource($settlement->preview($model, $request->user()));
+    }
+
+    public function terminate(TerminateContractRequest $request, string $contract, ContractSettlementService $settlement): ContractSettlementResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractSettlementResource($settlement->terminate($model, $request->user(), $request->validated()));
     }
 }

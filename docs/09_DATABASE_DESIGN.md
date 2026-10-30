@@ -173,8 +173,8 @@ Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQ
 | `deposit_amount` | BIGINT UNSIGNED | NN, DEF 0 |
 | `deposit_status` | VARCHAR(20) | NN, DEF `unpaid`; `unpaid/held/settled` (`transferred` SHOULD) |
 | `deposit_paid_at` | TIMESTAMP | NULL; cọc>0 phải được xác nhận thực nhận đủ (`held` + thời điểm thu) trước kích hoạt; cọc0 không cần thu (DB-D62) |
-| `deposit_deducted_amount`, `deposit_refund_amount` | BIGINT UNSIGNED | NN, DEF 0 |
-| `deposit_settled_at` | TIMESTAMP | NULL |
+| `deposit_deducted_amount`, `deposit_refund_amount` | BIGINT UNSIGNED | NN, DEF 0; khấu trừ vào hóa đơn / nghĩa vụ cọc dư còn phải hoàn, không phải đã chi hoàn (DB-D78) |
+| `deposit_settled_at` | TIMESTAMP | NULL; hoàn tất đối soát cọc, không xác nhận đã hoàn tiền (DB-D78) |
 | `inspection_result` | VARCHAR(20) | NULL; `no_damage` / `damaged` (DB-D67); bắt buộc trước khi thanh lý (DB-D49) |
 | `inspected_by` | BIGINT UNSIGNED | NULL, FK → users.id, RESTRICT; chỉ Backend gán Admin đã xác thực |
 | `inspected_at` | TIMESTAMP | NULL; thời điểm kiểm kê lưu UTC |

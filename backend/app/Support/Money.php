@@ -40,6 +40,20 @@ final class Money
         return max(0, self::sum([$total, -$paid]));
     }
 
+    /** Nonnegative cross-invoice totals remain strings even beyond JavaScript's safe integer. */
+    public static function aggregate(array $amounts): string
+    {
+        $total = '0';
+        foreach ($amounts as $amount) {
+            if (! is_int($amount) || $amount < 0 || $amount > self::MAX_VND) {
+                throw new InvalidArgumentException('Khoản tổng hợp phải là số nguyên VND hợp lệ, không âm.');
+            }
+            $total = bcadd($total, (string) $amount, 0);
+        }
+
+        return $total;
+    }
+
     /** Số chữ số thập phân giữ lại ở bước trung gian; cắt bớt ở đây không làm đổi kết quả làm tròn. */
     private const SCALE = 10;
 

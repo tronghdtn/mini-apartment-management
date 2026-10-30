@@ -240,3 +240,6 @@ Giữ phòng occupied khi còn hợp đồng active. Sự cố theo dõi qua yê
 
 ### DB-D77 / Q3 — CONFIRMED 30/10/2026
 Nhận lịch xem phòng tương lai trong 08:00–20:00 giờ Việt Nam. Người đã đăng nhập được tự hủy lịch của mình khi chưa tới giờ hẹn và chưa check-in; khách vãng lai liên hệ Admin để hủy. Đổi giờ qua Admin trước check-in, đưa về pending rồi xác nhận lại. Giữ schema/enum đã duyệt, chỉ DB test; không migrationdev. Q16 thông báo confirmed/cancelled áp dụng đúng người đặt đã đăng nhập, không phát thông báo giả cho khách không có tài khoản.
+
+### DB-D78 / CLOSE-02e — CONFIRMED 30/10/2026
+Chủ dự án chọn: **cho terminate khi mới ghi nhận số phải hoàn; `deposit_refund_amount` là nghĩa vụ chưa thanh toán**. `deposit_status=settled` và `deposit_settled_at` chỉ xác nhận đã đối soát/phân bổ cọc, không chứng minh đã hoàn tiền. Cọc dư phải hiển thị rõ còn phải hoàn ngoài hệ thống; không tạo payment hoàn giả, không ghi doanh thu thực thu, không tự thực hiện chuyển tiền. Khoản hoàn do giảm trừ hóa đơn tất toán được ghi riêng theo CLOSE-02d; không cộng/trừ lại vào cọc. Không thêm schema/API xác nhận hoàn tiền trong lát cắt này; không duyệt migration dev.

@@ -203,6 +203,7 @@ class InvoiceService
     public function cancel(Invoice $original, array $data): Invoice
     {
         return $this->change($original, $data['expected_revision'], function ($invoice, $contract, $state) use ($data) {
+            abort_if($invoice->type === InvoiceType::Final && $contract->status === ContractStatus::Terminated, 409, 'Không thể hủy hóa đơn tất toán sau khi đã thanh lý hợp đồng.');
             abort_if($invoice->status === InvoiceStatus::Cancelled, 409, 'Hóa đơn đã hủy.');
             $payments = $state['payments']->where('invoice_id', $invoice->id);
             abort_if($payments->contains('status', PaymentStatus::Confirmed) || $invoice->paid_amount > 0, 409, 'Hóa đơn đã có tiền xác nhận; cần quy trình điều chỉnh.');
@@ -343,6 +344,23 @@ class InvoiceService
         return $this->finalCalculator->calculate($contract, $date, $period, $state['subscriptions'], $state['readings'],
             $state['invoices'], $finalReadings, $this->terminationFees->calculate($contract, $date), $damages, $invoice->id,
             Money::sum($invoice->items->filter(fn ($item) => ($item->meta['source'] ?? null) === 'manual')->pluck('amount')->all()));
+    }
+
+    /** Read-only revalidation under the settlement locks; never rewrites an issued invoice. */
+    public function assertFinalSnapshot(Invoice $invoice, Contract $contract, array $state): void
+    {
+        $this->requireActiveFinal($invoice, $contract, $state);
+        $calculation = $this->finalCalculation($invoice, $contract, $state);
+        $stored = $invoice->items->filter(fn ($item) => ($item->meta['source'] ?? null) === 'generated')->map(fn ($item) => [
+            'item_type' => $item->item_type->value, 'description' => $item->description, 'quantity' => $item->quantity,
+            'unit_price' => $item->unit_price, 'amount' => $item->amount, 'meta' => $item->meta,
+        ])->values()->all();
+        $linked = $state['readings']->where('invoice_id', $invoice->id)->pluck('id')->sort()->values()->all();
+        abort_unless($this->canonical($stored) === $this->canonical($calculation['items'])
+            && $linked === collect($calculation['meter_ids'])->sort()->values()->all(), 409,
+            'Nguồn tất toán đã thay đổi sau phát hành; cần đối chiếu, không tự sửa hoặc khấu trừ.');
+        $this->validateManualItems($invoice);
+        abort_unless(Money::sum($invoice->items->pluck('amount')->all()) === $invoice->total_amount, 409, 'Tổng hóa đơn tất toán chưa khớp các dòng đã phát hành.');
     }
 
     /** Called only with the contract locked inside the invoice transaction. No money is paid here. */
