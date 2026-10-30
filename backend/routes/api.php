@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UtilityPriceController;
+use App\Http\Controllers\Api\V1\ViewingAppointmentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,18 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+
+Route::post('viewing-appointments', [ViewingAppointmentController::class, 'store'])->middleware(['spa', 'throttle:viewing-booking'])->name('api.v1.viewing-appointments.store');
+Route::middleware(['auth:sanctum', 'active'])->prefix('viewing-appointments')->name('api.v1.viewing-appointments.')->group(function () {
+    Route::get('/', [ViewingAppointmentController::class, 'index'])->name('index');
+    Route::get('/{appointment}', [ViewingAppointmentController::class, 'show'])->whereNumber('appointment')->name('show');
+    Route::middleware('spa')->group(function () {
+        foreach (['confirm', 'cancel', 'reschedule', 'complete', 'check-in' => 'checkIn', 'check-out' => 'checkOut'] as $path => $action) {
+            $path = is_int($path) ? $action : $path;
+            Route::post('/{appointment}/'.$path, [ViewingAppointmentController::class, $action])->whereNumber('appointment')->name($path);
+        }
+    });
+});
 
 Route::prefix('public/rooms')->name('api.v1.public.rooms.')->group(function () {
     Route::get('/', [PublicRoomController::class, 'index'])->name('index');

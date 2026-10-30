@@ -9,6 +9,7 @@ use App\Models\MeterReadingSubmission;
 use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\User;
+use App\Models\ViewingAppointment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,7 @@ class NotificationService
         $status = $status instanceof \BackedEnum ? $status->value : $status;
         $event = null;
         $recipient = null;
+        $variant = '';
         if ($model instanceof Invoice && $model->wasChanged('issued_at') && $model->issued_at !== null) {
             $event = 'invoice.issued';
             $recipient = $model->contract()->withTrashed()->value('user_id');
@@ -46,6 +48,11 @@ class NotificationService
         } elseif ($model instanceof Contract && $model->wasChanged('status') && in_array($status, ['active', 'terminated'], true)) {
             $event = 'contract.'.$status;
             $recipient = $model->user_id;
+        } elseif ($model instanceof ViewingAppointment && $model->wasChanged('status') && in_array($status, ['confirmed', 'cancelled'], true)) {
+            $event = 'appointment.'.$status;
+            $recipient = $model->user_id;
+            // A rescheduled appointment can be confirmed again; replay of the same slot stays deduplicated.
+            $variant = ':'.$model->preferred_at->toISOString();
         } elseif ($model instanceof MeterReadingSubmission) {
             if ($model->wasRecentlyCreated && $status === 'pending') {
                 $event = 'meter.submitted';
@@ -60,7 +67,7 @@ class NotificationService
         $sourceId = (int) $model->id;
         $invoiceId = $model instanceof Payment ? (int) $model->invoice_id : $sourceId;
         // Capture scalar event context before models can change again or a transaction rolls back.
-        DB::afterCommit(function () use ($event, $sourceId, $invoiceId, $recipient): void {
+        DB::afterCommit(function () use ($event, $sourceId, $invoiceId, $recipient, $variant): void {
             try {
                 if (! Schema::hasTable('notifications')) {
                     return; // Pending M20 must not block existing financial modules or migrate dev implicitly.
@@ -75,7 +82,7 @@ class NotificationService
                     }
                     $data = $this->payload($event, $sourceId, $invoiceId);
                     DB::table('notifications')->insertOrIgnore([
-                        'id' => (string) Uuid::uuid5(Uuid::NAMESPACE_URL, 'mini-apartment:'.$event.':'.$sourceId.':'.$id),
+                        'id' => (string) Uuid::uuid5(Uuid::NAMESPACE_URL, 'mini-apartment:'.$event.':'.$sourceId.':'.$id.$variant),
                         'type' => $event, 'notifiable_type' => 'user', 'notifiable_id' => $id,
                         'data' => json_encode($data, JSON_THROW_ON_ERROR), 'read_at' => null,
                         'created_at' => now(), 'updated_at' => now(),
@@ -99,6 +106,8 @@ class NotificationService
             'meter.submitted' => ['Có ảnh chỉ số cần duyệt', 'Một yêu cầu gửi chỉ số đang chờ kiểm tra.', '/admin/meter-readings'],
             'meter.approved' => ['Chỉ số đã được duyệt', 'Yêu cầu đã trở thành chỉ số chính thức.', '/resident'],
             'meter.rejected' => ['Yêu cầu chỉ số bị từ chối', 'Mở lịch sử gửi chỉ số để xem lý do.', '/resident'],
+            'appointment.confirmed' => ['Lịch xem phòng đã xác nhận', 'Mở lịch hẹn để xem thời gian đã được xác nhận.', '/account/appointments'],
+            'appointment.cancelled' => ['Lịch xem phòng đã hủy', 'Mở lịch hẹn của bạn để kiểm tra trạng thái.', '/account/appointments'],
         };
 
         return compact('title', 'body', 'link');

@@ -14,7 +14,7 @@ class NotificationResource extends JsonResource
 
         return ['id' => $this->id, 'type' => $this->type,
             'title' => $data['title'] ?? 'Thông báo', 'body' => $data['body'] ?? '',
-            'link' => is_string($link) && preg_match('~^/(admin|resident|staff)(/[a-zA-Z0-9-]+)*$~D', $link) ? $link : null,
+            'link' => is_string($link) && ($link === '/account/appointments' || preg_match('~^/(admin|resident|staff)(/[a-zA-Z0-9-]+)*$~D', $link)) ? $link : null,
             'read_at' => $this->read_at?->toISOString(), 'created_at' => $this->created_at?->toISOString()];
     }
 }

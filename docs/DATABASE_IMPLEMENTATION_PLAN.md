@@ -455,3 +455,7 @@ Nguồn yêu cầu 27/10: giá theo tòa; cư dân gửi chỉ số/ảnh chờ 
 **Lưu ý mã hiện tại:** chỉ số tháng trong mô tả U3 là `periodic` ở `MeterReadingKind`, không phải giá trị enum monthly. M14/Enum đã commit giữ nguyên; U2 không có cột kind và chưa sinh chỉ số chính thức. Không đổi monthly/final của **InvoiceType** vì đó là loại hóa đơn khác khái niệm.
 
 **U2 chuẩn bị theo DB-D64:** M19 và create_meter_reading_submissions nằm trong pending; default migrate không chạy hai file, test gọi đường dẫn tường minh. Cấu trúc vật lý tại DB design§3.7/3.22. Enum/model/Policy và disk private=storage/app/evidence phục vụ lát cắt nền tảng, chưa có API/upload/download/duyệt. Không dùng root local đang phục vụ file cho ảnh cần Policy. Test down từ chối còn lịch sử/metadata, fixture rollback trước DDL; không chạy đồng thời với schema/browser khác. Bằng chứng cuối ở IMPLEMENTATION_PLAN§12.22.
+
+## 20. VIEW/M18 và NOTIF/M20 — cập nhật triển khai 30/10/2026
+
+Q3 đã CONFIRMED DB-D77; Q16 DB-D73. M18 mới tại pending/2026_10_14_400018_create_viewing_appointments_table.php đúng §3.18: FK RESTRICT, code nullable unique, status VARCHAR, bốn index đã thiết kế; down từ chối còn lịch sử. M20 đã checkpoint66047ce. Hai bảng được áp dụng tường minh trên MySQL test có identity guard cho Feature và fixtureHTTP, đã dọn dữ liệu sở hữu và down sau kiểm thử. Không đưa vào default migrate hoặc áp dụng dev. Không thêm bảng/enum ngoài thiết kế. M17 sửa chữa còn chưa triển khai; schema không đồng nghĩa module đủUI/API, bằng chứng VIEW tại Plan§12.34, NOTIF§12.33.

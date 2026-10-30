@@ -16,7 +16,7 @@ export function PublicFooter() {
           </div>
           <div className="flex gap-3">
             <Info aria-hidden="true" className="w-6 h-6 text-amber-400 shrink-0" />
-            <div><h2 className="font-semibold text-white">Lịch xem phòng</h2><p className="text-sm text-slate-400 mt-1">Đặt lịch trực tuyến chưa được mở. Hệ thống chưa tiếp nhận lịch hẹn tại đây.</p></div>
+            <div><h2 className="font-semibold text-white">Lịch xem phòng</h2><p className="text-sm text-slate-400 mt-1">Chọn phòng để gửi lịch xem trong 08:00–20:00 giờ Việt Nam; quản trị viên sẽ xác nhận.</p></div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pb-8 border-b border-slate-800">

@@ -94,9 +94,9 @@ export function RoomDetailPage() {
       <aside className="lg:col-span-4">
         <div className="sticky top-24 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
           <h2 className="text-xl font-bold">Xem phòng trực tiếp</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">Đặt lịch xem phòng trực tuyến chưa được mở. Hệ thống chưa tiếp nhận lịch hẹn tại đây.</p>
+          <p className="text-sm text-slate-600 leading-relaxed">Gửi thời gian mong muốn trong 08:00–20:00 giờ Việt Nam. Lịch cần được quản trị viên xác nhận.</p>
           <p className="text-sm text-slate-500">Phí dịch vụ và giá điện nước sẽ được công bố khi cấu hình đã sẵn sàng.</p>
-          <Link to="/rooms" className="block text-center rounded-xl bg-sky-600 text-white font-semibold py-3 text-sm hover:bg-sky-700">Xem các phòng khác</Link>
+          <Link to={`/rooms/${room.id}/book`} className="block text-center rounded-xl bg-sky-600 text-white font-semibold py-3 text-sm hover:bg-sky-700">Đặt lịch xem phòng</Link>
         </div>
       </aside>
     </div>

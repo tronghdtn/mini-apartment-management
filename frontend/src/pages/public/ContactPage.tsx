@@ -10,7 +10,7 @@ const questions = [
   { q: 'Tiền cọc khi thuê phòng là bao nhiêu?', a: 'Tiền cọc niêm yết hiển thị tại chi tiết từng phòng. Số tiền áp dụng được ghi trong hợp đồng đã thỏa thuận, không mặc định bằng một tháng tiền thuê.' },
   { q: 'Thời hạn hợp đồng và phí trả trước hạn được xác định thế nào?', a: 'Thời hạn và điều khoản chấm dứt phải được hai bên thỏa thuận trong hợp đồng. Không tự phát sinh phí trả trước hạn khi hợp đồng không có điều khoản tương ứng.' },
   { q: 'Tiện nghi có tự phát sinh khoản thu không?', a: 'Tiện nghi dùng để mô tả tòa nhà và phòng. Các khoản thu dịch vụ được thỏa thuận riêng trong hợp đồng.' },
-  { q: 'Tôi có thể đặt lịch xem phòng trực tuyến chưa?', a: 'Chức năng đặt lịch trực tuyến chưa được mở. Bạn có thể xem danh sách phòng công khai và thông tin từng phòng trước khi liên hệ ban quản lý.' },
+  { q: 'Tôi có thể đặt lịch xem phòng trực tuyến chưa?', a: 'Bạn có thể mở phòng đang cho thuê và chọn Đặt lịch xem phòng. Nhận lịch tương lai trong 08:00–20:00 giờ Việt Nam; quản trị viên xác nhận lịch. Người đăng nhập xem và tự hủy trước giờ hẹn, đổi giờ qua quản trị viên.' },
 ]
 
 export function ContactPage() {

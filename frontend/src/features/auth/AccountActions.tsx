@@ -29,6 +29,7 @@ export function AccountActions({ compact = false, menu = false }: { compact?: bo
       <p className="break-words text-sm font-bold text-slate-900">{user.full_name}</p>
       <Link to={profileDestination(user)} className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Hồ sơ cá nhân</Link>
       <Link to={accountDestination(user)} className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Khu vực của tôi</Link>
+      {!['admin', 'guard'].includes(user.role) && <Link to="/account/appointments" className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Lịch hẹn của tôi</Link>}
       <Button className="w-full" size="sm" variant="outline" isLoading={pending} onClick={() => void signOut()}>Đăng xuất</Button>
       {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
     </div>

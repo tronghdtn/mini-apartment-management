@@ -250,3 +250,20 @@ DEBT kết quả29/10: Feature5/73PASS bao gồm quyền/nợterminated/pending/
 CLOSE-02a: POST closure-preview chỉ Adminactive, Guest401/role403/locked403/CSRF419; invaliddate/thiếulýdo/forgedfee422; state/stalerevision409; missing404; same_day0/earlyfixed2000000/đúnghạn0/quáhạn0; DBcontract/room giữ nguyên, invoices/payments/meters0. Feature3test và calculator23test tổng26/98PASS. Frontend94test/build/lintPASS, browser bịtắt chưa nghiệmthu. Fullsuite/Pint kết quả ghi tại Plan§12.32.
 
 NOTIF-02/03 (DB-D73): N01 own list/read của 5vai trò, không Admin override, locked/guest/CSRF/422; N02 invoiceissue→notification sau commit, rollback không gửi, actual directcash→paymentconfirmed notice và replay không thêm, dedup giữ read_at; N03 M20JSON/UUID/privatepayload/linkexternalnull/missing503/down từchối history; N04 paging21/unreadglobal đúng owner. Targeted4/125PASS. Hooks contract/U2 đã code, chưa có test liveAPI chuyên biệt cho từng nguồn trong đợt này; chưa VIEW/MAINT. Browser vẫn bịtắt, không gán browserPASS. Fullsuite/style kết quả cuối tại Plan§12.33.
+
+## VIEW — lịch xem phòng, DB-D77 (30/10/2026)
+
+| ID | Mức | Luồng và tiêu chí |
+|---|---|---|
+| VIEW-A01 | P0 | Khách đặt phòng public available; APT theo ID, UTC đúng, không lộ IP/user_id/admin_note; phòng ẩn/occupied/maintenance từ chối |
+| VIEW-A02 | P0 | Khung giờ08:00–20:00 VN, tương lai, ngày thật/offset, TIMESTAMP giới hạn; trường giả/phone/name/honeypot/CSRF; 5attempt/giờ/REMOTE_ADDR không tin Forwarded |
+| VIEW-A03 | P0 | Một phone/room có một pending/confirmed, hai process201/409; hủy giữ lịch sử và cho đặt mới |
+| VIEW-A04 | P0 | Owner chỉ xem/hủy của mình trước giờ và check-in; foreign không đọc; locked403; Guest không public lookup |
+| VIEW-A05 | P0 | Admin confirm/reschedule→pending/reconfirm/cancel; không đổi sau check-in, không confirm lịch quá giờ; complete sau check-out |
+| VIEW-A06 | P0 | Guard chỉ confirmed hôm nay VN kể cả khác ngày UTC, check-in trước check-out một lần, actor server, không đổi status |
+| VIEW-A07 | P0 | Confirm/cancel→notice chỉ người đặt đăng nhập sau commit; đổi giờ xác nhận lại có notice mới, replay không thêm; khách vãng lai không notice |
+| VIEW-A08 | P1 | Lọc trạng thái/ngày/page21, scope chủ, empty/error503/missing-schema; rollback M18 từ chối history |
+| VIEW-A09 | P1 | Browser Booking→own history→Admin confirm→Guard check-in/out→Admin complete, F5/Desktop/Mobile/modal/invalid fields; đối chiếu style prototype |
+
+Trạng thái: A01..08 đang được chạy PHPUnit/API; A09 chờ môi trường HTTP test sau fullsuite. Không chạy PHPUnit khi fixture browser tồn tại. Model tester đã được chủ dự án chọn GPT-6 Luna, không hỏi lại.
+VIEW kết quả30/10: full1320/12153PASS trướcphone/linkfinal; cuối14/316VIEW+NOTIFPASS, Pint300, frontend97/build/lint0lỗi8cảnhbáocũ. Browser Desktop1440/Mobile390 luồnguserbook→Adminconfirm/reschedule/reconfirm→Guardin/out; complete bằngAPI, userhistory/readnotification/F5 thật. A09 cònchưa thửnútcompleteUI, prototypebrowserđốichiếu, paging21UI, mạnglỗi/expired; không gánPASS toànbộ. A06 khácngày cóFeature, livechỉdatefilteremptykhôngcólịchtươnglai. Agentflowlỡchạyhaivòngtạo4records, rootbookthứ5; khôngcộngthànhcoverageđộclập, bookingthứ6HTTP429. Safe-linkaccount và queryprefix thôngbáo đãsửa, đọc1sauF5. DọnfixtuređúngID vàdownM20/M18; khôngdevmigration.
