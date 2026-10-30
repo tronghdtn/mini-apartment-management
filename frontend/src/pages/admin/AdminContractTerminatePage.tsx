@@ -10,6 +10,7 @@ import { finalMeterPreviewSchema, closureReasonLabels, type FinalMeterPreview, t
 import { finalInvoiceInputSchema, type FinalInvoiceDraft, type FinalInvoiceInput } from '@/features/contracts/finalInvoice'
 import { contractInspectionSchema, type ContractInspectionInput } from '@/features/contracts/inspection'
 import type { Contract } from '@/features/contracts/types'
+import { ContractSettlementPanel } from '@/features/contracts/ContractSettlementPanel'
 import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
 import type { Invoice } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
@@ -45,12 +46,16 @@ export function AdminContractTerminatePage() {
         <p className="mt-2 text-sm">{current.contract.room.building.name} · Phòng {current.contract.room.code} · {current.contract.tenant.full_name}</p>
         <p className="mt-2 text-sm text-slate-600">Ngày nhận: {formatDate(current.contract.start_date)} · Ngày cuối được ở: {formatDate(current.contract.end_date)}</p>
         <Link className="mt-3 inline-block text-sm text-sky-700 underline" to={`/admin/contracts/${current.contract.id}`}>Xem điều khoản hợp đồng</Link></section>
-        {current.contract.status !== 'active' ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5">Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.</p>
-          : current.finalInvoice ? <section role="status" className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5">
+        {current.contract.status === 'terminated' ? <>
+          {current.finalInvoice && <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${current.finalInvoice.id}`}>Mở hóa đơn tất toán</Link>}
+          <ContractSettlementPanel contractId={current.contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />
+        </> : current.contract.status !== 'active' ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5">Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.</p>
+          : current.finalInvoice ? <><section role="status" className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5">
             <h2 className="font-bold text-teal-950">Đã lưu hóa đơn tất toán #{current.finalInvoice.id}</h2>
             <p className="text-sm text-teal-900">Chỉ số chốt và căn cứ đã được lưu. Mở hóa đơn để kiểm tra, phát hành hoặc lập lại bản đã hủy. Hợp đồng và phòng chưa được thanh lý.</p>
             <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${current.finalInvoice.id}`}>Mở hóa đơn tất toán</Link>
-          </section> : <><ClosureForm key={`${current.contract.id}:${current.contract.lifecycle_revision}`} contract={current.contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} />
+          </section>{['issued', 'partially_paid', 'paid'].includes(current.finalInvoice.status) && <ContractSettlementPanel
+            contractId={current.contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />}</> : <><ClosureForm key={`${current.contract.id}:${current.contract.lifecycle_revision}`} contract={current.contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} />
             <InspectionForm key={current.contract.id} contract={current.contract}
               onAuthFailure={() => void refresh()} onSaved={contract => setResult({ id: `${contractId}:${retry}`, contract })} /></>}</>}
   </div>
@@ -250,7 +255,8 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
           <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmIssue(false)}>Quay lại kiểm tra</Button></div>
       </div> : <Button type="button" disabled={busy || !invoice.revision} onClick={() => setConfirmIssue(true)}>Phát hành hóa đơn tất toán</Button>)}
       {message && <p role="status" className="text-sm text-teal-900">{message}</p>}
-      {invoice.status !== 'draft' && <p className="text-sm text-slate-600">Bước tiếp theo là đối soát hóa đơn và tiền cọc; hợp đồng/phòng chưa được thanh lý trong luồng này.</p>}
+      {invoice.status !== 'draft' && <><p className="text-sm text-slate-600">Chưa thanh lý hợp đồng/phòng. Tiếp tục tải đối soát công nợ và tiền cọc trước khi xác nhận trả phòng.</p>
+        <Button type="button" disabled={busy} onClick={onReload}>Tiếp tục đối soát cọc</Button></>}
     </div>}
     {message && !invoice && <p role="status" className="text-sm text-teal-800">{message}</p>}
     {!invoice && <Button type="button" variant="outline" disabled={busy} onClick={onReload}>Tải lại dữ liệu bàn giao</Button>}

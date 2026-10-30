@@ -1,4 +1,5 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
+import { terminateContractSchema, type ContractSettlement, type TerminateContractInput } from './settlement'
 import { closurePreviewSchema, finalMeterPreviewSchema, type ClosurePreview, type ClosurePreviewInput, type FinalMeterPreview, type FinalMeterPreviewInput } from './closure'
 import { contractInspectionSchema, type ContractInspectionInput } from './inspection'
 import type { ApiResource } from '@/types/api'
@@ -119,4 +120,14 @@ export async function saveContractInspection(id: number, input: ContractInspecti
   valid.photos.forEach(photo => body.append('photos[]', photo))
 
   return (await http.post<ApiResource<Contract>>(`/contracts/${id}/inspection`, body)).data.data
+}
+
+export async function getContractSettlement(id: number, signal?: AbortSignal): Promise<ContractSettlement> {
+  return (await http.get<ApiResource<ContractSettlement>>(`/contracts/${id}/settlement-preview`, { signal })).data.data
+}
+
+export async function terminateContract(id: number, input: TerminateContractInput): Promise<ContractSettlement> {
+  const body = terminateContractSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<ContractSettlement>>(`/contracts/${id}/terminate`, body)).data.data
 }

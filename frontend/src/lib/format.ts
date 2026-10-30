@@ -3,7 +3,7 @@
 const BUSINESS_TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 /** Số tiền VND (số nguyên đồng) → "3.500.000 ₫". */
-export function formatVND(amount: number): string {
+export function formatVND(amount: number | bigint): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫'
 }
 

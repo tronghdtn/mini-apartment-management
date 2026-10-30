@@ -318,3 +318,16 @@ Kết quả 30/10: `ContractInspectionApiTest` **4/77 PASS**; ContractDraft + Co
 Trạng thái đang nghiệm thu30/10 tại Plan§12.39; chưa đánh dấu live/browser/fullsuite hoàn thành.
 
 Kết quả chốt30/10: full Backend1351test/12791assertionPASS (480.64s,exit0), Pint327filePASS; frontend110test/buildPASS/lint0lỗi9cảnhbáocũ.19liveHTTP cookie/CSRF/privateảnh/0đ/reissue và12tìnhhuốngbrowser lõi đã xác minh theoPlan§12.39. Hai ca tranh chấp HTTP trên2phiên độc lập: finalcreate→201/409, reissue→201/409, giữ đúng2finalmeter; không cộng chúng vào sốPHPunit. Hai lượtfixture đã dọn/downpendingchỉDBtest, dev20bảng/16migration/checksumtoànbộgiữnguyên. Chưa settle/terminate, chưa browser filechooser/offline/other-refund, chưa kiểm thử finaldev. Screenshot chỉ fixture và đã dọn; không gọi toàn bộCLOSE hoặc FullMVP hoàn thành.
+
+## CLOSE-02e — đối soát cọc và trả phòng (30–31/10)
+
+| ID | Mức | Tiêu chí và bằng chứng |
+|---|---|---|
+| CLOSE-E01 | P0 | Cọc held đủ/thiếu/dư/unpaid/0; ưu tiên due_date rồi ID; không trừ lại fee/damage; khoản hoàn final tách cọc. Feature/HTTP PASS |
+| CLOSE-E02 | P0 | Sum confirmed khớp paid; pending không giảm nợ và chặn; rejected không giảm nợ; thay cash/pending/reject làm revision cũ409. Feature/HTTP/browser PASS |
+| CLOSE-E03 | P0 | Transaction payment deposit/RCP+invoice+deposit+contract+service end+room; lỗi lưu phòng rollback; final0không fake receipt; giữ resident/nợ; không PII. Feature/HTTP PASS |
+| CLOSE-E04 | P0 | Replay không payment/notice mới, không trả lại phòng khách mới;5racehai tiến trình thật (terminate, pending, cash, confirm, cancel final0) và2racecookieHTTP PASS |
+| CLOSE-E05 | P1 |12case browser theo Plan§12.40: checkbox/stale/doubleclick/F5/mobile/pending/link, Nginx test mất kết nối/phục hồi, upload inspection/damage/waiver→issue→đối soát/giữ nợ PASS |
+| CLOSE-E06 | P0 | Quy tắc chặn hủy mọi invoice sau terminated vừa duyệt31/10; đang bổ sung regression/guard, chưa gọi PASS |
+
+Backend checkpoint5818098: full1373/13210/Pint336 PASS; frontend114test/build/lint0lỗi9cảnhbáocũ.35HTTP và2HTTP races mới, không thay kết quả lịch sử CLOSE-D. Browser filechooser nay đã thử; offline chỉ kết nối Nginx test, chưa thử OS offline/đảo response/mất response sau commit. Chưa chốt dọn fixture/dev comparison hoặc nghiệm thu dev tại mốc này. Chi tiết/artifacts Plan§12.40.
