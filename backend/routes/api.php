@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\MeterReadingSubmissionController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
+use App\Http\Controllers\Api\V1\ResidentContractController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SettingController;
@@ -30,6 +31,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+
+Route::middleware(['auth:sanctum', 'active'])->prefix('resident/contracts')->name('api.v1.resident.contracts.')->group(function () {
+    Route::get('/', [ResidentContractController::class, 'index'])->name('index');
+    Route::get('/{contract}', [ResidentContractController::class, 'show'])->whereNumber('contract')->name('show');
+});
 
 Route::post('viewing-appointments', [ViewingAppointmentController::class, 'store'])->middleware(['spa', 'throttle:viewing-booking'])->name('api.v1.viewing-appointments.store');
 Route::middleware(['auth:sanctum', 'active'])->prefix('viewing-appointments')->name('api.v1.viewing-appointments.')->group(function () {

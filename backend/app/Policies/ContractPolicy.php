@@ -8,6 +8,16 @@ use App\Models\User;
 
 class ContractPolicy
 {
+    public function viewOwnContracts(User $user): bool
+    {
+        return $user->isActive() && $user->hasRole(UserRole::Resident);
+    }
+
+    public function viewOwnContract(User $user, Contract $contract): bool
+    {
+        return $this->viewOwnContracts($user) && (int) $contract->user_id === $user->id && $contract->status->value !== 'draft';
+    }
+
     public function viewAny(User $user): bool
     {
         return $user->isActive() && $user->hasRole(UserRole::Admin);

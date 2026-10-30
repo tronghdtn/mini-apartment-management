@@ -267,3 +267,11 @@ NOTIF-02/03 (DB-D73): N01 own list/read của 5vai trò, không Admin override, 
 
 Trạng thái: A01..08 đang được chạy PHPUnit/API; A09 chờ môi trường HTTP test sau fullsuite. Không chạy PHPUnit khi fixture browser tồn tại. Model tester đã được chủ dự án chọn GPT-6 Luna, không hỏi lại.
 VIEW kết quả30/10: full1320/12153PASS trướcphone/linkfinal; cuối14/316VIEW+NOTIFPASS, Pint300, frontend97/build/lint0lỗi8cảnhbáocũ. Browser Desktop1440/Mobile390 luồnguserbook→Adminconfirm/reschedule/reconfirm→Guardin/out; complete bằngAPI, userhistory/readnotification/F5 thật. A09 cònchưa thửnútcompleteUI, prototypebrowserđốichiếu, paging21UI, mạnglỗi/expired; không gánPASS toànbộ. A06 khácngày cóFeature, livechỉdatefilteremptykhôngcólịchtươnglai. Agentflowlỡchạyhaivòngtạo4records, rootbookthứ5; khôngcộngthànhcoverageđộclập, bookingthứ6HTTP429. Safe-linkaccount và queryprefix thôngbáo đãsửa, đọc1sauF5. DọnfixtuređúngID vàdownM20/M18; khôngdevmigration.
+
+RES-02/03 (DB-D36, brief§38) — nhóm đọc hợp đồng:
+RCTR-A01 P0 Guest401, admin/user/tech/guard403, locked403; Resident không đọc APIprojectionAdmin.
+RCTR-A02 P0 ownactive/historysoftdelete200, draft/foreign404, GET không đổi contract/room/invoice/payment.
+RCTR-A03 P0 snapshotfee/waiver/serviceprice/decimal preserved, nointernalnote/CCCD/contactoccupants/actor; catalogpricechange không đổi signedprice.
+RCTR-A04 P1 status/page21/empty/filterinvalid422, IDmissing404; schema503 trướcquery.
+RCTR-A05 P1 Desktop/Mobile/URL/F5/tabs/back/linkinvoice và thôngbáokíchhoạt tới detail; error/retry/auth, không mockfallback.
+Tự động3/66PASS đầu lượt; fullsuite đang chạy, chưafixturebrowser/liveAPI. Không PHPUnit khi fixture tồn tại. ModelQA đã chọnLuna từ trước.
