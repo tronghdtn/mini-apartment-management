@@ -6,9 +6,17 @@ export async function getInvoices(filters: InvoiceFilters, signal?: AbortSignal)
   return (await http.get<InvoicePage>('/invoices', { params: { page: input.page, status: input.status || undefined, period: input.period || undefined, overdue: input.overdue || undefined, contract_id: input.contract_id ? Number(input.contract_id) : undefined }, signal })).data
 }
 export async function getInvoice(id: string, signal?: AbortSignal) { return (await http.get<{ data: Invoice }>(`/invoices/${encodeURIComponent(id)}`, { signal })).data.data }
+/** Newest final (including a cancelled source) provides a recovery link after F5 or a lost response. */
+export async function getLatestFinalInvoice(contractId: number, signal?: AbortSignal): Promise<Invoice | null> {
+  const response = await http.get<InvoicePage>('/invoices', { params: { contract_id: contractId, type: 'final', page: 1 }, signal })
+  return response.data.data[0] ?? null
+}
 export async function createInvoice(input: CreateInvoiceInput) { return (await http.post<{ data: Invoice }>('/invoices', createInvoiceSchema.parse(input))).data.data }
 export async function invoiceAction(id: number, action: 'refresh' | 'issue' | 'cancel', expected_revision: string, reason?: string) {
   return (await http.post<{ data: Invoice }>(`/invoices/${id}/${action}`, { expected_revision, ...(reason ? { reason } : {}) })).data.data
+}
+export async function reissueFinalInvoice(id: number, expected_revision: string) {
+  return (await http.post<{ data: Invoice }>(`/invoices/${id}/reissue`, { expected_revision })).data.data
 }
 export async function saveOtherCharge(id: number, expected_revision: string, input: OtherChargeInput, itemId?: number) {
   const body = { ...otherChargeSchema.parse(input), expected_revision }

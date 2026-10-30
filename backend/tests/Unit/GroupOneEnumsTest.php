@@ -41,7 +41,8 @@ class GroupOneEnumsTest extends TestCase
             'meter_readings.kind' => [MeterReadingKind::class, ['periodic', 'final']],
             'invoices.type' => [InvoiceType::class, ['monthly', 'final', 'adjustment']],
             'invoices.status' => [InvoiceStatus::class, ['draft', 'issued', 'partially_paid', 'paid', 'cancelled']],
-            'invoice_items.item_type' => [InvoiceItemType::class, ['rent', 'electricity', 'water', 'service', 'discount', 'other']],
+            // DB-D67/P7: hai loại dòng tất toán đã được duyệt, không mở loại tiền cọc.
+            'invoice_items.item_type' => [InvoiceItemType::class, ['rent', 'electricity', 'water', 'service', 'discount', 'other', 'termination_fee', 'damage']],
             'payments.method' => [PaymentMethod::class, ['cash', 'bank_transfer', 'deposit']],
             'payments.status' => [PaymentStatus::class, ['pending', 'confirmed', 'rejected']],
         ];

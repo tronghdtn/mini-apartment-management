@@ -302,3 +302,19 @@ Kết quả 30/10: MaintenanceRequestApiTest **3/126 PASS**; full Backend **1326
 | CLOSE-A05 | P0 | Migration P6 thêm cột nullable/FK RESTRICT trên DB test; snapshot cũ không đổi; rollback sạch |
 
 Kết quả 30/10: `ContractInspectionApiTest` **4/77 PASS**; ContractDraft + ContractLifecycle + ContractInspection **132/1287 PASS**. Full backend **1330/12425 PASS**, 481.99s, exit0; Pint **320 file PASS**; frontend **104 test PASS**, build PASS, lint **0 lỗi/9 cảnh báo**. Full-suite lần đầu phát hiện lookup attachments khi schema P6 thiếu; cổng yêu cầu đồng thời P6 columns và M19 table, test mock được cập nhật; lần chạy toàn phần tiếp theo đạt. P6/M19 được apply/down tường minh chỉ trong mysql_test; không migration dev. Browser trực quan chưa chạy vì local browser bị tắt trong Work settings. CLOSE-A01..05 không kiểm thử damage lines, final invoice hoặc đối soát cọc.
+
+## CLOSE-02d — final draft và phát hành
+
+| ID | Mức | Luồng |
+|---|---|---|
+| CLOSE-D01 | P0 | Admin/cookie/CSRF; 5role, locked, stale/missing, không mass assignment giá/phí/tổng/actor |
+| CLOSE-D02 | P0 | Inspection→damage/ảnh private hoặc no_damage; miễn toàn bộ đúng snapshot+ảnh/căn cứ |
+| CLOSE-D03 | P0 | Final meter+invoice/contract fields nguyên tử; lỗi/overflow rollback SQL và ảnh mới |
+| CLOSE-D04 | P0 | Không tính lại periodic/rent đã thu; cancelled không che live monthly; giảm trừ và other không âm/phần dư ngoài hệ thống |
+| CLOSE-D05 | P0 | Issue bất biến,0đ paid không payment giả; contract/room/cọc chưa terminate/settle |
+| CLOSE-D06 | P0 | Cancel/reissue reuse chỉ số/ảnh, không final thứhai/không lặp; quyền ảnh và scope Resident |
+| CLOSE-D07 | P1 | UI preview/create/confirm/F5/recovery/link/validation/mobile, kết quả thật qua Nginx DBtest |
+
+Trạng thái đang nghiệm thu30/10 tại Plan§12.39; chưa đánh dấu live/browser/fullsuite hoàn thành.
+
+Kết quả chốt30/10: full Backend1351test/12791assertionPASS (480.64s,exit0), Pint327filePASS; frontend110test/buildPASS/lint0lỗi9cảnhbáocũ.19liveHTTP cookie/CSRF/privateảnh/0đ/reissue và12tìnhhuốngbrowser lõi đã xác minh theoPlan§12.39. Hai ca tranh chấp HTTP trên2phiên độc lập: finalcreate→201/409, reissue→201/409, giữ đúng2finalmeter; không cộng chúng vào sốPHPunit. Hai lượtfixture đã dọn/downpendingchỉDBtest, dev20bảng/16migration/checksumtoànbộgiữnguyên. Chưa settle/terminate, chưa browser filechooser/offline/other-refund, chưa kiểm thử finaldev. Screenshot chỉ fixture và đã dọn; không gọi toàn bộCLOSE hoặc FullMVP hoàn thành.

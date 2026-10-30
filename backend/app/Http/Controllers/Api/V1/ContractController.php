@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\ClosurePreviewRequest;
 use App\Http\Requests\Contract\ContractInspectionRequest;
 use App\Http\Requests\Contract\ContractLifecycleRequest;
+use App\Http\Requests\Contract\CreateFinalInvoiceRequest;
 use App\Http\Requests\Contract\FinalMeterPreviewRequest;
 use App\Http\Requests\Contract\IndexContractRequest;
 use App\Http\Requests\Contract\StoreContractRequest;
@@ -13,8 +14,10 @@ use App\Http\Requests\Contract\UpdateContractRequest;
 use App\Http\Requests\Contract\UpdateDraftServicesRequest;
 use App\Http\Resources\ClosurePreviewResource;
 use App\Http\Resources\ContractResource;
+use App\Http\Resources\InvoiceResource;
 use App\Models\Contract;
 use App\Services\ContractClosureService;
+use App\Services\ContractFinalInvoiceService;
 use App\Services\ContractInspectionService;
 use App\Services\ContractService;
 use App\Services\ContractTermsService;
@@ -51,6 +54,16 @@ class ContractController extends Controller
         return new ClosurePreviewResource($preview->preview($model, $request->user(), $request->validated()));
     }
 
+    public function createFinalInvoice(CreateFinalInvoiceRequest $request, string $contract, ContractFinalInvoiceService $finalInvoices): JsonResponse
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        $invoice = $finalInvoices->create($model, $request->user(), $request->validated());
+
+        return (new InvoiceResource($invoice))->response()->setStatusCode(201);
+    }
+
     public function recordInspection(ContractInspectionRequest $request, string $contract, ContractInspectionService $inspection): ContractResource
     {
         $model = $this->contracts->find($contract);
@@ -68,7 +81,7 @@ class ContractController extends Controller
             'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', default => abort(404),
         };
 
-        return Storage::disk('private')->response($photo->path, 'contract-'.$contract.'-inspection-'.$photo->id.'.'.$extension,
+        return Storage::disk('private')->response($photo->path, 'contract-'.$contract.'-attachment-'.$photo->id.'.'.$extension,
             ['Content-Type' => $photo->mime_type, 'Content-Disposition' => 'inline', 'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
     }
 

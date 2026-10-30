@@ -11,4 +11,6 @@ enum InvoiceItemType: string
     case Service = 'service';
     case Discount = 'discount';
     case Other = 'other';
+    case TerminationFee = 'termination_fee';
+    case Damage = 'damage';
 }

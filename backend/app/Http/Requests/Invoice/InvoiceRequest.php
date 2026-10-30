@@ -52,7 +52,7 @@ class InvoiceRequest extends FormRequest
                 'period' => ['required', ...$period], 'related_invoice_id' => ['sometimes', ...$id]],
             'addOther', 'updateOther' => $other,
             'removeOther', 'cancel' => ['expected_revision' => $revision, 'reason' => ['required', 'string', 'max:2000']],
-            'issue', 'refresh' => ['expected_revision' => $revision],
+            'issue', 'refresh', 'reissue' => ['expected_revision' => $revision],
             default => [],
         };
         foreach (array_diff(array_keys($this->all()), array_keys($rules)) as $field) {

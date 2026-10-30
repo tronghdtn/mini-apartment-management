@@ -6,6 +6,13 @@ import { contractFiltersSchema, draftContractSchema, draftContractServicesSchema
 import type { ContractFilters, DraftContractInput, DraftContractServicesInput } from './schemas'
 import type { Contract, ContractPage, ContractOptions, ContractRoomOption, ContractTenantOption, ContractServiceOption } from './types'
 import { activateContractSchema, contractTermsSchema, type ActivateContractInput, type ContractTermsInput } from './schemas'
+import { buildFinalInvoiceFormData, type FinalInvoiceDraft, type FinalInvoiceInput } from './finalInvoice'
+
+export async function createFinalInvoiceDraft(id: number, closure: FinalMeterPreviewInput, input: FinalInvoiceInput, expectedRevision: string): Promise<FinalInvoiceDraft> {
+  await fetchCsrfCookie()
+  const body = buildFinalInvoiceFormData(closure, input, expectedRevision)
+  return (await http.post<ApiResource<FinalInvoiceDraft>>('/contracts/' + id + '/final-invoice', body)).data.data
+}
 
 export async function getContracts(page: number, filters: ContractFilters, signal?: AbortSignal): Promise<ContractPage> {
   const input = contractFiltersSchema.parse(filters)

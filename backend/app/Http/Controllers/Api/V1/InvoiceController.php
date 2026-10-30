@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Invoice\InvoiceRequest;
 use App\Http\Resources\InvoiceResource;
+use App\Services\ContractFinalInvoiceService;
 use App\Services\InvoiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -41,6 +42,12 @@ class InvoiceController extends Controller
     public function cancel(InvoiceRequest $request, int $invoice): InvoiceResource
     {
         return new InvoiceResource($this->invoices->cancel($request->invoice(), $request->validated()));
+    }
+
+    public function reissue(InvoiceRequest $request, int $invoice, ContractFinalInvoiceService $finalInvoices): JsonResponse
+    {
+        return (new InvoiceResource($finalInvoices->reissue($request->invoice(), $request->user(), $request->validated('expected_revision'))))
+            ->response()->setStatusCode(201);
     }
 
     public function addOther(InvoiceRequest $request, int $invoice): InvoiceResource

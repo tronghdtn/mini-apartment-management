@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { isAxiosError } from 'axios'
-import { useForm, useWatch } from 'react-hook-form'
+import { useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, Droplets, FileText, Zap } from 'lucide-react'
+import { Camera, CheckCircle2, Droplets, FileText, Plus, Receipt, Trash2, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { getContract, previewFinalContractMeters, saveContractInspection } from '@/features/contracts/api'
+import { createFinalInvoiceDraft, getContract, previewFinalContractMeters, saveContractInspection } from '@/features/contracts/api'
 import { finalMeterPreviewSchema, closureReasonLabels, type FinalMeterPreview, type FinalMeterPreviewInput } from '@/features/contracts/closure'
+import { finalInvoiceInputSchema, type FinalInvoiceDraft, type FinalInvoiceInput } from '@/features/contracts/finalInvoice'
 import { contractInspectionSchema, type ContractInspectionInput } from '@/features/contracts/inspection'
 import type { Contract } from '@/features/contracts/types'
+import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
+import type { Invoice } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
 import { apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
 import { formatDate, formatDateTime, formatVND } from '@/lib/format'
@@ -17,11 +20,13 @@ export function AdminContractTerminatePage() {
   const { contractId } = useParams<{ contractId: string }>()
   const { refresh } = useAuth()
   const [retry, setRetry] = useState(0)
-  const [result, setResult] = useState<{ id: string; contract?: Contract; error?: string }>()
+  const [result, setResult] = useState<{ id: string; contract?: Contract; finalInvoice?: Invoice | null; error?: string }>()
   useEffect(() => {
     const abort = new AbortController()
-    getContract(contractId ?? '', abort.signal).then(contract => {
-      if (!abort.signal.aborted) setResult({ id: `${contractId}:${retry}`, contract })
+    getContract(contractId ?? '', abort.signal).then(async contract => {
+      // Dev may not yet have the approved pending schema. Keep the existing controlled errors there.
+      const finalInvoice = contract.actual_end_date ? await getLatestFinalInvoice(contract.id, abort.signal) : null
+      if (!abort.signal.aborted) setResult({ id: `${contractId}:${retry}`, contract, finalInvoice })
     }).catch(failure => {
       if (!abort.signal.aborted) {
         setResult({ id: `${contractId}:${retry}`, error: apiErrorMessage(failure) })
@@ -41,7 +46,11 @@ export function AdminContractTerminatePage() {
         <p className="mt-2 text-sm text-slate-600">Ngày nhận: {formatDate(current.contract.start_date)} · Ngày cuối được ở: {formatDate(current.contract.end_date)}</p>
         <Link className="mt-3 inline-block text-sm text-sky-700 underline" to={`/admin/contracts/${current.contract.id}`}>Xem điều khoản hợp đồng</Link></section>
         {current.contract.status !== 'active' ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5">Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.</p>
-          : <><ClosureForm key={`${current.contract.id}:${current.contract.lifecycle_revision}`} contract={current.contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} />
+          : current.finalInvoice ? <section role="status" className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5">
+            <h2 className="font-bold text-teal-950">Đã lưu hóa đơn tất toán #{current.finalInvoice.id}</h2>
+            <p className="text-sm text-teal-900">Chỉ số chốt và căn cứ đã được lưu. Mở hóa đơn để kiểm tra, phát hành hoặc lập lại bản đã hủy. Hợp đồng và phòng chưa được thanh lý.</p>
+            <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${current.finalInvoice.id}`}>Mở hóa đơn tất toán</Link>
+          </section> : <><ClosureForm key={`${current.contract.id}:${current.contract.lifecycle_revision}`} contract={current.contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} />
             <InspectionForm key={current.contract.id} contract={current.contract}
               onAuthFailure={() => void refresh()} onSaved={contract => setResult({ id: `${contractId}:${retry}`, contract })} /></>}</>}
   </div>
@@ -98,8 +107,155 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
           <dt className="border-t border-slate-100 pt-1 font-semibold">Tạm tính</dt><dd className="border-t border-slate-100 pt-1 text-right font-semibold">{formatVND(reading.amount)}</dd>
         </dl></article>)}</div>
       <p className="font-bold text-teal-950">Tổng điện nước chốt: {formatVND(preview.meter_amount)}</p>
-      <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Giao dịch thanh lý sẽ kiểm tra lại toàn bộ dữ liệu.</p></section>}
+      <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Khi lập nháp, hệ thống kiểm tra lại chuỗi chỉ số và nguồn tiền.</p></section>}
+    {preview && (contract.inspection_result
+      ? <FinalInvoiceForm key={result?.key} contract={contract} closure={finalMeterPreviewSchema.parse(values)} preview={preview} onAuthFailure={onAuthFailure} onReload={onReload} />
+      : <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Hãy ghi kết quả kiểm tra tài sản trước khi lập hóa đơn tất toán.</p>)}
   </>
+}
+
+function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload }: {
+  contract: Contract; closure: FinalMeterPreviewInput; preview: FinalMeterPreview; onAuthFailure: () => void; onReload: () => void
+}) {
+  const [invoice, setInvoice] = useState<FinalInvoiceDraft>()
+  const [busy, setBusy] = useState(false)
+  const [confirmIssue, setConfirmIssue] = useState(false)
+  const [message, setMessage] = useState('')
+  const flight = useRef(false)
+  const { register, control, setValue, setError, handleSubmit, formState: { errors } } = useForm<FinalInvoiceInput>({
+    resolver: zodResolver(finalInvoiceInputSchema),
+    defaultValues: { damages: contract.inspection_result === 'damaged' ? [{ description: '', reason: '', basis: '', amount: 1, photos: [] }] : [],
+      waiver_code: '', waiver_note: '', waiver_evidence: [] },
+  })
+  const { fields, append, remove } = useFieldArray({ control, name: 'damages' })
+  const values = useWatch({ control })
+  const waiverConditions = contract.early_termination_waiver_conditions ?? []
+
+  async function create(input: FinalInvoiceInput) {
+    if (flight.current || invoice) return
+    flight.current = true; setBusy(true); setMessage('')
+    try {
+      const created = await createFinalInvoiceDraft(contract.id, closure, input, contract.lifecycle_revision ?? '')
+      setInvoice(created)
+      setMessage('Đã tạo bản nháp hóa đơn tất toán. Chưa phát hành và chưa đối soát tiền cọc.')
+    } catch (failure) {
+      const fields = ['damages', 'waiver_code', 'waiver_note', 'waiver_evidence',
+        ...input.damages.flatMap((_, index) => ['description', 'reason', 'basis', 'amount'].map(field => `damages.${index}.${field}`))]
+      applyApiErrors(failure, setError, fields)
+      if (isAxiosError(failure) && failure.response?.status === 422) {
+        const serverErrors = failure.response.data?.errors
+        if (serverErrors && typeof serverErrors === 'object') for (const [field, messages] of Object.entries(serverErrors)) {
+          const index = /^damage_photos\.(\d+)(?:\.\d+)?$/.exec(field)?.[1]
+          if (index !== undefined && Number(index) < input.damages.length && Array.isArray(messages) && typeof messages[0] === 'string') {
+            setError(`damages.${Number(index)}.photos`, { type: 'server', message: messages[0] })
+          }
+        }
+      }
+      if (isAxiosError(failure) && failure.response?.status === 413) {
+        setError('root', { message: 'Tổng dữ liệu ảnh vượt giới hạn tải lên 20 MB. Vui lòng giảm số lượng hoặc dung lượng ảnh.' })
+      }
+      if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
+    } finally { flight.current = false; setBusy(false) }
+  }
+
+  async function issue() {
+    if (flight.current || !invoice?.revision) return
+    flight.current = true; setBusy(true); setMessage('')
+    try {
+      const issued = await invoiceAction(invoice.id, 'issue', invoice.revision)
+      setInvoice({ ...invoice, status: issued.status, total_amount: issued.total_amount, paid_amount: issued.paid_amount,
+        contract_closure_note: issued.contract_closure_note,
+        revision: issued.revision, items: issued.items?.map(item => ({ ...item, evidence_urls: item.evidence_urls ?? [] })) })
+      setConfirmIssue(false)
+      setMessage(issued.status === 'paid'
+        ? 'Hóa đơn 0đ đã tất toán; không tạo giao dịch thu tiền.'
+        : 'Đã phát hành hóa đơn tất toán. Khoản mục và tổng tiền đã được khóa.')
+    } catch (failure) {
+      setMessage(apiErrorMessage(failure) + (isAxiosError(failure) && failure.response?.status === 409 ? ' Tải lại dữ liệu trước khi thử lại.' : ''))
+      if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
+    } finally { flight.current = false; setBusy(false) }
+  }
+
+  return <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+    <header className="flex items-start gap-3"><Receipt className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div>
+      <h2 className="font-bold text-slate-900">3. Lập hóa đơn tất toán</h2>
+      <p className="mt-1 text-sm text-slate-600">Gồm tiền còn thiếu, điện nước chưa thu, giảm trừ hợp lệ và các khoản đã có căn cứ. Tiền cọc được đối soát ở bước riêng.</p>
+    </div></header>
+
+    {!invoice ? <form noValidate onSubmit={event => { void handleSubmit(create)(event) }}>
+      <fieldset disabled={busy} className="space-y-5">
+        {contract.inspection_result === 'damaged' ? <section className="space-y-4 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-amber-950">Hạng mục bồi thường</h3>
+            <p className="mt-1 text-sm text-amber-900">Mỗi khoản cần lý do, căn cứ và ít nhất một ảnh riêng tư.</p></div>
+            <Button type="button" size="sm" variant="outline" icon={<Plus className="h-4 w-4" />} onClick={() => append({ description: '', reason: '', basis: '', amount: 1, photos: [] })}>Thêm khoản</Button></div>
+          {fields.map((field, index) => <fieldset key={field.id} className="space-y-3 rounded-xl border border-amber-100 bg-white p-4">
+            <div className="flex items-center justify-between gap-3"><h4 className="font-semibold text-slate-900">Hạng mục {index + 1}</h4>
+              <Button type="button" size="sm" variant="ghost" aria-label={'Xóa hạng mục ' + (index + 1)} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button></div>
+            <label className="block text-sm font-semibold">Tên khoản<input {...register(('damages.' + index + '.description') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+              {errors.damages?.[index]?.description && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.description?.message}</span>}</label>
+            <label className="block text-sm font-semibold">Lý do<textarea rows={2} {...register(('damages.' + index + '.reason') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+              {errors.damages?.[index]?.reason && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.reason?.message}</span>}</label>
+            <label className="block text-sm font-semibold">Căn cứ (ví dụ: báo giá, hóa đơn sửa chữa)<textarea rows={2} {...register(('damages.' + index + '.basis') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+              {errors.damages?.[index]?.basis && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.basis?.message}</span>}</label>
+            <label className="block text-sm font-semibold">Số tiền bồi thường (VND)<input type="number" min={1} step={1} inputMode="numeric"
+              {...register(('damages.' + index + '.amount') as FieldPath<FinalInvoiceInput>, { valueAsNumber: true })} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 tabular-nums" />
+              {errors.damages?.[index]?.amount && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.amount?.message}</span>}</label>
+            <label className="block text-sm font-semibold">Ảnh căn cứ (JPG, PNG hoặc WebP; tối đa 5 ảnh)<input
+              type="file" accept="image/jpeg,image/png,image/webp" multiple className="mt-1 block w-full rounded-xl border border-slate-300 p-3 text-sm"
+              onChange={event => setValue(('damages.' + index + '.photos') as FieldPath<FinalInvoiceInput>, Array.from(event.target.files ?? []), { shouldDirty: true, shouldValidate: true })} />
+              {!!values.damages?.[index]?.photos?.length && <span className="mt-1 block text-xs font-normal text-slate-500">{values.damages[index]?.photos?.map(file => file?.name).join(' · ')}</span>}
+              {errors.damages?.[index]?.photos && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.photos?.message}</span>}</label>
+          </fieldset>)}
+          {errors.damages?.root && <p role="alert" className="text-sm text-rose-700">{errors.damages.root.message}</p>}
+        </section> : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">Đã xác nhận không có hư hỏng; hóa đơn không có dòng bồi thường.</p>}
+
+        {preview.early_termination_fee > 0 && <section className="space-y-3 rounded-xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-900">Điều khoản miễn phí (nếu đủ điều kiện)</h3>
+          {waiverConditions.length ? <>
+            <label className="block text-sm font-semibold">Điều kiện đã ghi trong hợp đồng
+              <select {...register('waiver_code')} className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-3">
+                <option value="">Không áp dụng miễn phí</option>
+                {waiverConditions.map(condition => <option key={condition.code} value={condition.code}>{condition.description}</option>)}
+              </select>
+            </label>
+            {values.waiver_code && <>
+              <label className="block text-sm font-semibold">Căn cứ áp dụng<textarea rows={3} {...register('waiver_note')} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+                {errors.waiver_note && <span role="alert" className="mt-1 block text-rose-700">{errors.waiver_note.message}</span>}</label>
+              <label className="block text-sm font-semibold">Ảnh căn cứ miễn (ít nhất 1 ảnh)<input type="file" multiple accept="image/jpeg,image/png,image/webp"
+                className="mt-1 block w-full rounded-xl border border-slate-300 p-3 text-sm"
+                onChange={event => setValue('waiver_evidence', Array.from(event.target.files ?? []), { shouldDirty: true, shouldValidate: true })} />
+                {!!values.waiver_evidence?.length && <span className="mt-1 block text-xs font-normal text-slate-500">{values.waiver_evidence.map(file => file?.name).join(' · ')}</span>}
+                {errors.waiver_evidence && <span role="alert" className="mt-1 block text-rose-700">{errors.waiver_evidence.message}</span>}</label>
+            </>}
+          </> : <p className="text-sm text-slate-600">Hợp đồng không có điều kiện miễn phí đã lưu; phí theo điều khoản đã ký là {formatVND(preview.early_termination_fee)}.</p>}
+        </section>}
+
+        {errors.root && <p role="alert" className="text-sm text-rose-700">{errors.root.message}</p>}
+        <Button type="submit" disabled={busy || !contract.inspection_result}>{busy ? 'Đang lập nháp…' : 'Lập hóa đơn tất toán nháp'}</Button>
+      </fieldset>
+    </form> : <div className="space-y-4 rounded-xl border border-teal-200 bg-teal-50 p-4">
+      <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-700" /><div>
+        <h3 className="font-semibold text-teal-950">Hóa đơn tất toán #{invoice.id} · {invoice.status === 'draft' ? 'Bản nháp' : invoice.status === 'paid' ? 'Đã tất toán' : 'Đã phát hành'}</h3>
+        <p className="mt-1 text-sm text-teal-900">Tổng do Backend tính: <strong>{formatVND(invoice.total_amount)}</strong></p>
+      </div></div>
+      <ul className="space-y-2 text-sm text-slate-800">{invoice.items?.map(item => <li key={item.id} className="flex flex-wrap items-start justify-between gap-2 border-t border-teal-100 pt-2">
+        <span>{item.description}{item.basis ? <span className="block text-xs text-slate-500">Căn cứ: {item.basis}</span> : null}</span>
+        <strong className="tabular-nums">{formatVND(item.amount)}</strong>
+      </li>)}</ul>
+      {invoice.contract_closure_note && <p className="whitespace-pre-wrap rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Ghi chú bàn giao hiện tại của hợp đồng: {'\n'}{invoice.contract_closure_note}</p>}
+      <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${invoice.id}`}>Mở chi tiết hóa đơn và khoản khác</Link>
+      {invoice.status === 'draft' && (confirmIssue ? <div role="alert" className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+        <p className="text-sm text-amber-950">Phát hành sẽ khóa các khoản mục, hạn thanh toán và tổng tiền. Hãy kiểm tra tổng {formatVND(invoice.total_amount)} trước khi xác nhận.</p>
+        <div className="flex flex-wrap gap-2"><Button type="button" disabled={busy || !invoice.revision} onClick={() => void issue()}>{busy ? 'Đang phát hành…' : 'Xác nhận phát hành'}</Button>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmIssue(false)}>Quay lại kiểm tra</Button></div>
+      </div> : <Button type="button" disabled={busy || !invoice.revision} onClick={() => setConfirmIssue(true)}>Phát hành hóa đơn tất toán</Button>)}
+      {message && <p role="status" className="text-sm text-teal-900">{message}</p>}
+      {invoice.status !== 'draft' && <p className="text-sm text-slate-600">Bước tiếp theo là đối soát hóa đơn và tiền cọc; hợp đồng/phòng chưa được thanh lý trong luồng này.</p>}
+    </div>}
+    {message && !invoice && <p role="status" className="text-sm text-teal-800">{message}</p>}
+    {!invoice && <Button type="button" variant="outline" disabled={busy} onClick={onReload}>Tải lại dữ liệu bàn giao</Button>}
+    {errors.root && <p role="alert" className="text-sm text-rose-700">{errors.root.message}</p>}
+  </section>
 }
 
 function InspectionForm({ contract, onAuthFailure, onSaved }: { contract: Contract; onAuthFailure: () => void; onSaved: (contract: Contract) => void }) {

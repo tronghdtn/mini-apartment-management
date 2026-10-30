@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
-/** Read-only final meter calculation. Persisting a final reading is reserved for the atomic close operation. */
+/** Read-only final meter calculation, reused inside the atomic final-invoice staging transaction. */
 class FinalMeterReadingPreviewService
 {
     private const METERED_CODES = [Service::CODE_ELECTRICITY, Service::CODE_WATER];

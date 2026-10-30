@@ -118,6 +118,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.
         Route::post('/{invoice}/refresh', [InvoiceController::class, 'refresh'])->whereNumber('invoice')->name('refresh');
         Route::post('/{invoice}/issue', [InvoiceController::class, 'issue'])->whereNumber('invoice')->name('issue');
         Route::post('/{invoice}/cancel', [InvoiceController::class, 'cancel'])->whereNumber('invoice')->name('cancel');
+        Route::post('/{invoice}/reissue', [InvoiceController::class, 'reissue'])->whereNumber('invoice')->name('reissue');
         Route::post('/{invoice}/other-items', [InvoiceController::class, 'addOther'])->whereNumber('invoice')->name('other-items.store');
         Route::patch('/{invoice}/other-items/{item}', [InvoiceController::class, 'updateOther'])->whereNumber(['invoice', 'item'])->name('other-items.update');
         Route::delete('/{invoice}/other-items/{item}', [InvoiceController::class, 'removeOther'])->whereNumber(['invoice', 'item'])->name('other-items.destroy');
@@ -148,6 +149,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
         Route::post('contracts/{contract}/closure-preview', [ContractController::class, 'closurePreview'])->whereNumber('contract')->name('contracts.closure-preview');
         Route::post('contracts/{contract}/final-meter-preview', [ContractController::class, 'finalMeterPreview'])->whereNumber('contract')->name('contracts.final-meter-preview');
+        Route::post('contracts/{contract}/final-invoice', [ContractController::class, 'createFinalInvoice'])->whereNumber('contract')->name('contracts.final-invoice.store');
         Route::post('contracts/{contract}/inspection', [ContractController::class, 'recordInspection'])->whereNumber('contract')->name('contracts.inspection.store');
         Route::put('contracts/{contract}/terms', [ContractController::class, 'updateTerms'])->whereNumber('contract')->name('contracts.terms.update');
         Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');

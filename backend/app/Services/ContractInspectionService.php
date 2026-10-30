@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Models\Attachment;
 use App\Models\Contract;
 use App\Models\ContractService as ContractServiceModel;
+use App\Models\MeterReading;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -48,6 +49,8 @@ class ContractInspectionService
                 abort_unless($contract->room_id === $original->room_id && $contract->user_id === $original->user_id, 409,
                     'Hợp đồng vừa thay đổi. Vui lòng tải lại.');
                 abort_unless($contract->status === ContractStatus::Active, 409, 'Chỉ kiểm tra tài sản cho hợp đồng đang hiệu lực.');
+                abort_if(MeterReading::where('contract_id', $contract->id)->where('kind', 'final')->exists(), 409,
+                    'Không thể đổi kết quả kiểm kê sau khi đã lưu chỉ số chốt; hóa đơn lập lại phải giữ nguyên căn cứ đã ghi.');
                 $admin = $users->get($actor->id);
                 abort_unless($admin !== null && $admin->isActive() && $admin->hasRole(UserRole::Admin), 403);
                 $contract->setRelation('contractServices', ContractServiceModel::where('contract_id', $contract->id)
@@ -100,7 +103,9 @@ class ContractInspectionService
             abort_unless($actor->isActive() && $actor->can('viewOwnContract', $contract), 404);
         }
 
-        $photo = $contract->attachments()->whereKey($attachmentId)->where('collection', Attachment::CONTRACT_INSPECTION_PHOTO)
+        $photo = $contract->attachments()->whereKey($attachmentId)->whereIn('collection', [
+            Attachment::CONTRACT_INSPECTION_PHOTO, Attachment::CONTRACT_DAMAGE_PHOTO, Attachment::CONTRACT_WAIVER_EVIDENCE,
+        ])
             ->where('disk', 'private')->firstOrFail();
         abort_unless($actor->can('view', $photo), 403);
 

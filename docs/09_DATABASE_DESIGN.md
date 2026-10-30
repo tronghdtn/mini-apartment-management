@@ -267,7 +267,7 @@ Index `(contract_id,period,type,status)`, `(status,due_date)`, UNIQUE invoice_nu
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |
 | `invoice_id` | BIGINT UNSIGNED | FK → invoices.id, NN |
-| `item_type` | VARCHAR(20) | NN; `rent/electricity/water/service/discount/other` |
+| `item_type` | VARCHAR(20) | NN; `rent/electricity/water/service/discount/other/termination_fee/damage`; hai loại cuối theo P7/DB-D67 đã duyệt, không cần đổi kiểu cột |
 | `description` | VARCHAR(255) | NN |
 | `quantity` | DECIMAL(10,2) | NN, >0 |
 | `unit_price` | BIGINT UNSIGNED | NN, >=0 |

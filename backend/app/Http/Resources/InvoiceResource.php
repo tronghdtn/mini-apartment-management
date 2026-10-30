@@ -25,10 +25,17 @@ class InvoiceResource extends JsonResource
             'is_overdue' => in_array($this->status, [InvoiceStatus::Issued, InvoiceStatus::PartiallyPaid], true) && $remaining > 0
                 && $this->due_date !== null && $this->due_date->format('Y-m-d') < now(config('app.business_timezone'))->format('Y-m-d'),
             'related_invoice_id' => $this->related_invoice_id, 'cancel_reason' => $this->cancel_reason,
+            'contract_closure_note' => $this->when($admin && $this->type->value === 'final', fn () => $this->contract->closure_note),
+            'replacement_invoice_id' => $this->relationLoaded('replacements') ? $this->replacements->sortByDesc('id')->first()?->id : null,
             'revision' => $admin && $this->relationLoaded('items') ? $this->revision() : null,
             'items' => $this->whenLoaded('items', fn () => $this->items->filter(fn ($item) => ! ($item->meta['voided'] ?? false))->values()->map(fn ($item) => [
                 'id' => $item->id, 'item_type' => $item->item_type->value, 'description' => $item->description, 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price, 'amount' => $item->amount, 'basis' => $item->meta['basis'] ?? null,
+                'evidence_urls' => $item->item_type->value === 'damage'
+                    ? collect($item->meta['attachment_ids'] ?? [])->map(fn ($id) => route('api.v1.contracts.attachments.show', [
+                        'contract' => $this->contract_id, 'attachment' => $id,
+                    ]))->values()
+                    : [],
                 'calculation' => $item->item_type->value === 'other' ? null : $item->meta,
             ])),
             'manual_history' => $this->when($admin && $this->relationLoaded('items'), fn () => $this->items->filter(fn ($item) => ($item->meta['source'] ?? null) === 'manual')->values()->map(fn ($item) => [

@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use App\Enums\ContractStatus;
+use App\Enums\InvoiceItemType;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
+use App\Enums\MeterReadingKind;
 use App\Enums\PaymentStatus;
 use App\Enums\UserRole;
+use App\Models\Attachment;
 use App\Models\Contract;
 use App\Models\ContractService;
 use App\Models\Invoice;
@@ -31,7 +34,11 @@ use RuntimeException;
 
 class InvoiceService
 {
-    public function __construct(private readonly InvoiceCalculationService $calculator) {}
+    public function __construct(
+        private readonly InvoiceCalculationService $calculator,
+        private readonly FinalInvoiceCalculationService $finalCalculator,
+        private readonly ContractTerminationFeeCalculator $terminationFees,
+    ) {}
 
     public function ensureReady(): void
     {
@@ -49,7 +56,8 @@ class InvoiceService
     {
         $this->ensureReady();
 
-        return $this->query()->with(['items' => fn ($q) => $q->orderBy('id'), 'meterReadings.service:id,name,unit'])->findOrFail($id);
+        return $this->query()->with(['items' => fn ($q) => $q->orderBy('id'), 'meterReadings.service:id,name,unit',
+            'replacements:id,related_invoice_id'])->findOrFail($id);
     }
 
     public function paginate(User $actor, array $filters): LengthAwarePaginator
@@ -106,6 +114,14 @@ class InvoiceService
     {
         return $this->change($original, $revision, function ($invoice, $contract, $state) {
             $this->draft($invoice);
+            if ($invoice->type === InvoiceType::Final) {
+                $this->requireActiveFinal($invoice, $contract, $state);
+                $calculation = $this->finalCalculation($invoice, $contract, $state);
+                $this->replaceGenerated($invoice, $calculation);
+                $this->syncFinalRefundNote($contract, $calculation['refund_outside_system_amount']);
+
+                return;
+            }
             $this->monthly($invoice);
             $this->requireActiveMonthly($contract, $state);
             $this->replaceGenerated($invoice, $this->calculator->calculate($contract, $invoice->period->format('Y-m-d'), $state['subscriptions'], $state['readings'], $invoice->id));
@@ -114,7 +130,7 @@ class InvoiceService
 
     public function other(Invoice $original, User $actor, array $data, ?int $itemId = null, bool $remove = false): Invoice
     {
-        return $this->change($original, $data['expected_revision'], function ($invoice) use ($actor, $data, $itemId, $remove) {
+        return $this->change($original, $data['expected_revision'], function ($invoice, $contract, $state) use ($actor, $data, $itemId, $remove) {
             $this->draft($invoice);
             $item = $itemId ? $invoice->items->firstWhere('id', $itemId) : new InvoiceItem;
             abort_unless($item && (! $itemId || ($item->item_type->value === 'other' && ($item->meta['source'] ?? null) === 'manual'
@@ -135,7 +151,14 @@ class InvoiceService
             $item->meta = $meta;
             $item->save();
             $invoice->load('items');
-            $this->total($invoice);
+            if ($invoice->type === InvoiceType::Final) {
+                $this->requireActiveFinal($invoice, $contract, $state);
+                $calculation = $this->finalCalculation($invoice, $contract, $state);
+                $this->replaceGenerated($invoice, $calculation);
+                $this->syncFinalRefundNote($contract, $calculation['refund_outside_system_amount']);
+            } else {
+                $this->total($invoice);
+            }
         });
     }
 
@@ -143,10 +166,17 @@ class InvoiceService
     {
         return $this->change($original, $revision, function ($invoice, $contract, $state) {
             $this->draft($invoice);
-            $this->monthly($invoice);
-            $this->requireActiveMonthly($contract, $state);
-            abort_if($invoice->period->format('Y-m-d') > $this->today(), 409, 'Chưa tới ngày đầu của kỳ hóa đơn. Chỉ được chuẩn bị bản nháp.');
-            $calculation = $this->calculator->calculate($contract, $invoice->period->format('Y-m-d'), $state['subscriptions'], $state['readings'], $invoice->id);
+            if ($invoice->type === InvoiceType::Final) {
+                $this->requireActiveFinal($invoice, $contract, $state);
+                abort_if($contract->actual_end_date->format('Y-m-d') > $this->today(), 409, 'Chưa tới ngày bàn giao thực tế.');
+                $calculation = $this->finalCalculation($invoice, $contract, $state);
+                $this->syncFinalRefundNote($contract, $calculation['refund_outside_system_amount']);
+            } else {
+                $this->monthly($invoice);
+                $this->requireActiveMonthly($contract, $state);
+                abort_if($invoice->period->format('Y-m-d') > $this->today(), 409, 'Chưa tới ngày đầu của kỳ hóa đơn. Chỉ được chuẩn bị bản nháp.');
+                $calculation = $this->calculator->calculate($contract, $invoice->period->format('Y-m-d'), $state['subscriptions'], $state['readings'], $invoice->id);
+            }
             $stored = $invoice->items->filter(fn ($item) => ($item->meta['source'] ?? null) === 'generated')->map(fn ($item) => [
                 'item_type' => $item->item_type->value, 'description' => $item->description, 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price, 'amount' => $item->amount, 'meta' => $item->meta,
@@ -259,6 +289,79 @@ class InvoiceService
     {
         abort_unless($contract->status === ContractStatus::Active && $contract->activated_at !== null && ! $contract->trashed(), 409, 'Chỉ lập/phát hành hóa đơn tháng cho hợp đồng đang hiệu lực.');
         abort_if($state['invoices']->contains(fn ($invoice) => $invoice->type === InvoiceType::Final && $invoice->status !== InvoiceStatus::Cancelled), 409, 'Hợp đồng đã có hóa đơn tất toán chưa hủy.');
+    }
+
+    private function requireActiveFinal(Invoice $invoice, Contract $contract, array $state): void
+    {
+        abort_unless($invoice->type === InvoiceType::Final && $contract->status === ContractStatus::Active
+            && $contract->activated_at !== null && ! $contract->trashed() && $contract->actual_end_date !== null
+            && $contract->inspection_result !== null, 409, 'Hóa đơn tất toán cần hợp đồng đang hiệu lực, ngày bàn giao và kết quả kiểm kê.');
+        abort_unless($invoice->period->format('Y-m-d') === CarbonImmutable::parse($contract->actual_end_date->format('Y-m-d'))->startOfMonth()->format('Y-m-d'),
+            409, 'Kỳ hóa đơn tất toán không khớp ngày bàn giao.');
+        abort_if($state['invoices']->contains(fn ($candidate) => $candidate->type === InvoiceType::Final
+            && $candidate->id !== $invoice->id && $candidate->status !== InvoiceStatus::Cancelled), 409,
+            'Hợp đồng đã có hóa đơn tất toán chưa hủy.');
+    }
+
+    /** @return array{items: array, meter_ids: array, amount: int, refund_outside_system_amount: int} */
+    private function finalCalculation(Invoice $invoice, Contract $contract, array $state): array
+    {
+        $date = $contract->actual_end_date->format('Y-m-d');
+        $period = CarbonImmutable::parse($date, config('app.business_timezone'))->startOfMonth()->format('Y-m-d');
+        $meters = $state['readings']->where('kind', MeterReadingKind::Final)->sortBy('service_id')->values();
+        abort_unless($meters->count() === 2 && $meters->every(fn (MeterReading $reading) => $reading->reading_date->format('Y-m-d') === $date
+            && $reading->period->format('Y-m-d') === $period && $reading->invoice_id === $invoice->id), 409,
+            'Hóa đơn cần đúng hai chỉ số chốt đang được liên kết.');
+        $finalReadings = $meters->map(fn (MeterReading $reading) => [
+            'id' => $reading->id, 'service_code' => $reading->service?->code, 'service_name' => $reading->service?->name,
+            'unit' => $reading->service?->unit, 'previous_reading' => $reading->previous_reading,
+            'current_reading' => $reading->current_reading, 'consumption' => $reading->consumption,
+            'unit_price' => $reading->unit_price, 'amount' => $reading->amount,
+        ])->all();
+        $damageItems = $invoice->items->where('item_type', InvoiceItemType::Damage)->values();
+        abort_unless(($contract->inspection_result?->value === 'damaged' && $damageItems->isNotEmpty())
+            || ($contract->inspection_result?->value === 'no_damage' && $damageItems->isEmpty()), 409,
+            'Khoản bồi thường không khớp kết quả kiểm kê đã lưu.');
+        if ($contract->early_termination_waiver_code !== null) {
+            abort_unless($contract->attachments()->where('collection', Attachment::CONTRACT_WAIVER_EVIDENCE)
+                ->where('disk', 'private')->exists(), 409, 'Cần giữ nguyên ảnh căn cứ miễn phí đã xác nhận.');
+        }
+        $damages = $damageItems->map(fn ($item) => [
+            'description' => $item->description, 'reason' => $item->meta['reason'] ?? '',
+            'basis' => $item->meta['basis'] ?? '', 'amount' => $item->amount,
+            'attachment_ids' => $item->meta['attachment_ids'] ?? [],
+        ])->all();
+        if ($damages !== []) {
+            $attachmentIds = collect($damages)->flatMap(fn ($damage) => $damage['attachment_ids'])->unique()->sort()->values()->all();
+            $validIds = Attachment::query()->where('attachable_type', 'contract')->where('attachable_id', $contract->id)
+                ->where('collection', Attachment::CONTRACT_DAMAGE_PHOTO)->where('disk', 'private')
+                ->whereIn('id', $attachmentIds)->orderBy('id')->pluck('id')->all();
+            abort_unless($attachmentIds !== [] && $validIds === $attachmentIds, 409,
+                'Ảnh căn cứ bồi thường thiếu hoặc không thuộc hợp đồng này.');
+        }
+
+        return $this->finalCalculator->calculate($contract, $date, $period, $state['subscriptions'], $state['readings'],
+            $state['invoices'], $finalReadings, $this->terminationFees->calculate($contract, $date), $damages, $invoice->id,
+            Money::sum($invoice->items->filter(fn ($item) => ($item->meta['source'] ?? null) === 'manual')->pluck('amount')->all()));
+    }
+
+    /** Called only with the contract locked inside the invoice transaction. No money is paid here. */
+    public function syncFinalRefundNote(Contract $contract, int $amount): void
+    {
+        $prefix = '[Tất toán — khoản hoàn ngoài hệ thống] ';
+        $lines = preg_split('/\R/u', (string) $contract->closure_note) ?: [];
+        $lines = array_filter($lines, fn (string $line): bool => ! str_starts_with($line, $prefix));
+        if ($amount > 0) {
+            $lines[] = $prefix.number_format($amount, 0, ',', '.').' VND; chưa xác nhận đã hoàn.';
+        }
+        $note = trim(implode("\n", $lines));
+        if (strlen($note) > 65535) {
+            $this->invalid('closure_note', 'Ghi chú kèm khoản hoàn vượt giới hạn lưu trữ. Vui lòng rút gọn ghi chú.');
+        }
+        if ($contract->closure_note !== $note) {
+            $contract->closure_note = $note;
+            $contract->save();
+        }
     }
 
     private function replaceGenerated(Invoice $invoice, array $calculation): void
