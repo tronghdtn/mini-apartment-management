@@ -203,7 +203,7 @@ class InvoiceService
     public function cancel(Invoice $original, array $data): Invoice
     {
         return $this->change($original, $data['expected_revision'], function ($invoice, $contract, $state) use ($data) {
-            abort_if($invoice->type === InvoiceType::Final && $contract->status === ContractStatus::Terminated, 409, 'Không thể hủy hóa đơn tất toán sau khi đã thanh lý hợp đồng.');
+            abort_if($contract->status === ContractStatus::Terminated, 409, 'Hợp đồng đã thanh lý; hóa đơn cần quy trình điều chỉnh riêng, không được hủy trực tiếp.');
             abort_if($invoice->status === InvoiceStatus::Cancelled, 409, 'Hóa đơn đã hủy.');
             $payments = $state['payments']->where('invoice_id', $invoice->id);
             abort_if($payments->contains('status', PaymentStatus::Confirmed) || $invoice->paid_amount > 0, 409, 'Hóa đơn đã có tiền xác nhận; cần quy trình điều chỉnh.');

@@ -243,3 +243,6 @@ Nhận lịch xem phòng tương lai trong 08:00–20:00 giờ Việt Nam. Ngư�
 
 ### DB-D78 / CLOSE-02e — CONFIRMED 30/10/2026
 Chủ dự án chọn: **cho terminate khi mới ghi nhận số phải hoàn; `deposit_refund_amount` là nghĩa vụ chưa thanh toán**. `deposit_status=settled` và `deposit_settled_at` chỉ xác nhận đã đối soát/phân bổ cọc, không chứng minh đã hoàn tiền. Cọc dư phải hiển thị rõ còn phải hoàn ngoài hệ thống; không tạo payment hoàn giả, không ghi doanh thu thực thu, không tự thực hiện chuyển tiền. Khoản hoàn do giảm trừ hóa đơn tất toán được ghi riêng theo CLOSE-02d; không cộng/trừ lại vào cọc. Không thêm schema/API xác nhận hoàn tiền trong lát cắt này; không duyệt migration dev.
+
+### DB-D79 / CLOSE-02e — CONFIRMED 31/10/2026
+Chủ dự án duyệt: **chặn hủy trực tiếp mọi hóa đơn của hợp đồng đã thanh lý**, kể cả monthly chưa có payment pending/confirmed hoặc final0đ. API trả409 và yêu cầu quy trình điều chỉnh riêng; không tự sửa khoản mục, hoàn/thu tiền, mở lại hợp đồng hoặc trả phòng lần nữa. Quy tắc này bổ sung DB-D27: hủy + lập lại khi hợp đồng chưa thanh lý vẫn theo các điều kiện cũ. Lý do: luồng lập lại hóa đơn tháng yêu cầu active; hủy nguồn sau terminate có thể làm mất nghĩa vụ đã chốt mà không có quy trình thay thế. Không thêm schema hoặc tự triển khai quy trình điều chỉnh.

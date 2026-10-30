@@ -11,6 +11,7 @@ use App\Models\Room;
 use App\Models\Service;
 use App\Models\User;
 use App\Services\ContractSettlementService;
+use App\Services\InvoiceService;
 use App\Services\PaymentService;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -29,7 +30,7 @@ class ContractSettlementConcurrencyTest extends TestCase
     public static function races(): array
     {
         return ['repeated terminate' => ['terminate'], 'new pending' => ['proof'], 'cash versus deposit' => ['cash'],
-            'confirm pending' => ['confirm'], 'cancel zero final' => ['cancel']];
+            'confirm pending' => ['confirm'], 'cancel zero final' => ['cancel'], 'cancel unpaid monthly' => ['monthly_cancel']];
     }
 
     #[DataProvider('races')]
@@ -44,10 +45,13 @@ class ContractSettlementConcurrencyTest extends TestCase
         $contract = $admin = $owner = null;
         try {
             $admin = User::factory()->role(UserRole::Admin)->create();
-            [$contract, $invoice, $owner] = DB::transaction(fn () => $this->settlementFixture($admin, $race === 'cancel' ? 0 : 3000000, sameDay: $race === 'cancel'));
+            $zeroDeposit = in_array($race, ['cancel', 'monthly_cancel'], true);
+            [$contract, $invoice, $owner, $monthly] = DB::transaction(fn () => $this->settlementFixture($admin, $zeroDeposit ? 0 : 3000000,
+                history: $race === 'monthly_cancel' ? 'arrears' : '', sameDay: $race === 'cancel'));
+            $cancelTarget = $race === 'monthly_cancel' ? app(InvoiceService::class)->find($monthly[1]) : $invoice;
             $settlement = app(ContractSettlementService::class);
-            $base = ['actor' => $admin->id, 'invoice' => $invoice->id, 'contract' => $contract->id,
-                'invoice_revision' => $invoice->revision()];
+            $base = ['actor' => $admin->id, 'invoice' => $cancelTarget->id, 'contract' => $contract->id,
+                'invoice_revision' => $cancelTarget->revision()];
             if ($race === 'confirm') {
                 $temporary = tempnam(sys_get_temp_dir(), 'settlement-proof-');
                 try {
@@ -60,7 +64,7 @@ class ContractSettlementConcurrencyTest extends TestCase
             }
             $preview = $settlement->preview($contract, $admin);
             $base['revision'] = $preview['revision'];
-            $actions = [['action' => 'terminate', ...$base], ['action' => $race, ...$base,
+            $actions = [['action' => 'terminate', ...$base], ['action' => $race === 'monthly_cancel' ? 'cancel' : $race, ...$base,
                 'actor' => $race === 'proof' ? $owner->id : $admin->id]];
             DB::beginTransaction();
             Room::whereKey($contract->room_id)->lockForUpdate()->firstOrFail();
@@ -107,8 +111,11 @@ class ContractSettlementConcurrencyTest extends TestCase
             $this->assertLessThanOrEqual($saved->total_amount, $saved->paid_amount);
             $closed = $current->status->value === 'terminated';
             $this->assertSame($closed ? 'available' : 'occupied', $contract->room->fresh()->status->value);
-            $this->assertSame($closed ? 'settled' : ($race === 'cancel' ? 'unpaid' : 'held'), $current->deposit_status->value);
-            $this->assertSame($closed && $race !== 'cancel' ? 1 : 0, $payments->where('method', PaymentMethod::Deposit)->count());
+            $this->assertSame($closed ? 'settled' : ($zeroDeposit ? 'unpaid' : 'held'), $current->deposit_status->value);
+            $this->assertSame($closed && ! $zeroDeposit ? 1 : 0, $payments->where('method', PaymentMethod::Deposit)->count());
+            if ($race === 'monthly_cancel') {
+                $this->assertSame($closed ? 'issued' : 'cancelled', $cancelTarget->fresh()->status->value);
+            }
             $this->assertSame($closed ? 1 : 0, DB::table('notifications')->where('type', 'contract.terminated')->where('notifiable_id', $owner->id)->count());
             if ($closed) {
                 $settlement->terminate($current, $admin, ['expected_revision' => $preview['revision'], 'confirmed' => true]);

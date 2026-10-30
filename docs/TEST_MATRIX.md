@@ -326,8 +326,10 @@ Kết quả chốt30/10: full Backend1351test/12791assertionPASS (480.64s,exit0)
 | CLOSE-E01 | P0 | Cọc held đủ/thiếu/dư/unpaid/0; ưu tiên due_date rồi ID; không trừ lại fee/damage; khoản hoàn final tách cọc. Feature/HTTP PASS |
 | CLOSE-E02 | P0 | Sum confirmed khớp paid; pending không giảm nợ và chặn; rejected không giảm nợ; thay cash/pending/reject làm revision cũ409. Feature/HTTP/browser PASS |
 | CLOSE-E03 | P0 | Transaction payment deposit/RCP+invoice+deposit+contract+service end+room; lỗi lưu phòng rollback; final0không fake receipt; giữ resident/nợ; không PII. Feature/HTTP PASS |
-| CLOSE-E04 | P0 | Replay không payment/notice mới, không trả lại phòng khách mới;5racehai tiến trình thật (terminate, pending, cash, confirm, cancel final0) và2racecookieHTTP PASS |
+| CLOSE-E04 | P0 | Replay không payment/notice mới, không trả lại phòng khách mới;6racehai tiến trình thật (terminate, pending, cash, confirm, cancel final0, cancel monthly chưa payment) và2racecookieHTTP PASS |
 | CLOSE-E05 | P1 |12case browser theo Plan§12.40: checkbox/stale/doubleclick/F5/mobile/pending/link, Nginx test mất kết nối/phục hồi, upload inspection/damage/waiver→issue→đối soát/giữ nợ PASS |
-| CLOSE-E06 | P0 | Quy tắc chặn hủy mọi invoice sau terminated vừa duyệt31/10; đang bổ sung regression/guard, chưa gọi PASS |
+| CLOSE-E06 | P0 | DB-D79: chặn hủy mọi invoice sau terminated, kể cả monthly chưa payment. Regression/HTTP409/ledger bất biến PASS; Admin-only contract_status, Resident không có trường này; browser ẩn Hủy/cảnh báo điều chỉnh và nhãn Đã thanh toán PASS |
 
 Backend checkpoint5818098: full1373/13210/Pint336 PASS; frontend114test/build/lint0lỗi9cảnhbáocũ.35HTTP và2HTTP races mới, không thay kết quả lịch sử CLOSE-D. Browser filechooser nay đã thử; offline chỉ kết nối Nginx test, chưa thử OS offline/đảo response/mất response sau commit. Chưa chốt dọn fixture/dev comparison hoặc nghiệm thu dev tại mốc này. Chi tiết/artifacts Plan§12.40.
+
+**CHỐT31/10:** CLOSE-E01..E06 PASS trong phạm vi đã ghi. Full cuối1375/13256/Pint336; frontend114/build/lint0lỗi9cảnhbáocũ;36HTTP/13browser,6raceprocess trongPHPUnit và2raceHTTP riêng. Đã dọn fixture và khôi phục pending schema DBtest; devsnapshot identity/metadata/data/migrations khớp20bảng/16migration, RUN_MIGRATIONS=false. TệpMTRconcurrencyprivate cũ28/10 được giữ nguyên. Chưa kiểm tra OSoffline/đảo response/mất response sau commit hoặc nghiệm thu dev. Không gọi toàn bộCLOSE/FullMVP/UI52màn hoàn thành.

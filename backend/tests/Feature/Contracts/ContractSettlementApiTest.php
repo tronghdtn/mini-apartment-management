@@ -289,4 +289,28 @@ class ContractSettlementApiTest extends TestCase
         $this->assertSame(0, DB::table('notifications')->where('type', 'contract.terminated')->count());
         $this->terminate($contract, $preview)->assertOk();
     }
+
+    public function test_closed_monthly_without_payment_cannot_be_cancelled_and_admin_state_does_not_leak_to_resident(): void
+    {
+        [$contract, $final, $owner, $monthly] = $this->settlementFixture($this->admin, 0, 'arrears');
+        $this->terminate($contract)->assertOk()->assertJsonPath('data.outstanding_amount', '8500000');
+        $before = DB::table('invoices')->where('contract_id', $contract->id)->orderBy('id')->get()->toArray();
+        $links = DB::table('meter_readings')->where('contract_id', $contract->id)->orderBy('id')->pluck('invoice_id', 'id')->all();
+        $payments = Payment::count();
+        foreach ([$monthly[1], $final->id] as $id) {
+            $invoice = $this->spa('GET', '/api/v1/invoices/'.$id)->assertOk()->assertJsonPath('data.contract_status', 'terminated')
+                ->assertJsonPath('data.paid_amount', 0)->json('data');
+            $this->spa('POST', '/api/v1/invoices/'.$id.'/cancel', ['expected_revision' => $invoice['revision'], 'reason' => 'Kiểm thử hóa đơn nợ cũ không có payment.'])
+                ->assertConflict()->assertJsonPath('message', 'Hợp đồng đã thanh lý; hóa đơn cần quy trình điều chỉnh riêng, không được hủy trực tiếp.');
+        }
+        $this->assertEquals($before, DB::table('invoices')->where('contract_id', $contract->id)->orderBy('id')->get()->toArray());
+        $this->assertSame($links, DB::table('meter_readings')->where('contract_id', $contract->id)->orderBy('id')->pluck('invoice_id', 'id')->all());
+        $this->assertSame($payments, Payment::count());
+        $this->assertSame('terminated', $contract->fresh()->status->value);
+        $this->assertSame('available', $contract->room->fresh()->status->value);
+        $owner->forceFill(['password' => 'Settlement test only!42'])->save();
+        $this->spa('POST', '/api/v1/auth/logout')->assertNoContent();
+        $this->login($owner);
+        $this->spa('GET', '/api/v1/invoices/'.$monthly[1])->assertOk()->assertJsonMissingPath('data.contract_status');
+    }
 }

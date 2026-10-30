@@ -1,6 +1,7 @@
 export type InvoiceStatus = 'draft' | 'issued' | 'partially_paid' | 'paid' | 'cancelled'
 export interface InvoiceItem { id: number; item_type: string; description: string; quantity: string; unit_price: number; amount: number; basis: string | null; evidence_urls: string[]; calculation: { active_days?: number; days_in_month?: number; period?: string } | null }
 export interface Invoice {
+  contract_status?: 'draft' | 'active' | 'terminated' | 'expired'
   contract_closure_note?: string | null
   id: number; invoice_number: string | null; contract_id: number; contract_number: string | null; tenant_name: string
   room: { id: number; code: string; building_name: string }; type: 'monthly' | 'final' | 'adjustment'; period: string; status: InvoiceStatus

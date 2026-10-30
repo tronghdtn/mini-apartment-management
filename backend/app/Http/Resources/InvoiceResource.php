@@ -17,6 +17,7 @@ class InvoiceResource extends JsonResource
 
         return ['id' => $this->id, 'invoice_number' => $this->invoice_number, 'contract_id' => $this->contract_id,
             'contract_number' => $this->contract->contract_number, 'tenant_name' => $this->contract->tenant->full_name,
+            'contract_status' => $this->when($admin, fn () => $this->contract->status->value),
             'room' => ['id' => $this->contract->room_id, 'code' => $this->contract->room->code,
                 'building_name' => $this->contract->room->building->name],
             'type' => $this->type->value, 'period' => $this->period->format('Y-m-d'), 'status' => $this->status->value,
