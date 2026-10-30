@@ -1,6 +1,6 @@
 # PROJECT STATUS & LEARNING — Mini Apartment Management
 
-> **Mới nhất30/10:** CLOSE-02c đã thêm final-meter preview chỉ đọc vào ADM-14/API. Full backend1335/12529 và test đích31/202PASS; frontend105/buildPASS/lint0lỗi9cảnhbáo, Pint323PASS. Không lưu final meter/invoice, không migration dev. Browser local bị tắt Work settings. Damage lines, final invoice, đối soát cọc và terminate chưa hoàn thành; CLOSE chưa xong. Plan§12.38, bản đồ§11.45. Các mốc cũ giữ lịch sử.
+> **Mới nhất30/10:** CLOSE-02c đã thêm final-meter preview chỉ đọc vào ADM-14/API; code checkpoint `0f30770`. Full backend1335/12529 và test đích31/202PASS; frontend105/buildPASS/lint0lỗi9cảnhbáo, Pint323PASS. Không lưu final meter/invoice, không migration dev. Browser local bị tắt Work settings. Damage lines, final invoice, đối soát cọc và terminate chưa hoàn thành; CLOSE chưa xong. Plan§12.38, bản đồ§11.45. Các mốc cũ giữ lịch sử.
 
 > **Hiện trạng 24/10/2026:** Admin dev đã tự reset/login; đọc quản trị/F5 đã kiểm chứng, không CRUD dev. CTR nháp +dịch vụ Q7 snapshot đã code/test, 12 tình huống browser và10ca liveAPI đã kiểm chứng; Backend1038/9348/Pint201file, frontend60/build/lintPASS. Docker PHP8.3.36 đã vá; Laragon host8.3.30 chưa đổi. Dev20bảng/16migration/RUN_MIGRATIONS=false/Nhóm3pending; chỉsessions đổi theo phiên thật, nghiệp vụ/users/schema không đổi. Checkpoint8bab41e/dc027eb/df59765/503d38c local; không push. Chi tiết mới Plan§12.15, bản đồ§11.23; các mốc trước giữ làm lịch sử.
 
