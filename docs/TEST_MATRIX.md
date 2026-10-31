@@ -373,3 +373,30 @@ Pint337file và frontend114test/build/lint PASS (9cảnhbáocũ); full Backend �
 MAINT-A01..08 đã có bằng chứng mới bổ sung: HTTP15+12+6 kiểm tra PASS và1race hai phiên resolve200/409 PASS. Bao gồm owner/role/locked/CSRF, private ảnh, UTF-8 dung lượng, tham số status rỗng422/không gửi status200, assignment/status notifications sau commit không trùng, reopen và conflict khi rejected. Không ghi reopen/race thành thao tác browser. Regression MAINT/NOTIF8/300 và frontend116/build/lint0lỗi9cảnhbáocũ PASS; full Backend1378/13485/Pint337 PASS (599.02s,exit0); hậu kiểm DB test/dev đạt, chốt Plan§12.43. Biên upload5ảnh sát trần chưa kiểm; cấu hình nguồn20MB cần đối chiếu với5×5MB ở FILE-03.
 
 Artifacts khôngGit: `backups/maintenance-qa-20261031/`, ảnh `technician-resolved.png` và `resident-after-f5.png`, HTTP JSON và log tự động. Fixture đã dọn đúngID/run, hai HTTP test container dừng; không ghi/migration dev. Mobile/OSoffline/mất response sau commit CHƯA kiểm trong đợt này. Không gọi toàn bộ bảy UI, toàn bộ NOTIF hoặc toàn bộ FullMVP đã hoàn thành.
+
+## FILE-03 / PAY-B — nghiệm thu 31/10–01/11/2026
+
+Nguồn DB-D80/brief§34/41/Plan§12.44; mọi ghi trên DBtest. Đây là bằng chứng mới, không thay lịch sử PAY-A/MAINT-A.14 tình huống browser dưới đây đã quan sát sau sửa tương ứng; không tính API replay thành browser.
+
+| ID | Tình huống browser | Kết quả |
+| --- | --- | --- |
+| PAY-B01 | Form trống hiển thị lỗi số tiền | PASS, không tạo payment |
+| PAY-B02 | amount hợp lệ nhưng không chọn proof, trước đây RHF thiếu key lọt schema | PASS sau sửa: Cần một ảnh minh chứng trước gửi |
+| PAY-B03 | Chọn PNG thật bằng filechooser, gửi100k | PASS201, modal đóng/lịch sử cập nhật |
+| PAY-B04 | Các proof pending không cóRCP/không giảm nợ | PASS,1triệu còn nguyên khi cả hai pending |
+| PAY-B05 | Chủ xem/ẩn/mở ảnh private | PASS, ảnh naturalWidth>0; Admin cũng xem được trong dialog |
+| PAY-B06 | Resident390×844, preview mở | PASS,pageWidth382≤390, bảng cuộn trong khung; reset viewport sau thử |
+| PAY-B07 | Chèn503 đúng POST proof trên vhost test rồi restore | PASS cảnh báo kết quả chưa xác định, kiểmDBkhông thêm payment; đóng/reload lịch sử trước lần tiếp theo |
+| PAY-B08 | Admin confirm chưa tick thực nhận | PASS, chặn |
+| PAY-B09 | Admin tick và confirm400k | PASS,RCP32/paid400k/nợ600k |
+| PAY-B10 | Admin reject thiếu lý do | PASS,chặn |
+| PAY-B11 | Reject100k có lý do | PASS,giữ ảnh/lý do,khôngRCP/không đổi paid |
+| PAY-B12 | Ghi tiền mặt600k chưa tick | PASS,chặn |
+| PAY-B13 | Ghi tiền mặt600k có tick | PASS,paid1triệu/nợ0/RCP34 |
+| PAY-B14 | Admin F5 trạng thái cuối | PASS,Đã thanh toán/3historyrows/2RCP/hết thao tác nhận tiền; không đổi biên nhận cũ khi sang tháng |
+
+26 kiểm tra HTTP cuối đều PASS: upload5, pending/quyền/CSRF/MIME12, confirm/replay4, ledger/history/notifications5. Upload gồm5ảnh×5MiB nhận đủ201; >5MiB từng ảnh422;21ảnh cộng damage/waiver422;30MiB+1byte422; body33MiB413JSON. Private proof nosniff/no-store; guest401/rolekhác403; overpayment/forgedconfirmedstatus422; missingCSRF419; replay không thêm tiền/RCP; rejectconfirmed409. Snapshot total/items/due/number không đổi; owner nhận đúng2payment.confirmed; pending/rejected không giảm nợ. Thiết lập giả lỗi đã restore trước đối soát, nginx-t/reloadPASS.
+
+**Sự cố chưa khép nguyên nhân:** POST400k đầu gặp504; FPM201 và hậu kiểm có1pending/paid0. Không resend400k, dùngF5 phục hồi. Chưa xác minh nguyên nhân chậm; cảnh báo mạng mới không phải sửa gốc504. Đây không phải một lần happy-path upload PASS; happy-path bình thường đã thử riêng ở100k. Chưa OSoffline/đảoresponse/mất phản hồi có kiểm soát ngay sau commit; chưa browserwizardfinal21ảnh. Không có provideronline/PDF/tiềnthật/ghi nghiệp vụ dev trong vòng này.
+
+Frontend118/build/lint0lỗi9cảnhbáocũ PASS; nhóm Backend27/565 PASS; full Backend1383/13545 (669.10s,exit0)/Pint338 PASS. Hậu kiểm test0record/schema phục hồi/quyền dev1142; snapshot dev identity/metadata/data/migrations bằng nhau29bảng/29migration. Bốn HTTPstateless dev đạt200health/401me/25MiB401/33MiB413JSON, không cookie/ghi dữ liệu. Fixture7ảnh/3payment/1invoice/1maintenance/7user được dọn đúngrun, giữ file private cũ; haiHTTPtestcontainerdừng và schema test pending khôi phục trước fullsuite. Artifacts ignored `backups/upload-pay-qa-20261031/`:26JSONchecks,logs/configs/manifest/snapshots, `admin-paid-after-f5.png`, `resident-mobile.png`, `uncertain-result.png`.
