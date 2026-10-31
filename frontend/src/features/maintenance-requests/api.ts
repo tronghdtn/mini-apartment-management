@@ -14,7 +14,9 @@ export async function getMaintenanceContext(signal?: AbortSignal): Promise<Maint
 }
 
 export async function getMaintenanceRequests(filters: MaintenanceFilters, signal?: AbortSignal): Promise<MaintenancePage> {
-  return (await http.get<MaintenancePage>('/maintenance-requests', { params: filters, signal })).data
+  return (await http.get<MaintenancePage>('/maintenance-requests', {
+    params: { ...filters, status: filters.status || undefined }, signal,
+  })).data
 }
 
 export async function getMaintenanceRequest(id: number, signal?: AbortSignal): Promise<MaintenanceRequest> {
