@@ -350,3 +350,26 @@ Pint337file và frontend114test/build/lint PASS (9cảnhbáocũ); full Backend �
 **Chốt lượt tự động31/10:** full đầu1376PASS/1FAIL do timeoutREADY của race U2; giữ nguyên test. Riêng race3/44PASS, full tiếp theo1377/13436PASS,505.61s,exit0. Không gọi đã tìm/sửa căn nguyên timeout. CLOSE-F05 đạt cho giai đoạn trước nâng cấp dev: postflighttest0data/pendingrestored và snapshotdev nguyên vẹn20bảng/16migration. CLOSE-F06 vẫn chưa nghiệm thu toàn bộ wizard trên dev. Chủ dự án vừa duyệt gói vận hành A tại DBplan§21; phê duyệt khác với đã thực hiện, chưa nâng trạng thái runtime từ câu trả lời.
 
 **DEV-MVP-01 /31/10:** góiA13migration+SystemCatalogSeeder đã restore/diễn tập/pretend/actualdev và đối chiếu PASS theoDBplan§22/Plan§12.42.29bảng vật lý/29migration, dữliệu cũ giữ nguyên, chỉ2service/8setting;9bảng mới rỗng.4HTTPstateless8080: /HTML200,health200,publicrooms200,me401. CLOSE-F06 vẫn chưa nghiệmthu toànbộ wizard/CRUD cóghi trêndev; không lấy schemaPASS thay thế kiểmthửUI. Full1377/13436 là bộcode chạy trước nângcấp, không có fullsuite mới sau vận hành; testguard/account không thay đổi.
+
+## MAINT — nghiệm thu live31/10/2026 (Plan§12.43)
+
+| ID | Tình huống browser đã quan sát | Kết quả |
+|---|---|---|
+| MAINT-B01 | Resident gửi form thiếu tiêu đề/mô tả: lỗi đúng trường, không tạo yêu cầu | PASS |
+| MAINT-B02 | Resident gửi sự cố urgent kèm PNG thật qua filechooser; chi tiết hiện ảnh private | PASS |
+| MAINT-B03 | Resident F5 sau tạo: giữ phiên/yêu cầu/ảnh | PASS |
+| MAINT-B04 | Admin nhận đúng thông báo created, mở đúng chi tiết | PASS |
+| MAINT-B05 | Ghi chú Admin65.536 byte bị chặn tại form; ghi chú hợp lệ/đổi ưu tiên lưu thành công | PASS |
+| MAINT-B06 | Admin danh sách Tất cả sau sửa: tải đúng yêu cầu thay vì lỗi422 | PASS |
+| MAINT-B07 | Admin chọn/phân công technician active; không có technician locked trong lựa chọn | PASS |
+| MAINT-B08 | Technician danh sách Tất cả: thấy đúng việc được giao và mở chi tiết | PASS |
+| MAINT-B09 | Technician thấy SĐT ở pending, bấm Bắt đầu xử lý thành in_progress | PASS |
+| MAINT-B10 | Hoàn tất thiếu ghi chú bị chặn; nhập ghi chú hợp lệ thành resolved | PASS |
+| MAINT-B11 | Sau resolved, giao diện Technician không còn SĐT hoặc thao tác xử lý | PASS |
+| MAINT-B12 | Sau HTTP reopen, Admin từ chối thiếu căn cứ bị chặn; có căn cứ thành rejected | PASS |
+| MAINT-B13 | Resident danh sách Tất cả sau sửa: đúng yêu cầu/trạng thái rejected | PASS |
+| MAINT-B14 | Resident nhận6 thông báo trạng thái đúng yêu cầu; link/F5 giữ căn cứ/ảnh và trạng thái cuối | PASS |
+
+MAINT-A01..08 đã có bằng chứng mới bổ sung: HTTP15+12+6 kiểm tra PASS và1race hai phiên resolve200/409 PASS. Bao gồm owner/role/locked/CSRF, private ảnh, UTF-8 dung lượng, tham số status rỗng422/không gửi status200, assignment/status notifications sau commit không trùng, reopen và conflict khi rejected. Không ghi reopen/race thành thao tác browser. Regression MAINT/NOTIF8/300 và frontend116/build/lint0lỗi9cảnhbáocũ PASS; full Backend1378/13485/Pint337 PASS (599.02s,exit0); hậu kiểm DB test/dev đạt, chốt Plan§12.43. Biên upload5ảnh sát trần chưa kiểm; cấu hình nguồn20MB cần đối chiếu với5×5MB ở FILE-03.
+
+Artifacts khôngGit: `backups/maintenance-qa-20261031/`, ảnh `technician-resolved.png` và `resident-after-f5.png`, HTTP JSON và log tự động. Fixture đã dọn đúngID/run, hai HTTP test container dừng; không ghi/migration dev. Mobile/OSoffline/mất response sau commit CHƯA kiểm trong đợt này. Không gọi toàn bộ bảy UI, toàn bộ NOTIF hoặc toàn bộ FullMVP đã hoàn thành.

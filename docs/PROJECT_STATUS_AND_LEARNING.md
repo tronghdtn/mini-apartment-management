@@ -1177,3 +1177,27 @@ Dev có29bảng vật lý **không phải29bảng nghiệp vụ**:22bảng thi�
 Bốn bước dễ giải thích: (1) backup đầy đủ ngoàiGit; (2) restore cô lập, so cột/index/FK/count+hash và migration history; (3) pretend/diễn tập rồi mới chạy đúngpath trêndev; (4) so dữliệu cũ vàschemađích, chỉ seed hệthốngđãduyệt. Rawdump khác thêmCHARACTERSET nhưng metadata thật/datahashkhớp; metadata AUTO_INCREMENT cache phải đọc lại với stats_expiry=0 ở session kiểm tra. Không được bỏ qua khác biệt collation thật hoặc gọi restoređạt chỉ vì lệnh không báo lỗi.
 
 **Câu hỏi bảo vệ:** Vì sao29bảng nhưng thiết kế22? Khác phạmvi đếm, có7hạ tầng. Vì sao không chạy migrate mặc định? Cácfilepending cần whitelistpath và phêduyệt riêng, tránh chạy ngoài phạmvi. Vì sao backup/restore chứ không chỉ rollback? MySQLDDL tựcommit, down có thể không còn hợp lệ khi có dữliệu mới; restoređè có thể mất dữliệu saubackup. Có tự tạo Admin/giá mẫu không? Không: giữ Admin cũ, chỉ thêm danh mục hệ thống đã duyệt. Đủschema đã có nghĩa mọi giao diện hoàn thành chưa? Chưa:4HTTPđọc chỉ kiểm runtime, không thay thế nghiệmthuCRUD/wizard/5vai trò.
+
+### 11.50. MAINT — lần theo một yêu cầu sửa chữa và hai lỗi vừa sửa
+
+| Điểm mở code | Hàm / nhiệm vụ thực tế |
+|---|---|
+| `frontend/src/pages/resident/ResidentRequestNewPage.tsx` → `features/maintenance-requests/MaintenanceRequestForm.tsx` | `submit` nhận form hợp lệ từ React Hook Form; gọi API tạo rồi mở chi tiết. Các trang Admin/Staff ghép component List/Detail dùng chung, không có backend giả. |
+| `frontend/src/features/maintenance-requests/api.ts` | `createMaintenanceRequest` gửi POST `/api/v1/maintenance-requests` bằng FormData: title, description, priority, photos[]. `fetchCsrfCookie` và `http` giữ cookie Sanctum/XSRF. `getMaintenanceRequests` gửi GET với page/status/room_id; Tất cả phải bỏ status, không gửi chuỗi rỗng. |
+| `frontend/src/features/maintenance-requests/MaintenanceRequestDetail.tsx` + `schemas.ts` | `saveAdmin`, `assign`, `resolve`, `reject` và `perform` điều phối các thao tác. `priorityForm.handleSubmit(saveAdmin)` kiểm schema trước khi gọi PATCH; `fitsTextColumn` đo dung lượng UTF-8 và hiển thị lỗi cạnh ghi chú. |
+| `backend/routes/api.php` + `Http/Requests/Maintenance/MaintenanceRequestInput.php` | Nhóm maintenance-requests dùng auth:sanctum và active (`EnsureActiveAccount`). `authorize` gọi Policy; `rules` kiểm input, không nhận actor/status/room tùy ý. `MaxTextBytes` bảo vệ mọi trường TEXT trước khi ghi. |
+| `backend/app/Http/Controllers/Api/V1/MaintenanceRequestController.php` → `Services/MaintenanceRequestService.php` | Controller chuyển validated input sang Service. `context`/`store` tìm contracts active của tài khoản để xác định phòng; `scope` lọc maintenance_requests.user_id cho Resident hoặc assigned_to cho Technician. `assign/start/resolve/reject/reopen` khóa phòng rồi yêu cầu trong transaction (nhóm thao tác cùng thành công hoặc cùng thất bại); kiểm lại trạng thái trước khi lưu. |
+| `backend/app/Models/MaintenanceRequest.php`, `Policies/MaintenanceRequestPolicy.php`, `Http/Resources/MaintenanceRequestResource.php` | Model nối users/contracts/rooms/attachments; Policy chặn sai vai trò/chủ sở hữu/người được giao. Resource chỉ trả thông tin cần dùng; SĐT người gửi chỉ được trả cho Technician khi được giao và yêu cầu pending/in_progress; Admin có quyền xem. GET ảnh qua route có Policy, không trả đường dẫn storage. |
+
+Các bảng chính: maintenance_requests lưu nội dung/trạng thái; contracts xác minh hợp đồng active; rooms/buildings xác định phòng/tòa; users kiểm danh tính/phân công; attachments ghi metadata ảnh private; notifications lưu thông báo sau commit. Không tự sinh phí hay thay phòng occupied chỉ vì có sự cố.
+
+Ví dụ minh họa, không phải dữ liệu dev: GET `/api/v1/maintenance-requests?status=pending&page=1` lấy trang đầu các yêu cầu chờ trong phạm vi quyền. Chọn Tất cả gửi `/api/v1/maintenance-requests?page=1`; gửi `status=` là giá trị enum không hợp lệ. Trong DevTools → Network, xem Query String Parameters, JSON response và cookie; không sao chép cookie/mật khẩu vào báo cáo.
+
+**Câu hỏi bảo vệ:**
+1. Vì sao bỏ status rỗng? Không lọc khác với gửi một giá trị enum sai; sửa caller React, giữ validation Backend.
+2. Vì sao giới hạn theo byte thay vì số ký tự? TEXT chứa tối đa65.535 byte; một emoji có thể chiếm4 byte UTF-8. Frontend hỗ trợ nhập liệu, Backend vẫn là lớp kiểm tra cuối.
+3. Hai Technician gửi hoàn tất cùng lúc thì sao? Khóa bản ghi, đọc lại trạng thái; ca HTTP hai phiên đã trả200/409, không lưu hai kết quả.
+4. Vì sao ẩn nút/SĐT bằng React chưa đủ? Người dùng có thể gọi API trực tiếp; Policy và Resource mới là nơi quyết định quyền/dữ liệu được trả.
+5. Vì sao không kiểm ghi trên dev? Dùng DB/tài khoản test tách riêng và guard để không đụng dữ liệu thật; bằng chứng browser DBtest không tự trở thành nghiệm thu dev.
+
+Kết quả/giới hạn cập nhật tại Plan§12.43; ảnh private đã upload bằng filechooser thật, không tuyên bố đã kiểm OS offline/mobile hay hoàn thành ảnh nghiệm thu.
