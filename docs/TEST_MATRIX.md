@@ -333,3 +333,18 @@ Kết quả chốt30/10: full Backend1351test/12791assertionPASS (480.64s,exit0)
 Backend checkpoint5818098: full1373/13210/Pint336 PASS; frontend114test/build/lint0lỗi9cảnhbáocũ.35HTTP và2HTTP races mới, không thay kết quả lịch sử CLOSE-D. Browser filechooser nay đã thử; offline chỉ kết nối Nginx test, chưa thử OS offline/đảo response/mất response sau commit. Chưa chốt dọn fixture/dev comparison hoặc nghiệm thu dev tại mốc này. Chi tiết/artifacts Plan§12.40.
 
 **CHỐT31/10:** CLOSE-E01..E06 PASS trong phạm vi đã ghi. Full cuối1375/13256/Pint336; frontend114/build/lint0lỗi9cảnhbáocũ;36HTTP/13browser,6raceprocess trongPHPUnit và2raceHTTP riêng. Đã dọn fixture và khôi phục pending schema DBtest; devsnapshot identity/metadata/data/migrations khớp20bảng/16migration, RUN_MIGRATIONS=false. TệpMTRconcurrencyprivate cũ28/10 được giữ nguyên. Chưa kiểm tra OSoffline/đảo response/mất response sau commit hoặc nghiệm thu dev. Không gọi toàn bộCLOSE/FullMVP/UI52màn hoàn thành.
+
+## CLOSE-03 — hành trình liên module (31/10/2026)
+
+| ID | Mức | Tiêu chí / trạng thái |
+|---|---|---|
+| CLOSE-F01 | P0 | Nháp→terms→deposit→activate→monthly đầu→periodic→monthly sau→inspection→final: 2 kịch bản HTTP-kernel/180 assertions PASS; có cọc dư hoặc nợ còn lại |
+| CLOSE-F02 | P0 | Pending không giảm nợ và chặn close; confirm/reject làm revision cũ409; invoice snapshot bất biến; hủy sau đóng409; 46 kiểm tra HTTP thật qua Nginx test PASS theo phạm vi Plan§12.41 |
+| CLOSE-F03 | P0 | Cho thuê lại phòng bằng API và mốc final thật; replay hợp đồng cũ không trả phòng; chủ cũ được thu tiếp nợ cũ nhưng không đọc hợp đồng chủ mới: Feature/HTTP PASS |
+| CLOSE-F04 | P1 | 9 tình huống browser đọc kết quả/F5/công nợ/lọc/search/mobile/linkscope/invoiceguard/nhãn cột PASS; chi tiết Plan§12.41. Không phải toàn bộ wizard tạo mới bằng React |
+| CLOSE-F05 | P0 | Dev migration/data invariant + postflight cuối: đang chờ fullsuite và so sánh; không migration dev |
+| CLOSE-F06 | P1 | Chạy toàn bộ wizard/liên module trên dev: CHƯA, cần phê duyệt schema riêng; không suy PASS từ DB test |
+
+Pint337file và frontend114test/build/lint PASS (9cảnhbáocũ); full Backend đang chạy. Ca bản deploy thay assets khi tab cũ mở tái hiện lỗi lazy module rồi reload phục hồi; chưa gọi đây là kiểm thử deploy thành công. Fixture HTTP đã dọn trước fullsuite, hai container test trả về stopped. Không cộng số kiểm tra HTTP/browser thành số PHPUnit.
+
+**Chốt lượt tự động31/10:** full đầu1376PASS/1FAIL do timeoutREADY của race U2; giữ nguyên test. Riêng race3/44PASS, full tiếp theo1377/13436PASS,505.61s,exit0. Không gọi đã tìm/sửa căn nguyên timeout. CLOSE-F05 đạt cho giai đoạn trước nâng cấp dev: postflighttest0data/pendingrestored và snapshotdev nguyên vẹn20bảng/16migration. CLOSE-F06 vẫn chưa nghiệm thu toàn bộ wizard trên dev. Chủ dự án vừa duyệt gói vận hành A tại DBplan§21; phê duyệt khác với đã thực hiện, chưa nâng trạng thái runtime từ câu trả lời.
