@@ -12,4 +12,4 @@ export interface Invoice {
 }
 export interface InvoicePage { data: Invoice[]; meta: { current_page: number; last_page: number; total: number } }
 export interface InvoiceContractOption { id: number; contract_number: string | null; room: { code: string; building: { name: string } }; tenant: { full_name: string } }
-export const invoiceStatusLabels: Record<InvoiceStatus, string> = { draft: 'Bản nháp', issued: 'Đã phát hành', partially_paid: 'Thanh toán một phần', paid: 'Đã tất toán', cancelled: 'Đã hủy' }
+export const invoiceStatusLabels: Record<InvoiceStatus, string> = { draft: 'Bản nháp', issued: 'Đã phát hành', partially_paid: 'Thanh toán một phần', paid: 'Đã thanh toán', cancelled: 'Đã hủy' }

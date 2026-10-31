@@ -19,7 +19,10 @@ export function PaymentProofForm({invoiceId,outstanding,onSaved,onBusyChange,onA
       try {await submitPaymentProof(invoiceId,input);onSaved()}
       catch(failure){
         if(isAxiosError(failure)&&failure.response?.status===422)for(const key of ['amount','proof'] as const){const message=failure.response.data?.errors?.[key]?.[0];if(typeof message==='string')form.setError(key,{message})}
-        form.setError('root',{message:apiErrorMessage(failure)})
+        const uncertain = isAxiosError(failure) && (!failure.response || failure.response.status >= 500)
+        form.setError('root',{message:uncertain
+          ? 'Chưa xác định được kết quả gửi. Hãy đóng biểu mẫu, tải lại lịch sử thanh toán và kiểm tra trước khi gửi lại.'
+          : apiErrorMessage(failure)})
         if(isAxiosError(failure)&&[401,403].includes(failure.response?.status??0))onAuthFailure()
       }
     })(event) }finally{flight.current=false;onBusyChange(false)}

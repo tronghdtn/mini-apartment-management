@@ -2,6 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {paymentProofSchema,directPaymentSchema,confirmPaymentSchema,rejectPaymentSchema,paymentFiltersSchema} from '../src/features/payments/schemas.ts'
 
+test('unselected proof is rejected when RHF omits the field entirely', () => {
+  for (const input of [{ amount: 1000 }, { amount: 1000, proof: undefined }, { amount: 1000, proof: null },
+    { amount: 1000, proof: { type: 'image/png', size: 100 } }]) {
+    const result = paymentProofSchema.safeParse(input)
+    assert.equal(result.success, false)
+    assert.ok(result.error.issues.some(issue => issue.path[0] === 'proof'))
+  }
+})
+
 test('proof requires a real selected image within five MB and integer VND',()=>{
   const input={amount:1000,proof:new File(['png'],'proof.png',{type:'image/png'})}
   assert.equal(paymentProofSchema.safeParse(input).success,true)

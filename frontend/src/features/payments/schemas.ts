@@ -1,8 +1,7 @@
 import { z } from 'zod'
 const amount = z.number({ error: 'Nhập số tiền VND.' }).int('Số tiền phải là số nguyên VND.').min(1, 'Số tiền phải lớn hơn 0.').max(Number.MAX_SAFE_INTEGER, 'Số tiền vượt giới hạn.')
 const received = z.boolean().refine(value => value, 'Cần xác nhận đã thực nhận đúng số tiền.')
-export const paymentProofSchema = z.object({ amount, proof: z.instanceof(File).optional()
-  .refine(file => !!file, 'Cần một ảnh minh chứng.')
+export const paymentProofSchema = z.object({ amount, proof: z.custom<File | undefined>(file => file instanceof File, 'Cần một ảnh minh chứng.')
   .refine(file => !file || ['image/jpeg', 'image/png', 'image/webp'].includes(file.type), 'Chọn ảnh JPG, PNG hoặc WebP.')
   .refine(file => !file || (file.size > 0 && file.size <= 5 * 1024 * 1024), 'Ảnh phải lớn hơn 0 và tối đa 5 MB.') })
 export const directPaymentSchema = z.object({ amount, method: z.enum(['cash', 'bank_transfer']), confirmed_received: received })
