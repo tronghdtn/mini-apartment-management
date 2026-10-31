@@ -46,9 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return $request->is('api/*') ? response()->json(['message' => 'Dữ liệu không hợp lệ.', 'errors' => $e->errors()], 422) : null;
         });
         $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
-            if ($request->is('api/*') && in_array($e->getStatusCode(), [401, 403, 404, 409, 419, 429, 500, 503], true)) {
+            if ($request->is('api/*') && in_array($e->getStatusCode(), [401, 403, 404, 409, 413, 419, 429, 500, 503], true)) {
                 $message = match ($e->getStatusCode()) {
                     404 => 'Không tìm thấy dữ liệu yêu cầu.',
+                    413 => 'Yêu cầu tải lên quá lớn. Vui lòng gửi tối đa 20 ảnh, tổng 30 MB mỗi lần.',
                     419 => 'Phiên không hợp lệ. Vui lòng tải lại trang và thử lại.',
                     default => $e->getMessage(),
                 };

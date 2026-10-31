@@ -246,3 +246,6 @@ Chủ dự án chọn: **cho terminate khi mới ghi nhận số phải hoàn; `
 
 ### DB-D79 / CLOSE-02e — CONFIRMED 31/10/2026
 Chủ dự án duyệt: **chặn hủy trực tiếp mọi hóa đơn của hợp đồng đã thanh lý**, kể cả monthly chưa có payment pending/confirmed hoặc final0đ. API trả409 và yêu cầu quy trình điều chỉnh riêng; không tự sửa khoản mục, hoàn/thu tiền, mở lại hợp đồng hoặc trả phòng lần nữa. Quy tắc này bổ sung DB-D27: hủy + lập lại khi hợp đồng chưa thanh lý vẫn theo các điều kiện cũ. Lý do: luồng lập lại hóa đơn tháng yêu cầu active; hủy nguồn sau terminate có thể làm mất nghĩa vụ đã chốt mà không có quy trình thay thế. Không thêm schema hoặc tự triển khai quy trình điều chỉnh.
+
+### DB-D80 / FILE-03 — CONFIRMED 31/10/2026
+Chủ dự án duyệt tổng **30 MiB (30 ×1024×1024 byte) và20 ảnh mỗi lần gửi**, cộng tất cả ảnh hư hỏng/miễn phí trong cùng request; giữ5 MiB/ảnh và5 ảnh/hạng mục. PHP/Nginx nhận request tối đa32 MiB để dành chỗ cho multipart và các trường văn bản. Không âm thầm cắt/bỏ ảnh, không tự thay đổi số tiền hoặc dữ liệu đã lưu; vượt ngân sách trả lỗi trước khi ghi. Đây là giới hạn tổng bổ sung, không có nghĩa mọi tổ hợp10hạng mục ×5ảnh đều được gửi đồng thời. Laravel/React cùng kiểm tra; PHP phải phân tích được hơn20 file để Laravel phát hiện trường hợp vượt số lượng thay vì PHP tự bỏ phần dư. Không đổi schema hoặc chạy migration dev.

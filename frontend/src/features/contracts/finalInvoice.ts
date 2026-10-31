@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { fitsTextColumn } from '../../lib/textLimits.ts'
+import { uploadBudgetError } from '../../lib/uploadLimits.ts'
 import { finalMeterPreviewSchema, type FinalMeterPreviewInput } from './closure.ts'
 
 const privatePhotoSchema = z.custom<File>(value => typeof File !== 'undefined'
@@ -20,6 +21,8 @@ export const finalInvoiceInputSchema = z.object({
   waiver_note: z.string().trim().max(2000, 'Căn cứ miễn phí tối đa 2000 ký tự.').refine(fitsTextColumn, 'Căn cứ miễn phí vượt giới hạn lưu trữ.'),
   waiver_evidence: z.array(privatePhotoSchema).max(5),
 }).superRefine((value, context) => {
+  const uploadError = uploadBudgetError([...value.damages.flatMap(damage => damage.photos), ...value.waiver_evidence])
+  if (uploadError) context.addIssue({ code: 'custom', path: ['damages'], message: uploadError })
   if (value.waiver_code && (!value.waiver_note || value.waiver_evidence.length === 0)) {
     context.addIssue({ code: 'custom', path: ['waiver_note'], message: 'Khi miễn phí cần ghi căn cứ và tải ít nhất một ảnh.' })
   }

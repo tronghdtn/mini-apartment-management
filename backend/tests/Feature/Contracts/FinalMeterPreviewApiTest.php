@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\InteractsWithSpaCookies;
 use Tests\TestCase;
 
@@ -83,6 +84,50 @@ class FinalMeterPreviewApiTest extends TestCase
         $this->spa('POST', '/api/v1/auth/login', ['identifier' => $user->phone, 'password' => 'Final meter test only!42'])->assertOk();
 
         return $user;
+    }
+
+    public static function uploadBudgets(): array
+    {
+        $fiveMiB = 5 * 1024 * 1024;
+
+        return [
+            '20 photos accepted' => [array_fill(0, 4, array_fill(0, 5, 68)), [], true],
+            '21 combined photos rejected' => [array_fill(0, 4, array_fill(0, 5, 68)), [68], false],
+            '30 MiB accepted' => [[array_fill(0, 5, $fiveMiB), [$fiveMiB]], [], true],
+            '30 MiB plus one byte rejected' => [[array_fill(0, 5, $fiveMiB), [$fiveMiB - 67]], [68], false],
+        ];
+    }
+
+    #[DataProvider('uploadBudgets')]
+    public function test_combined_upload_budget_is_validated_before_storing_any_file(array $groups, array $waiverSizes, bool $allowed): void
+    {
+        $contract = $this->contract();
+        $this->login();
+        $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
+            'inspection_result' => 'damaged', 'expected_revision' => $contract->lifecycleRevision(),
+        ])->assertOk();
+        $contract = app(ContractService::class)->find($contract->id);
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQWQAAAAASUVORK5CYII=');
+        $this->assertSame(68, strlen($png));
+        $photo = fn (int $bytes) => UploadedFile::fake()->createWithContent('budget.png', str_pad($png, $bytes, "\0"));
+        $damages = array_map(fn ($group) => ['description' => 'Hạng mục thử', 'reason' => 'Hư hỏng', 'basis' => 'Căn cứ thử', 'amount' => 1], $groups);
+        $input = $this->input($contract, ['damages' => $damages]);
+        $files = ['damage_photos' => array_map(fn ($sizes) => array_map($photo, $sizes), $groups)];
+        if ($waiverSizes !== []) {
+            $input += ['waiver_code' => 'budget', 'waiver_note' => 'Căn cứ thử'];
+            $files['waiver_evidence'] = array_map($photo, $waiverSizes);
+        }
+        $response = $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/final-invoice', $input, files: $files);
+        if ($allowed) {
+            $response->assertCreated();
+            $this->assertDatabaseCount('attachments', array_sum(array_map('count', $groups)));
+        } else {
+            $response->assertUnprocessable()->assertJsonValidationErrors('damage_photos');
+            $this->assertDatabaseCount('invoices', 0);
+            $this->assertDatabaseCount('attachments', 0);
+            $this->assertSame([], Storage::disk('private')->allFiles());
+            $this->assertNull($contract->fresh()->actual_end_date);
+        }
     }
 
     private function contract(): Contract

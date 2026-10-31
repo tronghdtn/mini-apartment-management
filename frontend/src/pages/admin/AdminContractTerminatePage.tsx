@@ -149,6 +149,9 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
       applyApiErrors(failure, setError, fields)
       if (isAxiosError(failure) && failure.response?.status === 422) {
         const serverErrors = failure.response.data?.errors
+        if (typeof serverErrors?.damage_photos?.[0] === 'string') {
+          setError('root', { type: 'server', message: serverErrors.damage_photos[0] })
+        }
         if (serverErrors && typeof serverErrors === 'object') for (const [field, messages] of Object.entries(serverErrors)) {
           const index = /^damage_photos\.(\d+)(?:\.\d+)?$/.exec(field)?.[1]
           if (index !== undefined && Number(index) < input.damages.length && Array.isArray(messages) && typeof messages[0] === 'string') {
@@ -157,7 +160,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
         }
       }
       if (isAxiosError(failure) && failure.response?.status === 413) {
-        setError('root', { message: 'Tổng dữ liệu ảnh vượt giới hạn tải lên 20 MB. Vui lòng giảm số lượng hoặc dung lượng ảnh.' })
+        setError('root', { message: 'Yêu cầu tải lên quá lớn. Vui lòng gửi tối đa 20 ảnh, tổng 30 MB mỗi lần.' })
       }
       if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
     } finally { flight.current = false; setBusy(false) }
@@ -184,6 +187,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
   return <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
     <header className="flex items-start gap-3"><Receipt className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div>
       <h2 className="font-bold text-slate-900">3. Lập hóa đơn tất toán</h2>
+      {!invoice && <p className="text-sm text-slate-600">Tổng ảnh bồi thường và miễn phí: tối đa 20 ảnh / 30 MB mỗi lần gửi; mỗi ảnh tối đa 5 MB.</p>}
       <p className="mt-1 text-sm text-slate-600">Gồm tiền còn thiếu, điện nước chưa thu, giảm trừ hợp lệ và các khoản đã có căn cứ. Tiền cọc được đối soát ở bước riêng.</p>
     </div></header>
 
@@ -211,7 +215,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
               {!!values.damages?.[index]?.photos?.length && <span className="mt-1 block text-xs font-normal text-slate-500">{values.damages[index]?.photos?.map(file => file?.name).join(' · ')}</span>}
               {errors.damages?.[index]?.photos && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.photos?.message}</span>}</label>
           </fieldset>)}
-          {errors.damages?.root && <p role="alert" className="text-sm text-rose-700">{errors.damages.root.message}</p>}
+          {(errors.damages?.root?.message ?? errors.damages?.message) && <p role="alert" className="text-sm text-rose-700">{errors.damages?.root?.message ?? errors.damages?.message}</p>}
         </section> : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700">Đã xác nhận không có hư hỏng; hóa đơn không có dòng bồi thường.</p>}
 
         {preview.early_termination_fee > 0 && <section className="space-y-3 rounded-xl border border-slate-200 p-4">

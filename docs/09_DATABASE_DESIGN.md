@@ -131,6 +131,8 @@ Không tự xóa nhà khi còn phòng/hợp đồng. `rooms.floor_number` phải
 
 ### 3.7 `attachments` (timestamps)
 
+Giới hạn tổng upload theo **CONFIRMED DB-D80**, hợp đồng HTTP tại brief§41: cộng ảnh trong cùng request, không thay cấu trúc/index/FK của bảng này. Ngưỡng PHP/Nginx là lớp vận chuyển; không thay thế validation dung lượng/số ảnh của Laravel.
+
 | Cột | MySQL | Ràng buộc |
 |---|---|---|
 | `id` | BIGINT UNSIGNED | PK |

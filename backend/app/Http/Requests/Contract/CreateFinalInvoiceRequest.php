@@ -6,7 +6,9 @@ use App\Models\Contract;
 use App\Rules\MaxTextBytes;
 use App\Rules\NotBoolean;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Validator;
 
 class CreateFinalInvoiceRequest extends FormRequest
 {
@@ -42,6 +44,26 @@ class CreateFinalInvoiceRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            // Cộng chung ảnh mọi hạng mục và ảnh miễn phí, không cắt bỏ phần dư.
+            $photos = Arr::flatten($this->allFiles());
+            $bytes = 0;
+            foreach ($photos as $photo) {
+                if ($photo->isValid()) {
+                    $bytes += $photo->getSize();
+                }
+            }
+            if (count($photos) > 20) {
+                $validator->errors()->add('damage_photos', 'Mỗi lần gửi tối đa 20 ảnh, gồm cả ảnh căn cứ miễn phí.');
+            }
+            if ($bytes > 30 * 1024 * 1024) {
+                $validator->errors()->add('damage_photos', 'Tổng dung lượng ảnh mỗi lần gửi không được vượt quá 30 MB.');
+            }
+        }];
     }
 
     public function messages(): array

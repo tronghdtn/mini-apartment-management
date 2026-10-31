@@ -8,6 +8,18 @@ const photo = () => new File([new Uint8Array([137, 80, 78, 71])], 'proof.png', {
 const damage = () => ({ description: 'Kính cửa', reason: 'Nứt kính', basis: 'Báo giá', amount: 300000, photos: [photo()] })
 const revision = 'a'.repeat(64)
 
+test('combined damage and waiver uploads respect 20 files and 30 MiB without dropping files', () => {
+  const files = (count, bytes) => Array.from({ length: count }, () => new File([new Uint8Array(bytes)], 'budget.png', { type: 'image/png' }))
+  const twenty = Array.from({ length: 4 }, () => ({ ...damage(), photos: files(5, 1) }))
+  assert.equal(finalInvoiceInputSchema.safeParse({ ...empty, damages: twenty }).success, true)
+  assert.equal(finalInvoiceInputSchema.safeParse({ ...empty, damages: twenty, waiver_code: 'agreed', waiver_note: 'Căn cứ', waiver_evidence: files(1, 1) }).success, false)
+  const atLimit = [{ ...damage(), photos: files(5, 5 * 1024 * 1024) }, { ...damage(), photos: files(1, 5 * 1024 * 1024) }]
+  assert.equal(finalInvoiceInputSchema.safeParse({ ...empty, damages: atLimit }).success, true)
+  const over = { ...empty, damages: atLimit, waiver_code: 'agreed', waiver_note: 'Căn cứ', waiver_evidence: files(1, 1) }
+  assert.equal(finalInvoiceInputSchema.safeParse(over).success, false)
+  assert.throws(() => buildFinalInvoiceFormData(closure, over, revision))
+})
+
 test('final invoice form serializes only approved fields, decimal strings and per-line private evidence', () => {
   const body = buildFinalInvoiceFormData(closure, { ...empty, damages: [damage()] }, revision)
   assert.equal(body.get('electricity_reading'), '125.00')
