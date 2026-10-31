@@ -1,4 +1,6 @@
-# DATABASE IMPLEMENTATION PLAN — 21 bảng
+# DATABASE IMPLEMENTATION PLAN — 22 bảng chính (baseline 21 + U2)
+
+> **Mốc vận hành31/10:** góiA§21 đã được chủ dự án duyệt và thực hiện an toàn sau backup/restore/diễn tập/pretend: dev **29bảng vật lý=22bảng thiết kế+7hạ tầng,29migration**. Chỉ2dịch vụ hệ thống/8settings mới, giữ dữ liệu cũ, không Admin/nghiệp vụ mẫu. Biên bản§22; mốc20bảng/16migration bên dưới là trước nâng cấp. RUN_MIGRATIONS=false và mọi migration dev tương lai vẫn cần duyệt riêng.
 
 | Thuộc tính | Giá trị |
 |---|---|
@@ -465,3 +467,69 @@ Q3 đã CONFIRMED DB-D77; Q16 DB-D73. M18 và M20 đúng schema kế hoạch, á
 Cập nhật MAINT 30/10: Q9/Q14/Q17 và Q16 đã CONFIRMED; M17 tạo maintenance_requests ở pending, được áp dụng tường minh trong MaintenanceRequestApiTest trên mysql_test rồi down khi teardown. M19/M20 chỉ dùng trong test; default migrate không chạy, không migration dev. M17 đúng thiết kế §3.17, không thêm cột/enum. API/UI MAINT có Feature test; chi tiết Plan §12.36. Truy vấn hasTable độc lập sau suite không chạy được do Docker API pipe bị từ chối, nên không ghi nhận truy vấn thủ công schema cuối suite.
 
 Cập nhật CLOSE-02b 30/10: P6 migration `2026_10_30_400021_add_contract_inspection_fields.php` ở pending; thêm bốn cột nullable trên `contracts`, FK `inspected_by` RESTRICT. Chỉ test path tường minh trên mysql_test sau khi kiểm tra không có schema pending tồn dư; test giữ snapshot hợp đồng cũ, rollback fixture rồi `down()` P6/M19. Không đổi bảng đếm, không sửa M09, không migrate dev. API/UI hiện ghi kết quả và ảnh inspection; damage evidence, final readings/invoice, đối soát cọc và terminate vẫn chưa hoàn thành.
+
+## 21. Gói đưa nghiệp vụ đã kiểm thử lên DB dev — đã duyệtA và thực hiện31/10/2026
+
+**Trạng thái mới nhất:** chủ dự án trả lời “Duyệt A: 13 migration + dữ liệu hệ thống tối thiểu”; toàn bộ gate và thao tác đã hoàn tất, biên bản§22. Phần đề xuất bên dưới giữ làm căn cứ phạm vi đã duyệt, không phải câu hỏi còn chờ hoặc quyền cho migration ngoài danh sách.
+
+Đây là phạm vi vận hành đã duyệt theo yêu cầu tiếp tục Full MVP, không phải thay đổi nghiệp vụ hoặc migration mới. Quyết định schema/nghiệp vụ DB-D61..79 đã có không đồng nghĩa quyền chạy dev. Đối chiếu snapshot readonly31/10: dev `mini_apartment` có20 bảng vật lý/16 dòng migrations, trong đó buildings1, rooms/contracts/utility_prices/services/settings đều0; giữ nguyên tài khoản/phiên và tòa đang có. Thiết kế hiện hành22 bảng chính gồm users/sessions; ngoài ra7 bảng hạ tầng Laravel. Nếu áp đủ9CREATE dưới đây, dự kiến **29 bảng vật lý =22 bảng thiết kế +7 bảng hạ tầng**, 29 dòng migrations. Không gọi dev20bảng là thiết kế20bảng.
+
+### 21.1. Danh sách chính xác13 file, không chạy ngoài manifest
+
+Đường dẫn A=`backend/database/migrations/`; B=`backend/database/migrations/pending/`. Thứ tự dưới đây cũng là thứ tự tên file mà Laravel sắp xếp. Đã kiểm tra source Laravel13 `MigrateCommand` hỗ trợ `--path=*`, `--pretend`; đã chạy pretend và migrate giới hạn đúng13file sau khi các gate đạt, xem§22.
+
+| # | Vị trí / file | Phạm vi |
+|---|---|---|
+| 1 | A/2026_10_14_300013_create_invoices_table.php | CREATE invoices |
+| 2 | A/2026_10_14_300014_create_meter_readings_table.php | CREATE meter_readings, FK đến invoices/contracts/rooms/services |
+| 3 | A/2026_10_14_300015_create_invoice_items_table.php | CREATE invoice_items |
+| 4 | A/2026_10_14_300016_create_payments_table.php | CREATE payments |
+| 5 | B/2026_10_14_400017_create_maintenance_requests_table.php | CREATE maintenance_requests |
+| 6 | B/2026_10_14_400018_create_viewing_appointments_table.php | CREATE viewing_appointments |
+| 7 | B/2026_10_14_400019_create_attachments_table.php | CREATE attachments |
+| 8 | B/2026_10_14_400020_create_notifications_table.php | CREATE notifications |
+| 9 | A/2026_10_27_000001_add_termination_terms_to_contracts_table.php | ALTER contracts: điều khoản/miễn phí nullable, FK users |
+| 10 | B/2026_10_27_000002_scope_utility_prices_to_buildings.php | U1 ALTER utility_prices: building_id/FK/index/UNIQUE theo tòa và ánh xạ lịch sử |
+| 11 | B/2026_10_27_000003_create_meter_reading_submissions_table.php | U2 CREATE meter_reading_submissions, FK đến meter_readings |
+| 12 | B/2026_10_28_000001_scope_final_meter_readings_to_contracts.php | U3 ALTER meter_readings:3generated keys/UNIQUE/CHECK, bỏ UNIQUE cũ |
+| 13 | B/2026_10_30_400021_add_contract_inspection_fields.php | ALTER contracts:4trường kiểm kê nullable/FK users |
+
+Phụ thuộc: Nhóm1/2 đã hiện hữu; M13→M14→M15/M16; M14 trướcU2/U3; M19 cần cho API ảnh nhưng không tạo FK đa hình; M20 hỗ trợ thông báo. Không sửa/di chuyển migration đã commit và không dùng migrate mặc định để vô tình chạy file khác. Lệnh dự kiến: `docker compose exec -T app php artisan migrate --path=database/migrations/<file1> --path=database/migrations/<file2> ... --path=database/migrations/pending/<file13> --pretend`; khi được duyệt và tất cả gate đạt, dùng cùng13path bỏ `--pretend`. Đây là dạng minh họa; lúc chạy phải mở rộng đủ13file từ bảng, kiểm tra hash/nội dung/SQL lần nữa. Không `--seed`, không fresh/refresh/reset/wipe.
+
+### 21.2. Gate bắt buộc trước ghi dev
+
+1. Xác minh lại SQL database/account dev, snapshot cấu trúc/index/FK/objects/migrations/count+hash dữ liệu và trạng thái container; RUN_MIGRATIONS=false ở mọi app có thể chạm dev. Nếu snapshot khác mốc chuẩn bị, đánh giá lại trước khi chạy.
+2. Tạo backup mới **ngoài repository**, ví dụ `D:\MaNguonMo\mini-apartment-backups\full-mvp-schema-<UTC>\mini_apartment.sql`, kèm SHA256, danh sách13file/hash, cấu trúc/collation/migrations/count+hash. Không in credential, không chép .env hoặc dump vào Git.
+3. Restore backup trên MySQL8.4 cô lập, volume riêng và charset/collation khớp dev; đối chiếu toàn bộ dữ liệu/cấu trúc/lịch sử/objects. Không dùng chung volume, không ghi đè dev. Restore không đạt → DỪNG.
+4. Trên bản restore cô lập: kiểm SQL `--pretend` và chạy thử chính13file, xác minh schema đích/FK/UNIQUE/generated keys, dữ liệu cũ nguyên vẹn. U1 có các kiểm tra/ánh xạ dữ liệu, nên pretend không thay thế kiểm tra restore/chạy thử thật. Không suy DDL là một transaction có thể rollback toàn bộ.
+5. Chỉ sau phê duyệt vận hành riêng và gate trên đạt: snapshot lại ngay trước thao tác, tạm tránh request ghi nghiệp vụ, chạy cùng manifest13path trên dev, không file ngoài danh sách. Không seed trong lệnh migrate.
+6. So sánh sau: đúng13migration mới,9bảng mới,4ALTER đúng cột/index; tất cả dữ liệu bảng cũ và trường cũ giữ nguyên, không tạo Admin/nghiệp vụ mẫu. U1 chỉ được ánh xạ/sao chép giá đúngDB-D63 nếu có; tại snapshot này utility_prices0 nên không có giá để sao chép. Nếu bất thường dừng/đánh giá, không tự rollback/drop/restore đè dev.
+
+### 21.3. Rủi ro và dữ liệu hệ thống — đã duyệt phương ánA trong cùng gói
+
+- MySQL DDL tự commit; U1 gồm nhiều ALTER và bước ánh xạ dữ liệu, không hứa rollback atomic. U1 down từ chối lịch sử giá các tòa đã khác nhau; U3 down từ chối lịch sử nhiều hợp đồng không còn phù hợp UNIQUE cũ. Sau vận hành có ghi nghiệp vụ mới, không tự restore backup cũ làm mất dữ liệu.
+- Bảng giá hiện chưa có dữ liệu, nhưng phải kiểm lại lúc chạy. Không tự đặt giá điện/nước, tiền thuê, tài khoản ngân hàng hay thông tin liên hệ. Người vận hành nhập giá thật theo tòa/ngày hiệu lực sau khi schema sẵn sàng.
+- Dev hiện services0/settings0: chỉ tạo bảng chưa đủ cho kích hoạt/điện nước. Đề xuất chủ dự án duyệt thêm **chỉ `SystemCatalogSeeder`**:2mã ELECTRICITY/WATER (metered, priceNULL) và8khóa settings đã thiết kế (trống/mặc định). Seeder dùng transaction, không ghi đè settings đã có, gặp định nghĩa dịch vụ xung đột thì dừng. Không tạo user/Admin/tòa/phòng/hợp đồng/hóa đơn mẫu. Phần này **đã được duyệt và thực hiện** cùng13migration tại§22; không suy quyền tạo dữ liệu khác.
+- Hai lựa chọn vận hành: (A) duyệt13migration + dữ liệu hệ thống tối thiểu nói trên, hoặc (B) chỉ13migration và thiết lập danh mục hệ thống ở lượt được duyệt sau. Chủ dự án đã chọn và thực hiệnA, không hỏi lại; giữ RUN_MIGRATIONS=false, không dữ liệu mẫu/không push, không mở rộng quyền ra ngoài gói.
+
+## 22. Biên bản áp dụng góiA trên dev — 31/10/2026
+
+**Hoàn tất phạm vi vận hành đã duyệt§21.** Chủ dự án trực tiếp chọn “Duyệt A: 13 migration + dữ liệu hệ thống tối thiểu”. Không đổi business rules/không sửa migration nguồn, không tự tạo Admin/dữ liệu nghiệp vụ, không push. Code nền trước thao tác là checkpoint `4b37b31`; full1377/13436/Pint337, frontend114/build/lintPASS (9cảnhbáocũ) đã đạt trước khi apply.
+
+**Backup mới:** `D:\MaNguonMo\mini-apartment-backups\full-mvp-schema-20261031T074458Z\mini_apartment.sql`,27.005bytes; SHA256 trong `mini_apartment.sql.sha256`. Dùng mysqldump single-transaction/routines/events/triggers/hex-blob/utf8mb4/no-tablespaces/set-gtid-purgedOFF/order-by-primary; credentials lấy nội bộ container, không in/log hoặc ghi credentialfile. SQL và mọi evidence ở ngoài repository, không Git.
+
+**Restore:** MySQL đúng imageID của dev8.4, container `mini-apartment-fullmvp-20261031t074458z-restore`, hostname cùng tên, `network=none`, không publishport, volume mới `mini-apartment-fullmvp-20261031t074458z-restore-data`, không bind init/devvolume. PHP helper riêng dùng shared network namespace của clone, backend bind readonly, storage/cache tmpfs, RUN_MIGRATIONS=false, root password tạm trong RAM/environment; không mở API/root port. Restore đúng backup vào clone trống có20bảng/16migration và utf8mb4/utf8mb4_unicode_ci.
+
+Dump vòng về không byte-identical vì61dòng cột thêm tường minh `CHARACTER SET utf8mb4` trước COLLATE đã có; sau bỏ đúng phần hiển thị dư này, toàn bộ dòng dump khác đều trùng (gồm INSERT dữ liệu). Metadata TABLES ban đầu khác AUTO_INCREMENT do information_schema_stats_expiry cache cũ của dev; đã đặt **SESSION** stats_expiry=0 riêng cho các connection snapshot, không đổi GLOBAL/app config. Snapshot metadata mới của dev và restore **khớp tuyệt đối tất cả tables/columns/index/FK/constraints/routines/triggers/events**, cùng count+SHA256 dữ liệu từng bảng và migration history. Không phải sửa collation để che sai; charset/collation thực tế luôn khớp. SQL identity clone root@%/hostname riêng khác dev mini_apartment@% là có chủ đích.
+
+**Diễn tập:** kiểm hash13file, dùng Laravel migrate `--database=mysql` với đúng13giá trị `--path` trong§21.1, `--pretend --force` trước. Kiểm SQL chỉ chạm11bảng đích (9bảng mới + contracts/utility_prices; meter_readings vừa tạo còn có ALTERU3), không drop/truncate table, không user/grant. Snapshot trước/sau pretend nguyên vẹn. Apply13file trên clone đềuDONE; đối chiếu29bảng/29migration, olddata/cột/cấu trúc ngoài phạm vi giữ nguyên,9bảng mới rỗng. Chạy riêng SystemCatalogSeeder, kiểm đúng2service/8setting trống/mặc định và schema mong đợi trước thao tác dev.
+
+**Thực hiện trên dev:** app/MySQL không restart; frontend/Nginx vốn dừng nên không có request web ghi trong cửa sổ. `/tmp/run-approved-upgrade.php` gọi `Artisan::call('migrate', ['--path'=>13path, '--database'=>'mysql', '--force'=>true])` sau khi ghim SQLidentity/hostname thực của dev, database mini_apartment, account mini_apartment@%, URL rỗng, RUN_MIGRATIONS=false, đúng16migration ban đầu và SHA256 từng file trong cùng tiến trình. Helper mode `pretend` trước không đổi schema/data/history; mode `migrate` sau chỉ13file đềuDONE và ghi thêm đúngbatch5. Tiếp theo mode `seed` gọi **chỉ** `Database\Seeders\SystemCatalogSeeder`; không `--seed` hoặc DatabaseSeeder tổng quát trong migrate. Log argv/evidence tại thư mục backup, manifest13file/hash đi kèm. Không dùng migrate mặc định/fresh/refresh/reset/wipe, không gọi down/rollback/restore dev.
+
+**Đối chiếu sau:** dev từ20→29bảng vật lý,16→29migration (thêm đúng13tên/IDs17–29/batch5). Dữ liệu tài khoản/phiên/tòa và mọi dữ liệu cũ nguyên count+hash; cột cũ giữ nguyên, schema ngoài phạm vi không đổi. Cấu trúc cuối/index/FK/generated keys/CHECK và toàn bộ lịch sử migration khớp bản diễn tập. Chỉ services0→2 (ELECTRICITY/WATER, metered/active/priceNULL), settings0→8 (6giá trịNULL,2giá trị5/30); không giá điện/nước mẫu, không user/Admin/phòng/hợp đồng/hóa đơn/payment demo.9bảng nghiệp vụ mới đều0bản ghi. Thiết kế22bảng chính đã có trên dev cộng7hạ tầng Laravel=29bảng vật lý; không tăng thiết kế thành29bảng nghiệp vụ. File vẫn ở pending/ về tổ chức source nhưng đã có lịch sử ran trên dev, không gọi chúng còn pending ở dev.
+
+**Khởi động/HTTP/runtime:** bật lại đúng frontend/Nginx dev, giữ app/MySQL đang chạy; nginx -tPASS. PHP8.3.36/session.upload_progressOff; RUN_MIGRATIONS=false. Kiểm stateless không cookie/credentials: `/` HTML200, `/api/v1/health` JSON200, `/api/v1/public/rooms`200danh sáchrỗng thật, `/api/v1/auth/me`401đúng vì chưa gửi phiên. Sau4request snapshot vẫn giữ dữ liệu cũ đúng, không tạo session hoặc user thêm. Ban đầu gửi AcceptJSON cho routeHTML làm Vite404, đã kiểm lại đúng Accepttext/html, không sửa routing để che lỗi client kiểm thử. Không coi4request này là nghiệm thu CRUD Admin hoặc toàn bộ wizard trên dev.
+
+**Dọn/giữ khả năng khôi phục:**2container restore/helper đãstopped, không xóa container/volume/backup. Hai public-test container cũng stopped như trước lúc nghiệm thu;4container Dockerdev chạy, mysqlhealthy. Container dự án khác không bị dừng/xóa. Postflight DBtest trước nâng cấp sạch và accounttest vẫn chỉ quyền DBtest; không thay testguard. Giữ backup/evidence để phục hồi có đánh giá; sau khi có dữ liệu mới tuyệt đối không tự restore đè snapshot cũ. Các migration tương lai phải duyệt riêng; RUN_MIGRATIONS không bật.
+
+**Việc tiếp theo:** nghiệm thu nghiệp vụ qua trình duyệt với tài khoản thật do chủ dự án quản lý, rồi tiếp tục các task độc lập (MAINT/PAY/NOTIF/UI/ảnh/DASH…). Chưa tự tạo dữ liệu vận hành để demo hoặc nhập giá thật thay chủ dự án. Không suy toàn bộ FullMVP hoàn tất từ việc đã đủ schema.

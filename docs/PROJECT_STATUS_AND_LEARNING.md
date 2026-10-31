@@ -1167,3 +1167,13 @@ Bản đồ này nối các phần đã giải thích ở§11.47, không tạo t
 Giới hạn: hành trình tạo/ghi ở lượt này kiểm qua HTTP-kernel và liveHTTP; browser xác minh kết quả/F5/công nợ/mobile/điều hướng/nhãn, chưa click lại toàn bộ wizard hoặc ghi dữ liệu dev. Kết quả cuối và trạng thái fullsuite xem Plan§12.41.
 
 Kết quả chốt phần hành trình31/10:1377Backend/13436assertions/Pint337;114frontend/build/lint0lỗi9cảnhbáocũ. Full đầu có1timeoutREADY của race U2; chạy riêng và full lại đạt, không làm yếu assertion, chưa chứng minh căn nguyên. Postflighttest sạch/schema trả lại, dev sau code nguyên vẹn. Phê duyệt nâng cấp devA được ghi riêng trong Plan/DBplan, không suy đã chạy từ phê duyệt.
+
+### 11.49. Schema dev không phải dữ liệu nghiệp vụ — nâng cấp góiA31/10
+
+Đã chạy đúng13migration đang có trong `backend/database/migrations/` và `pending/`, danh sách chính xác ở DBplan§21.1. Đọc `up()` để thấy9CREATE và4fileALTER: P4+M21 thêm thông tin nullable trên contracts, U1 đưa giá theo tòa, U3 thay khóa generated/UNIQUE của meter_readings. Không viết migration mới hoặc sửa migration cũ. Laravel ghi thêm13tên vào `migrations` (batch5), nên devhiện29dòng; thư mục tên pending/ không quyết định trạng thái ran, lịch sử trong DB mới quyết định.
+
+Dev có29bảng vật lý **không phải29bảng nghiệp vụ**:22bảng thiết kế hiện hành (baseline21+meter_reading_submissions) cộng7bảng hạ tầng Laravel. `SystemCatalogSeeder::run` chỉ tạo2dịch vụ Điện/Nước và8khóa settings từ `SettingService::DEFAULT_SETTINGS`; không tài khoản/phòng/hợp đồng mẫu, không tự đặt giá điện/nước. Người dùng vẫn phải nhập dữ liệu thật qua chức năng tương ứng.
+
+Bốn bước dễ giải thích: (1) backup đầy đủ ngoàiGit; (2) restore cô lập, so cột/index/FK/count+hash và migration history; (3) pretend/diễn tập rồi mới chạy đúngpath trêndev; (4) so dữliệu cũ vàschemađích, chỉ seed hệthốngđãduyệt. Rawdump khác thêmCHARACTERSET nhưng metadata thật/datahashkhớp; metadata AUTO_INCREMENT cache phải đọc lại với stats_expiry=0 ở session kiểm tra. Không được bỏ qua khác biệt collation thật hoặc gọi restoređạt chỉ vì lệnh không báo lỗi.
+
+**Câu hỏi bảo vệ:** Vì sao29bảng nhưng thiết kế22? Khác phạmvi đếm, có7hạ tầng. Vì sao không chạy migrate mặc định? Cácfilepending cần whitelistpath và phêduyệt riêng, tránh chạy ngoài phạmvi. Vì sao backup/restore chứ không chỉ rollback? MySQLDDL tựcommit, down có thể không còn hợp lệ khi có dữliệu mới; restoređè có thể mất dữliệu saubackup. Có tự tạo Admin/giá mẫu không? Không: giữ Admin cũ, chỉ thêm danh mục hệ thống đã duyệt. Đủschema đã có nghĩa mọi giao diện hoàn thành chưa? Chưa:4HTTPđọc chỉ kiểm runtime, không thay thế nghiệmthuCRUD/wizard/5vai trò.

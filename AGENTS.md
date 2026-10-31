@@ -4,6 +4,8 @@ File này là **nguồn quy tắc dùng chung duy nhất** cho mọi agent (Code
 
 ## 1. Tổng quan dự án
 
+**Mốc mới nhất31/10/2026 (ưu tiên các mốc tiến độ cũ bên dưới):** CLOSE-03 đã kiểm thử hành trình API/kết quả React trên DBtest: full1377test/13436assertion/Pint337, frontend114/build/lintPASS (9cảnhbáocũ),46HTTP/9tìnhhuốngbrowser; code checkpoint4b37b31. Chủ dự án đã duyệt góiA DBplan§21: đúng13migration +2dịch vụ Điện/Nước giáNULL +8khóa settings trống/mặc định. Đã backup/restore cô lập/diễn tập/pretend rồi áp dụng dev an toàn: **29bảng vật lý=22bảng thiết kế+7hạ tầng,29migration**, dữ liệu cũ giữ nguyên, không Admin/nghiệp vụ mẫu. RUN_MIGRATIONS=false; PHPDocker8.3.36/upload_progressOff; localhost8080 đã bật lại và4HTTPstateless đạt. Chưa nghiệm thu toàn bộ wizard/thao tác nghiệp vụ có ghi trên dev; không suy FullMVP hoàn tất. Biên bản Plan§12.42/DBplan§22, học tập§11.49. Mọi migration dev tương lai vẫn cần duyệt riêng.
+
 - **Mini Apartment Management** — hệ thống quản lý chung cư mini, bài tập lớn môn Lập trình mã nguồn mở.
 - Một chủ sở hữu quản lý nhiều tòa chung cư mini; mỗi tòa có nhiều phòng.
 - **5 actor** (quyết định 14/10/2026, DB-D02): Khách, Cư dân, Quản trị viên, Nhân viên sửa chữa, Bảo vệ. Giá trị `users.role`: `user` (khách đã đăng ký), `resident`, `admin`, `technician`, `guard`; khách vãng lai không có tài khoản.

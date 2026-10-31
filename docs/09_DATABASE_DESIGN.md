@@ -1,5 +1,7 @@
 # 09 — DATABASE DESIGN — MINI APARTMENT MANAGEMENT
 
+> **Vận hành31/10/2026:** theo phê duyệt riêng góiA,13migration đã áp dụng an toàn trên dev sau backup/restore cô lập/diễn tập/pretend; thiết kế22bảng chính hiện đã có trêndev, cộng7bảng hạ tầng=29bảng vật lý/29migration. Chỉ2dịch vụ hệ thống/8settings mới, dữ liệu cũ giữ nguyên; RUN_MIGRATIONS=false. Biên bản DATABASE_IMPLEMENTATION_PLAN§22 và IMPLEMENTATION_PLAN§12.42. Phạm vi chỉ DBtest trong các ghi chép27/10 là mốc lịch sử, không phải blocker hiện tại; không thay quy tắc thiết kế hoặc duyệt migration khác.
+
 > **Bổ sung27/10, DB-D64:** thiết kế mở rộng thành **22 bảng nghiệp vụ** bằng meter_reading_submissions (§3.22), chỉ chuẩn bị/kiểm thử DB test. Không phê duyệt migration dev. Các mốc21 bảng bên dưới là baseline lịch sử; U2 không tự phê duyệt phần thanh lý hoặc U3. Alias ảnh mới meter_reading_submission, collection meter_reading_photo, disk private; chưa có endpoint upload/download trong lượt chuẩn bị.
 
 > **Cập nhật đã duyệt 22/10/2026 — v1.6, DB-D51:** email đăng ký là tùy chọn; schema mục 3.1 và checklist đã cập nhật. Thay đổi được triển khai bằng migration ALTER mới, không sửa migrations đã commit; **đã áp dụng riêng trên DB dev theo phê duyệt bước 3.5**, DB plan §16. Các ghi chép baseline 14/10 bên dưới là lịch sử thiết kế.
