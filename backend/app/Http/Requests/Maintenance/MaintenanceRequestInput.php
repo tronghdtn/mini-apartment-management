@@ -5,6 +5,7 @@ namespace App\Http\Requests\Maintenance;
 use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceRequestStatus;
 use App\Models\MaintenanceRequest;
+use App\Rules\MaxTextBytes;
 use App\Rules\NotBoolean;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -39,14 +40,14 @@ class MaintenanceRequestInput extends FormRequest
         $rules = match ($action) {
             'index' => ['status' => ['sometimes', Rule::enum(MaintenanceRequestStatus::class)], 'priority' => ['sometimes', $priority],
                 'room_id' => ['sometimes', 'integer', 'min:1'], 'page' => ['sometimes', new NotBoolean, 'integer', 'min:1', 'max:2147483647']],
-            'store' => ['title' => ['required', 'string', 'max:150'], 'description' => ['required', 'string'],
+            'store' => ['title' => ['required', 'string', 'max:150'], 'description' => ['required', 'string', new MaxTextBytes],
                 'priority' => ['required', $priority], 'photos' => ['sometimes', 'array', 'max:5'],
                 'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:5120']],
-            'update' => ['priority' => ['sometimes', 'required', $priority], 'admin_note' => ['sometimes', 'nullable', 'string']],
+            'update' => ['priority' => ['sometimes', 'required', $priority], 'admin_note' => ['sometimes', 'nullable', 'string', new MaxTextBytes]],
             'assign' => ['assigned_to' => ['required', 'integer', 'min:1'], 'priority' => ['sometimes', $priority],
-                'admin_note' => ['sometimes', 'nullable', 'string']],
-            'resolve' => ['handler_note' => ['required', 'string']],
-            'reject' => ['admin_note' => ['required', 'string']],
+                'admin_note' => ['sometimes', 'nullable', 'string', new MaxTextBytes]],
+            'resolve' => ['handler_note' => ['required', 'string', new MaxTextBytes]],
+            'reject' => ['admin_note' => ['required', 'string', new MaxTextBytes]],
             default => [],
         };
         foreach (array_diff(array_keys($this->all()), array_keys($rules)) as $field) {

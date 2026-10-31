@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatDateTime } from '@/lib/format'
 import { assignMaintenanceRequest, getActiveTechnicians, getMaintenanceRequest, rejectMaintenanceRequest, reopenMaintenanceRequest, resolveMaintenanceRequest, startMaintenanceRequest, updateMaintenanceRequest } from './api'
-import { maintenanceAssignmentSchema, maintenanceNoteSchema, type MaintenanceAssignmentInput, type MaintenanceNoteInput } from './schemas'
+import { maintenanceAssignmentSchema, maintenanceNoteSchema, maintenanceUpdateSchema, type MaintenanceAssignmentInput, type MaintenanceNoteInput, type MaintenanceUpdateInput } from './schemas'
 import { maintenancePriorityLabels, maintenancePriorityTones, maintenanceStatusLabels, maintenanceStatusTones } from './labels'
 import type { MaintenanceAudience } from './MaintenanceRequestList'
 import type { MaintenanceRequest, TechnicianOption } from './types'
@@ -38,7 +38,7 @@ export function MaintenanceRequestDetail({ audience, requestId }: { audience: Ma
   const isTechnician = audience === 'technician'
   const canManage = isAdmin && request !== null && ['pending', 'in_progress'].includes(request.status)
 
-  const priorityForm = useForm<{ priority: MaintenanceRequest['priority']; admin_note: string }>({ defaultValues: { priority: 'normal', admin_note: '' } })
+  const priorityForm = useForm<MaintenanceUpdateInput>({ resolver: zodResolver(maintenanceUpdateSchema), defaultValues: { priority: 'normal', admin_note: '' } })
   const { reset: resetPriority } = priorityForm
   const assignmentForm = useForm<MaintenanceAssignmentInput>({ resolver: zodResolver(maintenanceAssignmentSchema), defaultValues: { assigned_to: 0, priority: 'normal', admin_note: '' } })
   const { reset: resetAssignment } = assignmentForm
@@ -70,9 +70,7 @@ export function MaintenanceRequestDetail({ audience, requestId }: { audience: Ma
     finally { setBusy(false) }
   }
 
-  async function saveAdmin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const values = priorityForm.getValues()
+  async function saveAdmin(values: MaintenanceUpdateInput) {
     if (!request) return
     await perform(() => updateMaintenanceRequest(request.id, values), 'Đã lưu mức ưu tiên và ghi chú quản lý.')
   }
@@ -118,7 +116,7 @@ export function MaintenanceRequestDetail({ audience, requestId }: { audience: Ma
     </section>
 
     {canManage && <section className="grid gap-4 lg:grid-cols-2">
-      <form onSubmit={saveAdmin} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-900">Tiếp nhận và cập nhật</h2><div><label className="mb-1 block text-sm font-semibold" htmlFor="maintenance-admin-priority">Mức ưu tiên</label><select id="maintenance-admin-priority" {...priorityForm.register('priority')} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">{Object.entries(maintenancePriorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div><div><label className="mb-1 block text-sm font-semibold" htmlFor="maintenance-admin-note">Ghi chú quản lý</label><textarea id="maintenance-admin-note" rows={3} {...priorityForm.register('admin_note')} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" placeholder="Lý do điều chỉnh ưu tiên hoặc ghi chú tiếp nhận"/></div><Button type="submit" variant="outline" disabled={busy}>Lưu cập nhật</Button></form>
+      <form onSubmit={priorityForm.handleSubmit(saveAdmin)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-900">Tiếp nhận và cập nhật</h2><div><label className="mb-1 block text-sm font-semibold" htmlFor="maintenance-admin-priority">Mức ưu tiên</label><select id="maintenance-admin-priority" {...priorityForm.register('priority')} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">{Object.entries(maintenancePriorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div><div><label className="mb-1 block text-sm font-semibold" htmlFor="maintenance-admin-note">Ghi chú quản lý</label><textarea id="maintenance-admin-note" rows={3} {...priorityForm.register('admin_note')} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" placeholder="Lý do điều chỉnh ưu tiên hoặc ghi chú tiếp nhận"/>{priorityForm.formState.errors.admin_note && <p role="alert" className="mt-1 text-xs text-rose-700">{priorityForm.formState.errors.admin_note.message}</p>}</div><Button type="submit" variant="outline" disabled={busy}>Lưu cập nhật</Button></form>
       <form onSubmit={assignmentForm.handleSubmit(assign)} className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold text-slate-900">Phân công kỹ thuật viên</h2>{techniciansError ? <div className="space-y-2"><p role="alert" className="text-sm text-rose-700">{techniciansError}</p><Button type="button" variant="outline" onClick={() => { setTechniciansError(''); setTechniciansRevision(value => value + 1) }}>Tải lại danh sách</Button></div> : technicians.length ? <><div><label className="mb-1 block text-sm font-semibold" htmlFor="maintenance-assignee">Kỹ thuật viên đang hoạt động</label><select id="maintenance-assignee" {...assignmentForm.register('assigned_to', { valueAsNumber: true })} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm"><option value={0}>Chọn kỹ thuật viên</option>{technicians.map(technician => <option key={technician.id} value={technician.id}>{technician.full_name}</option>)}</select>{assignmentForm.formState.errors.assigned_to && <p role="alert" className="mt-1 text-xs text-rose-700">{assignmentForm.formState.errors.assigned_to.message}</p>}</div><p className="text-xs text-slate-500">Chỉ tài khoản kỹ thuật viên đang hoạt động được phân công.</p><Button type="submit" disabled={busy}>Lưu phân công</Button></> : <p role="status" className="text-sm text-slate-500">Chưa có kỹ thuật viên đang hoạt động.</p>}</form>
       <div className="flex flex-wrap gap-2 lg:col-span-2">{request.status !== 'rejected' && <Button type="button" variant="danger" icon={<AlertTriangle className="h-4 w-4"/>} disabled={busy} onClick={() => setNoteMode('reject')}>Từ chối yêu cầu</Button>}</div>
     </section>}

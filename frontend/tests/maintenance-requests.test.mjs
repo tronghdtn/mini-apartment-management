@@ -1,9 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { maintenanceAssignmentSchema, maintenanceCreateSchema, maintenanceNoteSchema } from '../src/features/maintenance-requests/schemas.ts'
+import { maintenanceAssignmentSchema, maintenanceCreateSchema, maintenanceNoteSchema, maintenanceUpdateSchema } from '../src/features/maintenance-requests/schemas.ts'
 
 const image = (type = 'image/png', size = 1024) => ({ name: 'repair.png', type, size })
+
+test('maintenance TEXT fields respect UTF-8 bytes at and above MySQL capacity', () => {
+  for (const text of ['x'.repeat(65535), '😀'.repeat(16383) + 'abc']) {
+    assert.equal(Buffer.byteLength(text, 'utf8'), 65535)
+    assert.equal(maintenanceCreateSchema.safeParse({ title: 'Sự cố', description: text, priority: 'normal' }).success, true)
+    assert.equal(maintenanceNoteSchema.safeParse({ note: text }).success, true)
+    assert.equal(maintenanceAssignmentSchema.safeParse({ assigned_to: 1, admin_note: text }).success, true)
+    assert.equal(maintenanceUpdateSchema.safeParse({ priority: 'normal', admin_note: text }).success, true)
+  }
+  for (const text of ['x'.repeat(65536), '😀'.repeat(16384)]) {
+    assert.equal(maintenanceCreateSchema.safeParse({ title: 'Sự cố', description: text, priority: 'normal' }).success, false)
+    assert.equal(maintenanceNoteSchema.safeParse({ note: text }).success, false)
+    assert.equal(maintenanceAssignmentSchema.safeParse({ assigned_to: 1, admin_note: text }).success, false)
+    assert.equal(maintenanceUpdateSchema.safeParse({ priority: 'normal', admin_note: text }).success, false)
+  }
+})
+
+test('admin note update allows blank notes and validates priority without accepting actor fields', () => {
+  assert.deepEqual(maintenanceUpdateSchema.parse({ priority: 'normal', admin_note: ' ', user_id: 1 }), { priority: 'normal', admin_note: '' })
+  assert.equal(maintenanceUpdateSchema.safeParse({ priority: 'critical', admin_note: '' }).success, false)
+})
 
 test('resident request requires real title, description and an approved initial priority', () => {
   const result = maintenanceCreateSchema.safeParse({

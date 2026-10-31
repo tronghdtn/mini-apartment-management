@@ -73,6 +73,50 @@ class MaintenanceRequestApiTest extends TestCase
         }
     }
 
+    public function test_text_capacity_is_validated_in_bytes_before_writing_any_maintenance_action(): void
+    {
+        $owner = $this->user(UserRole::Resident, '0900080041');
+        $this->activeContract($owner);
+        $admin = $this->user(UserRole::Admin, '0900080042');
+        $technician = $this->user(UserRole::Technician, '0900080043');
+        $tooLong = [str_repeat('x', 65536), str_repeat('😀', 16384)];
+        $atCapacity = str_repeat('😀', 16383).'abc';
+        $this->assertSame(65535, strlen($atCapacity));
+
+        $this->login($owner);
+        foreach ($tooLong as $description) {
+            $this->spa('POST', '/api/v1/maintenance-requests', ['title' => 'Kiểm tra dung lượng',
+                'description' => $description, 'priority' => 'normal'])->assertUnprocessable()->assertJsonValidationErrors('description');
+        }
+        $this->assertDatabaseCount('maintenance_requests', 0);
+        $created = $this->spa('POST', '/api/v1/maintenance-requests', ['title' => 'Kiểm tra dung lượng',
+            'description' => $atCapacity, 'priority' => 'normal'])->assertCreated()->json('data');
+        $this->requestIds[] = $created['id'];
+        $url = '/api/v1/maintenance-requests/'.$created['id'];
+
+        $this->login($admin);
+        foreach ($tooLong as $note) {
+            $this->spa('PATCH', $url, ['admin_note' => $note])->assertUnprocessable()->assertJsonValidationErrors('admin_note');
+            $this->spa('POST', "$url/assign", ['assigned_to' => $technician->id, 'admin_note' => $note])
+                ->assertUnprocessable()->assertJsonValidationErrors('admin_note');
+            $this->spa('POST', "$url/reject", ['admin_note' => $note])->assertUnprocessable()->assertJsonValidationErrors('admin_note');
+        }
+        $this->assertDatabaseHas('maintenance_requests', ['id' => $created['id'], 'status' => 'pending', 'admin_note' => null, 'assigned_to' => null]);
+        $this->spa('PATCH', $url, ['admin_note' => $atCapacity])->assertOk();
+        $this->spa('POST', "$url/assign", ['assigned_to' => $technician->id, 'admin_note' => str_repeat('x', 65535)])->assertOk();
+        $this->login($technician);
+        $this->spa('POST', "$url/start")->assertOk();
+        foreach ($tooLong as $note) {
+            $this->spa('POST', "$url/resolve", ['handler_note' => $note])->assertUnprocessable()->assertJsonValidationErrors('handler_note');
+        }
+        $this->assertDatabaseHas('maintenance_requests', ['id' => $created['id'], 'status' => 'in_progress', 'handler_note' => null]);
+        $this->spa('POST', "$url/resolve", ['handler_note' => $atCapacity])->assertOk();
+        $saved = DB::table('maintenance_requests')->where('id', $created['id'])->first();
+        $this->assertSame($atCapacity, $saved->description);
+        $this->assertSame($atCapacity, $saved->handler_note);
+        $this->assertSame(65535, strlen($saved->admin_note));
+    }
+
     private function user(UserRole $role, string $phone): User
     {
         $user = User::factory()->role($role)->create(['phone' => $phone, 'password' => 'Maintenance test only!42']);
