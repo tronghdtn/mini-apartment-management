@@ -442,4 +442,22 @@ Full mới1396test/13770assertion PASS(684.97s,exit0), Pint343 PASS; frontend123
 
 11bảng nghiệp vụ count/hash không đổi qua GETs base/large; dọn exactDASHQA11user/6contract/6room/1building/6invoice/4payment/3repair/1proof và sessiondelta; khôi phục2pendingtablesTest; pre/post-full0data/schema, testuserkhôngđọcdev1142. Devsnapshot toàn bộ bằng nhau29/29, runtimeRUNfalse/8.3.36/uploadProgressOff/32MiB64,4GETstateless khôngcookie/Origin. Không seeder/migrationdev hoặc giao dịchAdminthật. Artifacts ignored backups/dashboard-qa-20261101/.
 
-Chưa thử race GETsnapshot với giao dịch ghi, OSoffline/mấtresponse, các khối Dashboard bên dưới, FullMVPUI/devAdmin; PAY504 căn nguyên vẫn chưa biết. Ảnh phòng mới là proposalbrief§43, chưa tính vào testcoverage.
+Chưa thử race GETsnapshot với giao dịch ghi, OSoffline/mấtresponse, các khối Dashboard bên dưới, FullMVPUI/devAdmin; PAY504 căn nguyên vẫn chưa biết. Ảnh phòng là proposal tại checkpoint Dashboard; sau đó được duyệt DB-D83, bằng chứng triển khai/kiểm thử nằm RG-01..07 bên dưới.
+
+## FILE-R01..03 — ảnh phòng DB-D83 (01/11/2026, đã nghiệm thu theo phạm vi)
+
+Nhóm159test/1363assertion PASS gồm18test mới và2race subprocess trong1test. Full mới1414 test/14077 assertion PASS (695.91s, exit0), Pint349 file PASS; frontend126test/build/lint PASS (0 lỗi/9 cảnh báo cũ). Số1396/13770 là lịch sử trước ảnh phòng. Matrix RG-01..07 theo DB-D83/brief §43:
+
+| ID | Luồng | Bằng chứng |
+|---|---|---|
+| RG-01 | Admin/quyền/CSRF/metadata | HTTP 401/403/419/422; JSON chỉ id/url/is_cover/sort_order; khóa tài khoản hủy phiên |
+| RG-02 | Upload/gallery/private/Public | PNG qua chooser, thumbnail/lightbox/F5, nội dung ảnh thật và URL có kiểm soát |
+| RG-03 | Cover/remove | Replay an toàn, stale 409, gỡ bìa lấy fallback từ server, lặp gỡ 404 |
+| RG-04 | Dung lượng/capacity | 5MiB/30MiB/20 ảnh và vượt biên không ghi; hai subprocess upload 201/409, cover 200/409 |
+| RG-05 | Parent visibility/collection | Phòng ẩn/occupied/tòa inactive chặn cả detail và ảnh Public; cross-parent/collection bị chặn |
+| RG-06 | Error/retry/mobile | DELETE/list 503 có kiểm soát, không thành công giả hoặc giả rỗng; retry và mobile 390; chưa OS offline |
+| RG-07 | Cleanup/dev safety | Dọn đúng run, metadata/file/schema test phục hồi; snapshot dev 29 bảng/29 migrations và guard 1142 |
+
+Đã đạt nhóm 159 test/1363 assertion; Frontend 126 test/build/lint PASS (0 lỗi/9 cảnh báo cũ). Live 46 kiểm tra HTTP và 13 tình huống browser theo Plan §12.47; hai tình huống proxy 503 ghi riêng, hai race chạy bằng tiến trình PHP riêng, không gọi là race trên trình duyệt. Các ảnh browser là PNG 1×1 đã decode, không phải ảnh phòng thật. Chọn 21 ảnh và submit không tạo POST (counter 7→7); HTTP 21 ảnh cũng 422. Payload 6×5MiB =30MiB trả201, vượt1 byte/5MiB+1 trả422; body quá32MiB trả413. Capacity19+2/20+1 bị chặn, F5 đủ20 ảnh decode/nút thêm khóa. Không suy từ những ca này rằng toàn Full MVP đã được nghiệm thu.
+
+Fixture chính đã dọn đúng 6 user/2 room/1 building/26 metadata+file còn lại; ảnh bìa đã gỡ trước đó không xóa lại. Sau full và chỉnh handler submit đã dùng run riêng kiểm lại upload một PNG/F5: đúng một POST201, một ảnh/bìa/file, ảnh decode sau tải. Dọn đúng6 user/2 room/1 building/1 ảnh của run cuối. M19 test phục hồi, postflight trước/sau full và sau run cuối sạch/dev bị từ chối1142. Cặp HTTP test stopped, tab agent đóng/không để viewport override; nguồn Docker PHP8.3.36/RUN_MIGRATIONS=false không đổi. Snapshot dev trước/sau live khớp; sau restart MySQL, lần đọc metadata lạnh khác AUTO_INCREMENT, bản lặp và bản cuối khớp baseline. Lượt full đầu bị Docker ngắt trước tổng kết, không ghi PASS; full retry đã đạt như trên. Chưa browser JPEG/WebP, OS offline, mất phản hồi đúng sau commit hoặc Admin thật trên dev; PAY504 cũ chưa rõ nguyên nhân. Artifacts ignored backups/room-gallery-qa-20261101/, không stage helpers/logs/credentials. Code local af77958; không push.
