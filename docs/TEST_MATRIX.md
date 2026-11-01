@@ -419,3 +419,27 @@ Frontend118/build/lint0lỗi9cảnhbáocũ PASS; nhóm Backend27/565 PASS; full 
 NOTIF-B kết quả01/11:25kiểm tra HTTP PASS +1kiểm tra accesslog không POST lại itemđãđọc;1race hai phiên read/read-all trên notice lịch hẹn còn unread, delayed replay giữ timestamp. UI5vai trò đã quan sát: chuông3area, Admin21/unread/page2/đọc cuối resetpage/F5/batch từallpage2 đọc20dòngẩn/nút disabled;503GETretrygiữquery và503POSTreadkhôngđiềuhướng, restore rồi mởđúng invoice/MAINT/assigned/appointments; ResidentBack/alreadyread/mobile390; khóaTechF5 vềlogin; Guardempty/URLinvalidreset; Guestmobilelịchhẹn/notice_prefix/F5/link. Không ghi race là browser; bulk từ unreadpage2 thuộc Featuretest, browser batch tại allpage2. Console cuối Guest0error chỉ document cuối, không suy vòngkhôngHTTP503 chủ động. UI mới sau bản vá mobile đã reload build121 để kiểm.
 
 Backend targeted10/252 và morph1/10 PASS ở hai lượt; frontendcuối121/build/lint0lỗi9cảnhbáocũ PASS. Full **1390test/13682assertion PASS**,624.73s,exit0; Pint338 PASS. Số1383/13545 ở§12.44 là lịch sử. Devdata/history/schema giữ nguyên29/29; raw TABLES có21AUTO_INCREMENT cold khác warm, đã đối chiếu warm=repeat=toàn bộ snapshot xác minh lượttrước, chỉ metadata lạnh chứ không sửa counter; chi tiết Plan§12.45/dev-comparison.json. Chín bảng nghiệp vụ test count/hash bằng nhau; fixture7user/2contract/3room/2building/21repair/1invoice/1appointment/25notice đã dọn đúngrun,4schema test pending khôi phục, guarddev1142. RoleTech khóa/resetstatus trong test để kiểm lại403rồi401 theo middleware, không đổi Auth cho khớp harness. Setuphelper sai cột đã rollback0data và phục hồi đúng4bảng test rỗng trước sửa; không coi lỗihelper là lỗi sản phẩm. Cổng8082 không bind được nên dùng18082loopback/newtestcookie, không chỉnh hostnetwork/dev. ChưaOSoffline/đảoresponse/mất phản hồi đúngsaucommit/newnotice đối đầu bulk; không tuyên bốFullMVPxong. Artifacts ignored `backups/notifications-qa-20261101/`, ảnh JPEG thật (chụp khi browser hiển thị; chụp nền ban đầu không được), không stage logs/manifest/helpers/credentials.
+
+## DASH-02/03 — ma trận nghiệm thu bốn thẻ Admin (01/11/2026, lõi đạt)
+
+Phạm vi DB-D82/brief§42, GET /api/v1/dashboard, không query; không coi là toàn Dashboard.
+
+| ID | Ca kiểm tra | Bằng chứng cần có |
+|---|---|---|
+| D-B01 | Admin active/khách/bốn role khác/locked | 200/401/403; không trả thông tin tài khoản nhạy cảm |
+| D-B02 | Nguồn rỗng và nguồn thật | 0 thật khác loading/lỗi503; so với dữ liệu DB test |
+| D-B03 | Thực nhận khác cọc/pending; công nợ gồm terminated | confirmed cash/bank theo reviewed_at; không cộng cọc/pending |
+| D-B04 | Tháng VN/ranh giới; tổng tiền lớn | Featuretest ranh giới UTC; chuỗi nguyên/BigInt không làm tròn |
+| D-B05 | F5/tải lại/error/retry | Browser qua Nginx test; không giả0 khi lỗi, giữ các bảng chưa nối có nhãn |
+| D-B06 | Mobile390 và số tiền lớn | Không tràn ngang trang; ảnh và DOM thật |
+| D-B07 | Chỉ đọc và cleanup | Hash bảng nghiệp vụ trước/sau; schema test phục hồi; dev29/29 nguyên vẹn |
+
+Mới: Backend targeted6/88 PASS sau sửa fixture (Enum Held và tên cột deposit_paid_at đúng baseline; hai lượt đầu lỗi fixture, không sửa schema để chiều test). Frontend123test/build/lint PASS,0lỗi/9cảnh báo cũ. Kết quả live và full mới được ghi dưới đây; không gọi các ca chưa thử là PASS.
+
+D-B01..07 đạt trong phạm vi:15HTTPtest(13base/permission/query/field/cache/lockedlogin +503 +bigsum),8tìnhhuốngCUAAdmin và4GETstatelessdev; chi tiết không suy rộng xem Plan§12.46. Nguồn rỗng thật, base1/300k/1.45triệu/2, large5/18014398509781982/18014398510931982/2. Tiền có thêm bank pending200k/cọc held500k nhưng không vào received; terminatedinvoice750k vẫn có nợ. Ranh giới VN/UTC và exclude confirmed-deposit/paid/draft/cancelled được Featuretest; browser không đổi đồng hồ. Không dùng thử Admin role khác bằngUI để thay bằng chứngHTTP403.
+
+Full mới1396test/13770assertion PASS(684.97s,exit0), Pint343 PASS; frontend123test/build/lint0lỗi9cảnh báo cũ PASS. Reload buildcuối sau hàm reloadSummary vẫn đúng. Error503 không giữ số cũ; F5/auth/retry đã xem; client382/scroll382 tại viewport390 kể cả tổng lớn, hai ảnhJPEG đã xem bằng mắt; console cuối0error chỉ document cuối. Mộtwaitselector trongloading timeout, DOM vềsau đúng, không bấm lại mutation. Harnesslần đầu sai expectedlockedlogin422, sửa403 theo AuthService chứ không sửa sản phẩm;15ca là lượt đạt mới, không tính lượt dừng.
+
+11bảng nghiệp vụ count/hash không đổi qua GETs base/large; dọn exactDASHQA11user/6contract/6room/1building/6invoice/4payment/3repair/1proof và sessiondelta; khôi phục2pendingtablesTest; pre/post-full0data/schema, testuserkhôngđọcdev1142. Devsnapshot toàn bộ bằng nhau29/29, runtimeRUNfalse/8.3.36/uploadProgressOff/32MiB64,4GETstateless khôngcookie/Origin. Không seeder/migrationdev hoặc giao dịchAdminthật. Artifacts ignored backups/dashboard-qa-20261101/.
+
+Chưa thử race GETsnapshot với giao dịch ghi, OSoffline/mấtresponse, các khối Dashboard bên dưới, FullMVPUI/devAdmin; PAY504 căn nguyên vẫn chưa biết. Ảnh phòng mới là proposalbrief§43, chưa tính vào testcoverage.
