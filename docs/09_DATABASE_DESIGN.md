@@ -193,7 +193,7 @@ Index `(room_id,status,start_date)`, `(user_id,status)`, `(status,end_date)`. **
 
 ### 3.9 `contract_occupants` (timestamps)
 
-`id BIGINT UNSIGNED PK`, `contract_id BIGINT UNSIGNED FK → contracts.id NN`, `full_name VARCHAR(120) NN`, `phone VARCHAR(20) NULL`, `relationship VARCHAR(50) NULL`. Index `(contract_id)`. Không bắt buộc tạo tài khoản; `occupant_count` vẫn có thể được quản lý độc lập khi UI cho người ở cùng là SHOULD. Nếu bật UI đầy đủ cần kiểm tra số lượng đồng bộ.
+`id BIGINT UNSIGNED PK`, `contract_id BIGINT UNSIGNED FK → contracts.id NN`, `full_name VARCHAR(120) NN`, `phone VARCHAR(20) NULL`, `relationship VARCHAR(50) NULL`. Index `(contract_id)`. Không bắt buộc tạo tài khoản. **DB-D84 CONFIRMED (02/11/2026):** lát cắt Admin giữ `occupant_count` nhập riêng (gồm đại diện); cảnh báo khi khác `1 + số hồ sơ`, không tự đổi số người hoặc số lượng dịch vụ. Chỉ nháp được thêm/sửa/gỡ; hợp đồng hiệu lực/đã thanh lý chỉ đọc. Sức chứa phòng vẫn là ràng buộc bắt buộc; không tự sửa dữ liệu cũ. HTTP/AC tại brief §45, không đổi cấu trúc bảng.
 
 ### 3.10 `services` (timestamps)
 
