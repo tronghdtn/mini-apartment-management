@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { ChevronDown, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from './useAuth'
-import { accountDestination, profileDestination } from './types'
+import { accountDestination, appointmentsDestination, profileDestination } from './types'
 import { authErrorMessage } from './errors'
 
 export function AccountActions({ compact = false, menu = false }: { compact?: boolean; menu?: boolean }) {
@@ -12,6 +12,7 @@ export function AccountActions({ compact = false, menu = false }: { compact?: bo
   const [error, setError] = useState('')
   if (status === 'loading') return <span className="text-xs text-slate-500" role="status">Đang kiểm tra phiên…</span>
   if (!user) return <Link to="/login" className="text-sm font-semibold text-sky-700">Đăng nhập</Link>
+  const appointmentsPath = appointmentsDestination(user.role)
   const signOut = async () => {
     if (pending) return
     setPending(true)
@@ -29,7 +30,7 @@ export function AccountActions({ compact = false, menu = false }: { compact?: bo
       <p className="break-words text-sm font-bold text-slate-900">{user.full_name}</p>
       <Link to={profileDestination(user)} className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Hồ sơ cá nhân</Link>
       <Link to={accountDestination(user)} className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Khu vực của tôi</Link>
-      {!['admin', 'guard'].includes(user.role) && <Link to="/account/appointments" className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Lịch hẹn của tôi</Link>}
+      {appointmentsPath && <Link to={appointmentsPath} className="block rounded-lg px-2 py-2 text-sm text-slate-700 hover:bg-sky-50">Lịch hẹn của tôi</Link>}
       <Button className="w-full" size="sm" variant="outline" isLoading={pending} onClick={() => void signOut()}>Đăng xuất</Button>
       {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
     </div>
@@ -38,6 +39,7 @@ export function AccountActions({ compact = false, menu = false }: { compact?: bo
   return <div className="flex flex-wrap items-center gap-2">
     <Link to={profileDestination(user)} className="text-xs font-semibold text-slate-700 max-w-36 truncate" title={user.full_name}>{user.full_name}</Link>
     <Link to={accountDestination(user)} className="text-xs font-semibold text-sky-700">Khu vực của tôi</Link>
+    {appointmentsPath && <Link to={appointmentsPath} className="text-xs font-semibold text-sky-700">Lịch hẹn của tôi</Link>}
     <Button size="sm" variant="outline" isLoading={pending} onClick={() => void signOut()}>Đăng xuất</Button>
     {error && <p role="alert" className="basis-full text-xs text-rose-600">{error}</p>}
   </div>

@@ -66,3 +66,10 @@ test('422 maps only allowlisted server fields and keeps errors visible', () => {
   assert.deepEqual(mapped.map(([field]) => field), ['identifier', 'root'])
   assert.equal(mapped[0][1], 'Sai thông tin')
 })
+
+
+test('appointment navigation is shared by desktop/mobile without extending Admin or Guard menus', async () => {
+  const { appointmentsDestination } = await import('../src/features/auth/types.ts')
+  for (const role of ['user', 'resident', 'technician']) assert.equal(appointmentsDestination(role), '/account/appointments')
+  for (const role of ['admin', 'guard']) assert.equal(appointmentsDestination(role), null)
+})

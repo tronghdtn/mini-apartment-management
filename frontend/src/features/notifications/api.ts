@@ -10,3 +10,7 @@ export async function readNotification(id: string) {
   await fetchCsrfCookie()
   return (await http.post<{ data: NotificationItem }>(`/notifications/${encodeURIComponent(id)}/read`)).data.data
 }
+export async function readAllNotifications() {
+  await fetchCsrfCookie()
+  return (await http.post<{ data: { marked_count: number } }>('/notifications/read-all')).data.data
+}

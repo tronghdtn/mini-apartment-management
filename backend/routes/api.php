@@ -108,6 +108,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('payments')->name('api.v1.
 Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->middleware(['auth:sanctum', 'active', 'spa'])->whereNumber('invoice')->name('api.v1.invoices.payments.store');
 Route::get('debts', [DebtController::class, 'index'])->middleware(['auth:sanctum', 'active'])->name('api.v1.debts.index');
 Route::get('notifications', [NotificationController::class, 'index'])->middleware(['auth:sanctum', 'active'])->name('api.v1.notifications.index');
+Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->middleware(['auth:sanctum', 'active', 'spa'])->name('api.v1.notifications.read-all');
 Route::post('notifications/{notification}/read', [NotificationController::class, 'read'])->middleware(['auth:sanctum', 'active', 'spa'])->whereUuid('notification')->name('api.v1.notifications.read');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {

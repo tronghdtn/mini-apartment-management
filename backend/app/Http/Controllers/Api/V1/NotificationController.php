@@ -36,4 +36,9 @@ class NotificationController extends Controller
 
         return new NotificationResource($item->fresh());
     }
+
+    public function readAll(NotificationRequest $request): JsonResponse
+    {
+        return response()->json(['data' => ['marked_count' => $this->notifications->readAll($request->user())]]);
+    }
 }

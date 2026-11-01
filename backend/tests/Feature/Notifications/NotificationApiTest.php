@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\InteractsWithSpaCookies;
 use Tests\TestCase;
 
@@ -134,6 +135,72 @@ class NotificationApiTest extends TestCase
         $this->spa('POST', '/api/v1/notifications/'.$foreign.'/read')->assertNotFound();
     }
 
+    public static function roles(): array
+    {
+        return array_map(fn ($role) => [$role], UserRole::cases());
+    }
+
+    #[DataProvider('roles')]
+    public function test_read_all_is_owned_cross_page_and_preserves_already_read_times(UserRole $role): void
+    {
+        Carbon::setTestNow('2026-11-01 03:00:00 UTC');
+        $user = $this->user($role);
+        $foreign = $this->user(UserRole::Resident);
+        $ids = [];
+        foreach (range(1, 23) as $index) {
+            $id = (string) Str::uuid();
+            $ids[] = $id;
+            DB::table('notifications')->insert(['id' => $id, 'type' => 'test.batch',
+                'notifiable_type' => 'user', 'notifiable_id' => $index === 23 ? $foreign->id : $user->id,
+                'data' => '{}', 'read_at' => $index === 22 ? '2026-10-30 12:34:56' : null,
+                'created_at' => now(), 'updated_at' => '2026-10-30 12:34:56']);
+        }
+        $this->login($user);
+        $this->spa('GET', '/api/v1/notifications?status=unread&page=2')->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonPath('unread_count', 21);
+        $this->spa('POST', '/api/v1/notifications/read-all')->assertOk()->assertExactJson(['data' => ['marked_count' => 21]]);
+        $this->assertSame(21, DB::table('notifications')->whereIn('id', array_slice($ids, 0, 21))
+            ->where('read_at', '2026-11-01 03:00:00')->where('updated_at', '2026-11-01 03:00:00')->count());
+        $this->assertDatabaseHas('notifications', ['id' => $ids[21], 'read_at' => '2026-10-30 12:34:56', 'updated_at' => '2026-10-30 12:34:56']);
+        $this->assertDatabaseHas('notifications', ['id' => $ids[22], 'read_at' => null, 'updated_at' => '2026-10-30 12:34:56']);
+        Carbon::setTestNow('2026-11-01 03:01:00 UTC');
+        $this->spa('POST', '/api/v1/notifications/read-all')->assertOk()->assertExactJson(['data' => ['marked_count' => 0]]);
+        $this->spa('POST', '/api/v1/notifications/'.$ids[0].'/read')->assertOk()
+            ->assertJsonPath('data.read_at', '2026-11-01T03:00:00.000000Z');
+        $this->spa('GET', '/api/v1/notifications?status=unread')->assertOk()->assertJsonCount(0, 'data')->assertJsonPath('unread_count', 0);
+    }
+
+    public function test_read_all_rejects_guest_csrf_forged_fields_and_locked_sessions(): void
+    {
+        $this->spa('POST', '/api/v1/notifications/read-all')->assertUnauthorized();
+        $user = $this->user(UserRole::Admin);
+        $this->login($user);
+        $id = (string) Str::uuid();
+        DB::table('notifications')->insert(['id' => $id, 'type' => 'test.batch', 'notifiable_type' => 'user',
+            'notifiable_id' => $user->id, 'data' => '{}', 'created_at' => now()]);
+        $this->spa('POST', '/api/v1/notifications/read-all', [], sendCsrf: false)->assertStatus(419);
+        $this->spa('POST', '/api/v1/notifications/read-all', ['read_at' => '2020-01-01', 'notifiable_id' => $user->id, 'role' => 'admin'])
+            ->assertUnprocessable()->assertJsonValidationErrors(['read_at', 'notifiable_id', 'role']);
+        User::whereKey($user->id)->update(['status' => 'locked']);
+        $this->spa('POST', '/api/v1/notifications/read-all')->assertForbidden();
+        $this->assertDatabaseHas('notifications', ['id' => $id, 'read_at' => null]);
+    }
+
+    public function test_read_all_does_not_touch_another_morph_type_with_the_same_numeric_id(): void
+    {
+        $user = $this->user(UserRole::Admin);
+        $this->login($user);
+        $id = (string) Str::uuid();
+        DB::table('notifications')->insert(['id' => $id, 'type' => 'test.other', 'notifiable_type' => 'test.other_model',
+            'notifiable_id' => $user->id, 'data' => '{}', 'created_at' => now()]);
+        try {
+            $this->spa('POST', '/api/v1/notifications/read-all')->assertOk()->assertExactJson(['data' => ['marked_count' => 0]]);
+            $this->assertDatabaseHas('notifications', ['id' => $id, 'read_at' => null]);
+        } finally {
+            DB::table('notifications')->where('id', $id)->where('notifiable_type', 'test.other_model')->delete();
+        }
+    }
+
     public function test_real_invoice_and_payment_dispatch_after_commit_only_and_deduplicate(): void
     {
         $admin = $this->user(UserRole::Admin);
@@ -185,5 +252,6 @@ class NotificationApiTest extends TestCase
         $this->migration->down();
         $this->spa('GET', '/api/v1/notifications')->assertStatus(503);
         $this->spa('POST', '/api/v1/notifications/'.Str::uuid().'/read')->assertStatus(503);
+        $this->spa('POST', '/api/v1/notifications/read-all')->assertStatus(503);
     }
 }

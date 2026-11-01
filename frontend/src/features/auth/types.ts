@@ -29,6 +29,11 @@ export function profileDestination(user: AuthUser) {
   return '/account/profile'
 }
 
+/** Cùng lối vào lịch hẹn cho menu desktop/mobile; không thay quyền API. */
+export function appointmentsDestination(role: UserRole) {
+  return role === 'admin' || role === 'guard' ? null : '/account/appointments'
+}
+
 /** Không nhận URL ngoài ứng dụng hoặc đưa tài khoản vào vùng sai vai trò. */
 export function safeDestination(value: unknown, user: AuthUser): string {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || (value.includes('\\') || Array.from(value).some(character => character.charCodeAt(0) < 33))) {

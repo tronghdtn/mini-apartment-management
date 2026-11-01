@@ -33,6 +33,14 @@ class NotificationService
         return Notification::where('notifiable_type', 'user')->where('notifiable_id', $user->id);
     }
 
+    public function readAll(User $user): int
+    {
+        $readAt = now();
+
+        // Một UPDATE nguyên tử trên đúng chủ tài khoản; không ghi lại thời điểm đã đọc.
+        return $this->query($user)->whereNull('read_at')->update(['read_at' => $readAt, 'updated_at' => $readAt]);
+    }
+
     public function saved(Model $model): void
     {
         $status = $model->getAttribute('status');
