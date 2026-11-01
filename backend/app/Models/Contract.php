@@ -84,7 +84,7 @@ class Contract extends Model
         return $this->status === ContractStatus::Active;
     }
 
-    /** Optimistic version includes signed fields and saved service snapshots, not second-resolution timestamps alone. */
+    /** Includes fields, service snapshots and occupants; timestamps alone can miss two writes in one second. */
     public function lifecycleRevision(): string
     {
         $attributes = $this->getRawOriginal();
@@ -96,7 +96,14 @@ class Contract extends Model
             return $values;
         })->all();
 
-        return hash('sha256', json_encode([$attributes, $lines], JSON_THROW_ON_ERROR));
+        $occupants = $this->occupants->sortBy('id')->values()->map(function ($row) {
+            $values = $row->getRawOriginal();
+            ksort($values);
+
+            return $values;
+        })->all();
+
+        return hash('sha256', json_encode([$attributes, $lines, $occupants], JSON_THROW_ON_ERROR));
     }
 
     /** @param Builder<Contract> $query */

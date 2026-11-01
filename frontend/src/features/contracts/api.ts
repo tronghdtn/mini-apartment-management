@@ -8,6 +8,26 @@ import type { ContractFilters, DraftContractInput, DraftContractServicesInput } 
 import type { Contract, ContractPage, ContractOptions, ContractRoomOption, ContractTenantOption, ContractServiceOption } from './types'
 import { activateContractSchema, contractTermsSchema, type ActivateContractInput, type ContractTermsInput } from './schemas'
 import { buildFinalInvoiceFormData, type FinalInvoiceDraft, type FinalInvoiceInput } from './finalInvoice'
+import { contractOccupantsSchema, contractOccupantInputSchema, type ContractOccupants, type ContractOccupantInput } from './occupants'
+
+export async function getContractOccupants(id: number, signal?: AbortSignal): Promise<ContractOccupants> {
+  return contractOccupantsSchema.parse((await http.get(`/contracts/${id}/occupants`, { signal })).data.data)
+}
+
+export async function saveContractOccupant(id: number, input: ContractOccupantInput, revision: string, occupantId?: number): Promise<ContractOccupants> {
+  const data = contractOccupantInputSchema.parse(input)
+  const body = { ...data, expected_revision: revision, phone: data.phone || null, relationship: data.relationship || null }
+  await fetchCsrfCookie()
+  const response = occupantId === undefined
+    ? await http.post(`/contracts/${id}/occupants`, body)
+    : await http.patch(`/contracts/${id}/occupants/${occupantId}`, body)
+  return contractOccupantsSchema.parse(response.data.data)
+}
+
+export async function removeContractOccupant(id: number, occupantId: number, revision: string): Promise<void> {
+  await fetchCsrfCookie()
+  await http.delete(`/contracts/${id}/occupants/${occupantId}`, { data: { expected_revision: revision } })
+}
 
 export async function createFinalInvoiceDraft(id: number, closure: FinalMeterPreviewInput, input: FinalInvoiceInput, expectedRevision: string): Promise<FinalInvoiceDraft> {
   await fetchCsrfCookie()

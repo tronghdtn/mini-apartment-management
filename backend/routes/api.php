@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
+use App\Http\Controllers\Api\V1\ContractOccupantController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DebtController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -143,6 +144,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.
 
 Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->group(function () {
     Route::get('contracts', [ContractController::class, 'index'])->name('contracts.index');
+    Route::get('contracts/{contract}/occupants', [ContractOccupantController::class, 'index'])->whereNumber('contract')->name('contracts.occupants.index');
     Route::get('contracts/{contract}/activation-context', [ContractController::class, 'activationContext'])->whereNumber('contract')->name('contracts.activation-context');
     Route::get('contracts/{contract}/settlement-preview', [ContractController::class, 'settlementPreview'])->whereNumber('contract')->name('contracts.settlement-preview');
     Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract')->name('contracts.show');
@@ -164,6 +166,9 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('amenities/{amenity}', [AmenityController::class, 'show'])->name('amenities.show');
     Route::middleware('spa')->group(function () {
         Route::post('contracts', [ContractController::class, 'store'])->name('contracts.store');
+        Route::post('contracts/{contract}/occupants', [ContractOccupantController::class, 'store'])->whereNumber('contract')->name('contracts.occupants.store');
+        Route::patch('contracts/{contract}/occupants/{occupant}', [ContractOccupantController::class, 'update'])->whereNumber(['contract', 'occupant'])->name('contracts.occupants.update');
+        Route::delete('contracts/{contract}/occupants/{occupant}', [ContractOccupantController::class, 'destroy'])->whereNumber(['contract', 'occupant'])->name('contracts.occupants.destroy');
         Route::post('contracts/{contract}/closure-preview', [ContractController::class, 'closurePreview'])->whereNumber('contract')->name('contracts.closure-preview');
         Route::post('contracts/{contract}/final-meter-preview', [ContractController::class, 'finalMeterPreview'])->whereNumber('contract')->name('contracts.final-meter-preview');
         Route::post('contracts/{contract}/final-invoice', [ContractController::class, 'createFinalInvoice'])->whereNumber('contract')->name('contracts.final-invoice.store');

@@ -46,7 +46,7 @@ export function AdminContractNewPage() {
         <span className="mt-1 block font-semibold text-slate-900">{item.title}</span>
         <span className="mt-1 hidden text-xs text-slate-600 sm:block">{item.detail}</span>
       </li>)}</ol>
-      <p className="text-xs text-sky-800">Lưu nháp không nhận cọc, không đổi trạng thái phòng hoặc vai trò người thuê. Danh sách người ở cùng chưa có chức năng quản lý trên giao diện Admin.</p>
+      <p className="text-xs text-sky-800">Lưu nháp không nhận cọc, không đổi trạng thái phòng hoặc vai trò người thuê. Sau khi lưu, quản lý hồ sơ tại tab Người ở cùng trên trang chi tiết bản nháp; số người khai báo được giữ riêng.</p>
     </section>
     <DraftContractForm key={`${contractId ?? 'new'}-${revision}`} options={options} contract={contract} roomId={params.get('roomId')} onReload={reload} onCancel={() => navigate(contract ? `/admin/contracts/${contract.id}` : '/admin/contracts')} onSaved={saved => navigate(`/admin/contracts/${saved.id}`, { state: { success: contract ? 'Đã cập nhật hợp đồng nháp.' : 'Đã lưu hợp đồng nháp.' } })} />
   </div>

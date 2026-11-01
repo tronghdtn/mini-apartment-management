@@ -11,6 +11,7 @@ import { deleteDraftContract, getContract } from '@/features/contracts/api'
 import { contractLabel, contractStatusLabels, contractStatusTones, depositStatusText, depositStatusTone, isPastLastDay } from '@/features/contracts/types'
 import type { Contract } from '@/features/contracts/types'
 import { ContractServicesPanel } from '@/features/contracts/ContractServicesPanel'
+import { ContractOccupantsPanel } from '@/features/contracts/ContractOccupantsPanel'
 import { ContractTermsPanel } from '@/features/contracts/ContractTermsPanel'
 import { ContractLifecycleActions } from '@/features/contracts/ContractLifecycleActions'
 import { getInvoices } from '@/features/invoices/api'
@@ -18,8 +19,8 @@ import { InvoiceBadge } from '@/features/invoices/InvoiceList'
 import type { InvoicePage } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
 
-type TabId = 'info' | 'services' | 'terms' | 'invoices'
-const tabIds: TabId[] = ['info', 'services', 'terms', 'invoices']
+type TabId = 'info' | 'services' | 'terms' | 'occupants' | 'invoices'
+const tabIds: TabId[] = ['info', 'services', 'terms', 'occupants', 'invoices']
 const invoiceTypeLabels = { monthly: 'Định kỳ tháng', final: 'Tất toán', adjustment: 'Điều chỉnh' }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -142,7 +143,7 @@ export function AdminContractDetailPage() {
     {overdue && <p className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2 text-sm text-amber-900"><AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />Đã qua ngày cuối được ở nhưng chưa bàn giao. Hợp đồng vẫn hiệu lực và tiếp tục tính tiền sử dụng thực tế cho đến ngày bàn giao.</p>}
     {contract.status === 'draft' && <ActivationChecklist contract={contract} onOpenTab={setTab} />}
     <ContractLifecycleActions key={`actions-${contract.id}`} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} />
-    <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'invoices', label: 'Hóa đơn' }]} activeTab={tab} onChange={setTab} />
+    <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'occupants', label: 'Người ở cùng' }, { id: 'invoices', label: 'Hóa đơn' }]} activeTab={tab} onChange={setTab} />
     <div hidden={tab !== 'info'}><div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <section className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 space-y-4"><h2 className="font-bold text-sm text-slate-900 uppercase tracking-wider">Thời hạn và tài chính</h2><dl className="divide-y divide-slate-100 text-sm">
         <Row label="Ngày bắt đầu">{formatDate(contract.start_date)}</Row>
@@ -166,8 +167,9 @@ export function AdminContractDetailPage() {
     </div>
     </div>
     <div hidden={tab !== 'services'}><ContractServicesPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} /></div>
+    <div hidden={tab !== 'occupants'}><ContractOccupantsPanel key={contract.id} contract={contract} visible={tab === 'occupants'} onChanged={() => setRevision(value => value + 1)} onBusy={setWriting} onAuthFailure={refresh} /></div>
     <div hidden={tab !== 'terms'}><ContractTermsPanel key={contract.id} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} /></div>
     <div hidden={tab !== 'invoices'}><ContractInvoicesTab key={contract.id} contract={contract} visible={tab === 'invoices'} /></div>
-    <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p><p className="text-xs text-slate-500">Nếu đã chọn dịch vụ cho bản nháp, hãy gỡ và lưu dịch vụ trước khi xóa.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
+    <Modal isOpen={deleting} onClose={closeDelete} title="Xóa hợp đồng nháp" maxWidth="md"><div className="space-y-4"><p className="text-sm text-slate-700">Xóa bản nháp của phòng <strong>{contract.room.code}</strong> và người thuê <strong>{contract.tenant.full_name}</strong>? Chỉ bản nháp chưa có lịch sử liên quan mới được xóa mềm; phòng và tài khoản được giữ nguyên.</p><p className="text-xs text-slate-500">Nếu đã có dịch vụ hoặc hồ sơ người ở cùng, hãy gỡ các dữ liệu đó trước khi xóa bản nháp.</p>{deleteError && <div role="alert" className="text-sm text-rose-700 space-y-2"><p>{deleteError}</p><Button variant="outline" size="sm" disabled={busy} onClick={reload}>Tải lại dữ liệu</Button></div>}<div className="flex justify-end gap-2 pt-4 border-t border-slate-100"><Button variant="outline" disabled={busy} onClick={closeDelete}>Hủy</Button><Button variant="danger" isLoading={busy} onClick={() => { void confirmDelete() }}>Xác nhận xóa bản nháp</Button></div></div></Modal>
   </fieldset>
 }

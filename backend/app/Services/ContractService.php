@@ -182,6 +182,7 @@ class ContractService
                     }
                 }
                 $this->validateDraftData($rooms[(int) $merged['room_id']], $users[(int) $merged['user_id']], $merged);
+                $this->validateOccupantCapacity($current, $rooms[(int) $merged['room_id']]);
                 if ($merged['start_date'] !== $current->getRawOriginal('start_date')) {
                     foreach ($this->lockSimpleDraftServices($current) as $line) {
                         $line->start_date = $merged['start_date'];
@@ -502,6 +503,7 @@ class ContractService
                 $room = $rooms[$current->room_id];
                 $tenant = $users[$current->user_id];
                 $this->validateDraftData($room, $tenant, $current->getRawOriginal());
+                $this->validateOccupantCapacity($current, $room);
                 app(ContractTermsService::class)->assertSignedTermsAndDeposit($current);
                 $prior = Contract::withTrashed()->where('room_id', $room->id)->where('id', '!=', $current->id)
                     ->where('status', '!=', ContractStatus::Draft)->orderByDesc('actual_end_date')->orderByDesc('id')->first();
@@ -618,6 +620,13 @@ class ContractService
         }
     }
 
+    private function validateOccupantCapacity(Contract $contract, Room $room): void
+    {
+        if (1 + $contract->occupants()->count() > $room->max_occupants) {
+            throw ValidationException::withMessages(['room_id' => 'Danh sách người ở cùng và người đại diện vượt sức chứa phòng.']);
+        }
+    }
+
     private function query(bool $details = false): Builder
     {
         $query = Contract::query()->with([
@@ -626,7 +635,7 @@ class ContractService
             'tenant:id,full_name,phone,email,role,status',
         ]);
         if ($details) {
-            $query->with(['contractServices' => fn ($lines) => $lines->orderBy('id'), 'contractServices.service:id,code,name,unit,billing_type,status']);
+            $query->with(['occupants', 'contractServices' => fn ($lines) => $lines->orderBy('id'), 'contractServices.service:id,code,name,unit,billing_type,status']);
         }
 
         return $query;
