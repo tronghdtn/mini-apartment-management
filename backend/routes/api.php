@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AmenityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\BuildingController;
 use App\Http\Controllers\Api\V1\ContractController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\DebtController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\InvoiceController;
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+Route::get('/dashboard', [DashboardController::class, 'show'])->middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.dashboard.show');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('maintenance-requests')->name('api.v1.maintenance-requests.')->group(function () {
     Route::get('/context', [MaintenanceRequestController::class, 'context'])->name('context');

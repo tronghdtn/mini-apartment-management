@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { ArrowLeft, CircleHelp, LockKeyhole, Search } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -20,17 +20,20 @@ interface UnavailableWorkspaceProps {
   actions?: WorkspaceAction[]
   sections?: WorkspaceSection[]
   backTo?: string
+  children?: ReactNode
+  notice?: string
 }
 
 /** A missing data source is distinct from a successful API response with zero rows. */
-export function UnavailableWorkspace({ title, description, icon: Icon, eyebrow = 'Quản lý chung cư mini', tabs = [], stats = [], columns = [], actions = [], sections = [], backTo }: UnavailableWorkspaceProps) {
+export function UnavailableWorkspace({ title, description, icon: Icon, eyebrow = 'Quản lý chung cư mini', tabs = [], stats = [], columns = [], actions = [], sections = [], backTo, children, notice }: UnavailableWorkspaceProps) {
   const [tab, setTab] = useState('0')
   const [action, setAction] = useState<WorkspaceAction | null>(null)
   const id = useId()
   return <div className="space-y-6">
     {backTo && <Link to={backTo} className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-sky-600"><ArrowLeft aria-hidden="true" className="h-4 w-4" />Quay lại danh sách</Link>}
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="mb-1 text-xs font-bold uppercase tracking-wider text-sky-600">{eyebrow}</p><h1 className="flex items-center gap-2.5 text-xl font-extrabold text-slate-900 sm:text-2xl"><Icon aria-hidden="true" className="h-6 w-6 shrink-0 text-sky-600" />{title}</h1><p className="mt-1 text-sm text-slate-500">{description}</p></div><div className="flex flex-wrap gap-2">{actions.map(item => <Button key={item.label} variant="outline" size="sm" onClick={() => setAction(item)} icon={<CircleHelp className="h-4 w-4" />}>{item.label}</Button>)}</div></header>
-    <p role="status" className="flex gap-2 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900"><LockKeyhole aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />Chức năng này chưa kết nối dữ liệu nghiệp vụ. Các số liệu chưa được cung cấp; biểu mẫu chỉ hiển thị cấu trúc và chưa nhận thao tác lưu.</p>
+    {children}
+    <p role="status" className="flex gap-2 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900"><LockKeyhole aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />{notice ?? 'Chức năng này chưa kết nối dữ liệu nghiệp vụ. Các số liệu chưa được cung cấp; biểu mẫu chỉ hiển thị cấu trúc và chưa nhận thao tác lưu.'}</p>
     {stats.length > 0 && <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">{stats.map(label => <section key={label} className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs"><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-2 font-display text-2xl font-bold text-slate-400" aria-label={`${label}: chưa có số liệu`}>—</p></section>)}</div>}
     <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xs">
       <div className="space-y-4 border-b border-slate-100 p-4 sm:p-5">{tabs.length > 0 && <Tabs tabs={tabs.map((label, index) => ({ id: String(index), label }))} activeTab={tab} onChange={setTab} size="sm" />}<div className="relative max-w-md"><label htmlFor={`${id}-search`} className="sr-only">Tìm kiếm</label><Search aria-hidden="true" className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input id={`${id}-search`} disabled placeholder="Tìm kiếm — chưa kết nối dữ liệu" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm" /></div></div>
