@@ -14,11 +14,14 @@ use Illuminate\Validation\ValidationException;
 
 class RoomService
 {
+    private array $tables = [];
+
     private const WRITABLE_FIELDS = ['code', 'floor_number', 'area', 'base_price', 'deposit_amount', 'max_occupants', 'is_public', 'description'];
 
     public function ensureReady(): void
     {
-        if (! Schema::hasTable('rooms')) {
+        $this->tables = Schema::getTableListing(null, false);
+        if (! in_array('rooms', $this->tables, true)) {
             abort(503, 'Dữ liệu phòng chưa được triển khai trên môi trường này. Vui lòng liên hệ quản trị viên.');
         }
     }
@@ -26,7 +29,7 @@ class RoomService
     public function paginate(array $filters): LengthAwarePaginator
     {
         $this->ensureReady();
-        $query = Room::query()->with('building:id,name');
+        $query = Room::query()->with($this->relations());
         if (isset($filters['building_id'])) {
             $query->where('building_id', $filters['building_id']);
         }
@@ -44,7 +47,7 @@ class RoomService
     {
         $this->ensureReady();
 
-        return Room::query()->with('building:id,name')->findOrFail($id);
+        return Room::query()->with($this->relations())->findOrFail($id);
     }
 
     public function create(array $data): Room
@@ -61,7 +64,7 @@ class RoomService
                 $room->status = RoomStatus::Available;
                 $room->save();
 
-                return $room->refresh()->load('building:id,name');
+                return $room->refresh()->load($this->relations());
             }, 3);
         } catch (UniqueConstraintViolationException) {
             abort(409, 'Mã phòng vừa được sử dụng trong tòa nhà này. Vui lòng kiểm tra lại.');
@@ -85,11 +88,17 @@ class RoomService
                 $room->fill(Arr::only($data, self::WRITABLE_FIELDS));
                 $room->save();
 
-                return $room->refresh()->load('building:id,name');
+                return $room->refresh()->load($this->relations());
             }, 3);
         } catch (UniqueConstraintViolationException) {
             abort(409, 'Mã phòng vừa được sử dụng trong tòa nhà này. Vui lòng kiểm tra lại.');
         }
+    }
+
+    private function relations(): array
+    {
+        // Các API phòng vẫn dùng được ở baseline trước M19; chưa có bảng thì chưa có metadata ảnh.
+        return ['building:id,name', ...(in_array('attachments', $this->tables, true) ? ['photos'] : [])];
     }
 
     private function validateFloor(Building $building, int $floor): void

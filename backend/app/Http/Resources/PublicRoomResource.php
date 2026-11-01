@@ -14,6 +14,7 @@ class PublicRoomResource extends JsonResource
             'area' => $this->area, 'base_price' => $this->base_price,
             'deposit_amount' => $this->deposit_amount, 'max_occupants' => $this->max_occupants,
             'description' => $this->description,
+            'photos' => RoomPhotoResource::collection($this->whenLoaded('photos', default: collect())),
             'building' => [
                 'id' => $this->building->id, 'name' => $this->building->name,
                 'address' => $this->building->address, 'latitude' => $this->building->latitude,

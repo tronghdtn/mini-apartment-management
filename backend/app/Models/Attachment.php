@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 #[Hidden(['path'])]
 class Attachment extends Model
 {
+    public const ROOM_GALLERY = 'room_gallery';
+
     public const METER_READING_PHOTO = 'meter_reading_photo';
 
     public const MAINTENANCE_PHOTO = 'maintenance_photo';

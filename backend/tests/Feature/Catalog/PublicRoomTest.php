@@ -36,7 +36,7 @@ class PublicRoomTest extends TestCase
     {
         $room = $this->room(['area' => '25.50', 'base_price' => 0, 'deposit_amount' => 9007199254740991]);
         $room->building->update(['latitude' => '10.1234567', 'longitude' => null]);
-        $roomFields = ['id', 'code', 'floor_number', 'area', 'base_price', 'deposit_amount', 'max_occupants', 'description', 'building', 'amenities'];
+        $roomFields = ['id', 'code', 'floor_number', 'area', 'base_price', 'deposit_amount', 'max_occupants', 'description', 'building', 'amenities', 'photos'];
         $response = $this->getJson(self::URL.'/'.$room->id)->assertOk()
             ->assertJsonPath('data.area', '25.50')->assertJsonPath('data.base_price', 0)
             ->assertJsonPath('data.deposit_amount', 9007199254740991)
@@ -252,7 +252,7 @@ class PublicRoomTest extends TestCase
 
     public function test_missing_schema_returns_controlled_service_unavailable(): void
     {
-        Schema::shouldReceive('hasTable')->with('rooms')->andReturn(false);
+        Schema::shouldReceive('getTableListing')->with(null, false)->andReturn([]);
         $this->index()->assertStatus(503)->assertJsonPath('message', 'Dữ liệu phòng công khai chưa sẵn sàng. Vui lòng thử lại sau.');
         $this->getJson(self::URL.'/1')->assertStatus(503);
         $this->getJson(self::URL.'/filters')->assertStatus(503);

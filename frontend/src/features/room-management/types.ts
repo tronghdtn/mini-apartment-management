@@ -1,3 +1,4 @@
+import type { RoomPhoto } from '@/types/roomPhotos'
 export type RoomStatus = 'available' | 'occupied' | 'maintenance' | 'inactive'
 
 export const roomStatusLabels: Record<RoomStatus, string> = {
@@ -5,6 +6,7 @@ export const roomStatusLabels: Record<RoomStatus, string> = {
 }
 
 export interface Room {
+  photos: RoomPhoto[]
   id: number
   building_id: number
   building: { id: number; name: string }

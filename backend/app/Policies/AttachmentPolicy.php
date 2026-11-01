@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Models\MaintenanceRequest;
 use App\Models\MeterReadingSubmission;
 use App\Models\Payment;
+use App\Models\Room;
 use App\Models\User;
 
 /** A private file inherits access from its approved parent and exact collection. */
@@ -16,6 +17,10 @@ class AttachmentPolicy
     {
         if (! $user->isActive() || $attachment->disk !== 'private') {
             return false;
+        }
+
+        if ($attachment->attachable_type === 'room' && $attachment->collection === Attachment::ROOM_GALLERY) {
+            return $attachment->attachable instanceof Room && $user->can('view', $attachment->attachable);
         }
 
         if ($attachment->attachable_type === 'contract' && in_array($attachment->collection, [

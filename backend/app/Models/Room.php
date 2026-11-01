@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BuildingStatus;
 use App\Enums\ContractStatus;
 use App\Enums\RoomStatus;
 use Database\Factories\RoomFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * Phòng — docs/09_DATABASE_DESIGN.md §3.3.
@@ -48,7 +50,16 @@ class Room extends Model
     #[Scope]
     protected function publicAvailable(Builder $query): void
     {
-        $query->where('is_public', true)->where('status', RoomStatus::Available);
+        $query->where('is_public', true)->where('status', RoomStatus::Available)
+            ->whereHas('building', fn (Builder $building) => $building->where('status', BuildingStatus::Active));
+    }
+
+    /** @return MorphMany<Attachment, $this> */
+    public function photos(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable')
+            ->where('collection', Attachment::ROOM_GALLERY)->where('disk', 'private')
+            ->orderByDesc('is_cover')->orderBy('sort_order')->orderBy('id');
     }
 
     /** @return BelongsTo<Building, $this> */

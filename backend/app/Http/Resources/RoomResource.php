@@ -22,6 +22,7 @@ class RoomResource extends JsonResource
             'status' => $this->status->value,
             'is_public' => $this->is_public,
             'description' => $this->description,
+            'photos' => RoomPhotoResource::collection($this->whenLoaded('photos', default: collect())),
         ];
     }
 }

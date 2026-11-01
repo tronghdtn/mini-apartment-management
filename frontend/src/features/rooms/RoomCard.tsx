@@ -6,8 +6,8 @@ import type { PublicRoom } from './types'
 export function RoomCard({ room }: { room: PublicRoom }) {
   return <article className="group bg-white rounded-2xl border border-slate-200/80 hover:border-sky-300 shadow-xs hover:shadow-xl hover:shadow-sky-500/5 transition-all flex flex-col overflow-hidden">
     <div className="relative aspect-[16/10] bg-slate-100 flex flex-col items-center justify-center gap-2 text-slate-500">
-      <Building2 aria-hidden="true" className="w-10 h-10 text-slate-400" />
-      <span className="text-sm">Chưa có ảnh phòng</span>
+      {room.photos.length ? <img src={room.photos[0].url} alt={'Phòng ' + room.code} loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : <><Building2 aria-hidden="true" className="w-10 h-10 text-slate-400" />
+      <span className="text-sm">Chưa có ảnh phòng</span></>}
       <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">Còn trống</span>
       <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white text-slate-700 text-xs">Tầng {room.floor_number}
       </span>

@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 import { Building2, CheckCircle2, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { getPublicRoom } from '@/features/rooms/api'
+import { RoomGallery } from '@/features/rooms/RoomGallery'
 import type { PublicRoom } from '@/features/rooms/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
@@ -39,10 +40,10 @@ export function RoomDetailPage() {
     </nav>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       <div className="lg:col-span-8 space-y-6">
-        <div className="aspect-[16/9] bg-slate-100 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-500">
+        {room.photos.length ? <RoomGallery key={room.photos.map(photo => photo.id).join(',')} images={room.photos.map(photo => photo.url)} title={'Phòng ' + room.code} /> : <div className="aspect-[16/9] bg-slate-100 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-500">
           <Building2 aria-hidden="true" className="w-12 h-12 text-slate-400" />
           <p>Chưa có ảnh phòng</p>
-        </div>
+        </div>}
         <section className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 space-y-6">
           <div>
             <span className="inline-block text-xs text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-3">Còn trống · Tầng {room.floor_number}

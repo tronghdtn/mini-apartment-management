@@ -105,7 +105,7 @@ class RoomManagementTest extends TestCase
         $this->signIn();
         $input = $this->input();
         // Mô phỏng riêng kiểm tra khả dụng, không xóa/đổi tên bảng và không giả response.
-        Schema::shouldReceive('hasTable')->with('rooms')->andReturnFalse();
+        Schema::shouldReceive('getTableListing')->with(null, false)->andReturn([]);
         $response = $this->spa($method, '/api/v1/rooms'.($suffix === '' ? '' : '/999'), $input)
             ->assertStatus(503)->assertJsonStructure(['message']);
         $this->assertArrayNotHasKey('data', $response->json());
@@ -119,7 +119,7 @@ class RoomManagementTest extends TestCase
         $input = $this->input($building);
         $response = $this->spa('POST', '/api/v1/rooms', $input)->assertCreated();
         $id = $response->json('data.id');
-        $expected = ['data' => ['id' => $id] + $input + ['building' => ['id' => $building->id, 'name' => $building->name], 'status' => 'available']];
+        $expected = ['data' => ['id' => $id] + $input + ['building' => ['id' => $building->id, 'name' => $building->name], 'status' => 'available', 'photos' => []]];
         $response->assertExactJson($expected);
         $this->spa('GET', '/api/v1/rooms/'.$id)->assertOk()->assertExactJson($expected);
         $this->assertDatabaseHas('rooms', $input + ['id' => $id, 'status' => 'available']);
@@ -146,7 +146,8 @@ class RoomManagementTest extends TestCase
         $second = $this->spa('GET', '/api/v1/rooms?page=2')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.current_page', 2);
         $this->assertSame($rooms->last()->id, $second->json('data.0.id'));
         foreach ($first->json('data') as $row) {
-            foreach (['tenant', 'user', 'contracts', 'contract_id', 'photos', 'amenities', 'phone', 'email', 'id_number'] as $sensitiveOrFakeField) {
+            $this->assertSame([], $row['photos']);
+            foreach (['tenant', 'user', 'contracts', 'contract_id', 'amenities', 'phone', 'email', 'id_number'] as $sensitiveOrFakeField) {
                 $this->assertArrayNotHasKey($sensitiveOrFakeField, $row);
             }
         }

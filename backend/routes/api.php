@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\ResidentContractController;
 use App\Http\Controllers\Api\V1\RoomController;
+use App\Http\Controllers\Api\V1\RoomPhotoController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\UtilityPriceController;
@@ -33,6 +34,16 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+Route::middleware(['auth:sanctum', 'active'])->prefix('rooms/{room}/photos')->name('api.v1.rooms.photos.')
+    ->where(['room' => '[0-9]+', 'photo' => '[0-9]+'])->group(function () {
+        Route::get('/', [RoomPhotoController::class, 'index'])->name('index');
+        Route::get('/{photo}/content', [RoomPhotoController::class, 'content'])->name('content');
+        Route::middleware('spa')->group(function () {
+            Route::post('/', [RoomPhotoController::class, 'store'])->name('store');
+            Route::put('/{photo}/cover', [RoomPhotoController::class, 'cover'])->name('cover');
+            Route::delete('/{photo}', [RoomPhotoController::class, 'destroy'])->name('destroy');
+        });
+    });
 Route::get('/dashboard', [DashboardController::class, 'show'])->middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.dashboard.show');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('maintenance-requests')->name('api.v1.maintenance-requests.')->group(function () {
@@ -71,6 +82,8 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('viewing-appointments')->n
 });
 
 Route::prefix('public/rooms')->name('api.v1.public.rooms.')->group(function () {
+    Route::get('/{room}/photos/{photo}', [RoomPhotoController::class, 'publicContent'])
+        ->whereNumber(['room', 'photo'])->name('photos.show');
     Route::get('/', [PublicRoomController::class, 'index'])->name('index');
     Route::get('/filters', [PublicRoomController::class, 'filters'])->name('filters');
     Route::get('/{room}', [PublicRoomController::class, 'show'])->whereNumber('room')->name('show');

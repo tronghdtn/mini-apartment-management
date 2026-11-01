@@ -1,4 +1,6 @@
+import type { RoomPhoto } from '@/types/roomPhotos'
 export interface PublicRoom {
+  photos: RoomPhoto[]
   id: number
   code: string
   floor_number: number

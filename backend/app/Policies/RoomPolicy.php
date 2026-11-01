@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\BuildingStatus;
 use App\Enums\RoomStatus;
 use App\Enums\UserRole;
 use App\Models\Room;
@@ -16,7 +17,8 @@ class RoomPolicy
 
     public function viewPublic(?User $user, Room $room): bool
     {
-        return $room->is_public && $room->status === RoomStatus::Available;
+        return $room->is_public && $room->status === RoomStatus::Available
+            && $room->building?->status === BuildingStatus::Active;
     }
 
     public function viewAny(User $user): bool

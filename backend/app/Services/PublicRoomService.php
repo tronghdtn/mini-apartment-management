@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Schema;
 
 class PublicRoomService
 {
+    private array $tables = [];
+
     private const SORTS = [
         'price_asc' => ['base_price', 'asc'], 'price_desc' => ['base_price', 'desc'],
         'area_asc' => ['area', 'asc'], 'area_desc' => ['area', 'desc'],
@@ -18,8 +20,9 @@ class PublicRoomService
 
     public function ensureReady(): void
     {
+        $this->tables = Schema::getTableListing(null, false);
         foreach (['rooms', 'buildings', 'amenities', 'room_amenities', 'building_amenities'] as $table) {
-            if (! Schema::hasTable($table)) {
+            if (! in_array($table, $this->tables, true)) {
                 abort(503, 'Dữ liệu phòng công khai chưa sẵn sàng. Vui lòng thử lại sau.');
             }
         }
@@ -30,8 +33,9 @@ class PublicRoomService
         $this->ensureReady();
 
         return Room::query()->publicAvailable()->with([
-            'building:id,name,address,latitude,longitude',
+            'building:id,name,address,latitude,longitude,status',
             'building.amenities:id,name,description', 'amenities:id,name,description',
+            ...(in_array('attachments', $this->tables, true) ? ['photos'] : []),
         ]);
     }
 

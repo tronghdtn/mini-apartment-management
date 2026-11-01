@@ -1,3 +1,4 @@
+import { RoomPhotosPanel } from '@/features/room-photos/RoomPhotosPanel'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { isAxiosError } from 'axios'
@@ -74,8 +75,9 @@ export function AdminRoomDetailPage() {
           <div className="col-span-2 lg:col-span-4"><dt className="text-xs text-slate-500">Mô tả</dt><dd className="mt-1 text-slate-700 whitespace-pre-wrap break-words">{room.description || 'Chưa có mô tả.'}</dd></div>
         </dl>
       </section>
+      <RoomPhotosPanel key={room.id} roomId={room.id} />
       <AmenityAssignmentPanel key={room.id} targetType="rooms" targetId={room.id} archivedVisibility="show" />
-      <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. Ảnh phòng chưa được tích hợp.</p></div>
+      <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. </p></div>
       {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
       {tab === 'maintenance' && <MaintenanceRequestList audience="admin" roomId={room.id} />}
       {['utilities', 'appointments'].includes(tab) && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'utilities' ? 'Chỉ số điện nước' : 'Lịch xem phòng'}</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
