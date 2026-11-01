@@ -6,7 +6,7 @@ import { Check } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import { Button } from '@/components/ui/Button'
 import { applyApiErrors } from '@/lib/apiErrors'
-import { formatVND } from '@/lib/format'
+import { formatDate, formatVND } from '@/lib/format'
 import { saveDraftContract } from './api'
 import { draftContractSchema } from './schemas'
 import type { DraftContractInput } from './schemas'
@@ -47,6 +47,8 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
   const tenantSelection = useWatch({ control, name: 'user_id' })
   const chosenRoom = options.rooms.find(room => room.id === roomSelection)
   const chosenTenant = options.tenants.find(user => user.id === tenantSelection)
+  const [startDate, endDate, rent, deposit, occupants] = useWatch({ control, name: ['start_date', 'end_date', 'monthly_rent', 'deposit_amount', 'occupant_count'] })
+  const money = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? formatVND(value) : 'Chưa nhập'
   const selectionUnavailable = (!!contract && (!options.rooms.some(room => room.id === contract.room_id) || !options.tenants.some(user => user.id === contract.user_id)))
 
   function showInvalidStep(failures: FieldErrors<DraftContractInput>) {
@@ -92,7 +94,8 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
         </button>)}
       </nav>
     </div>
-    <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-5">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] items-start">
+    <div className="bg-white rounded-3xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-5 min-w-0">
       {selectionUnavailable && <p className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-800">Phòng hoặc người thuê của bản nháp không còn đủ điều kiện. Chọn lại trước khi lưu; dữ liệu cũ chưa bị thay đổi.</p>}
       {receiptLocked && <p className="text-sm text-sky-800">Đã nhận cọc: phòng, người thuê và số cọc được giữ nguyên. Chưa có quy trình hoàn cọc cho nháp tại đây.</p>}
       <fieldset disabled={busy} className="space-y-5">
@@ -151,6 +154,19 @@ export function DraftContractForm({ options, contract, roomId, onSaved, onCancel
         <div className="flex gap-2"><Button type="button" variant="outline" disabled={busy} onClick={onCancel}>Hủy</Button>{step > 0 && <Button type="button" variant="outline" disabled={busy} onClick={() => setStep(value => value - 1)}>Quay lại</Button>}</div>
         <div className="flex gap-2">{step < 2 && <Button type="button" disabled={busy} onClick={() => { void next() }}>Tiếp tục</Button>}<Button type="submit" variant={step < 2 ? 'outline' : 'primary'} isLoading={busy}>{contract ? 'Lưu thay đổi bản nháp' : 'Lưu bản nháp'}</Button></div>
       </div>
+    </div>
+    <aside aria-label="Tóm tắt bản nháp" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-2xs lg:sticky lg:top-4">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Tóm tắt bản nháp</h2>
+      <dl className="mt-3 divide-y divide-slate-100 text-sm">
+        <div className="py-2"><dt className="text-xs text-slate-500">Phòng</dt><dd className="font-semibold text-slate-900 break-words">{chosenRoom ? `${chosenRoom.code} — ${chosenRoom.building.name}` : contract && contract.room_id === roomSelection ? `${contract.room.code} — ${contract.room.building.name}` : 'Chưa chọn'}</dd></div>
+        <div className="py-2"><dt className="text-xs text-slate-500">Người thuê đại diện</dt><dd className="font-semibold text-slate-900 break-words">{chosenTenant?.full_name ?? (contract && contract.user_id === tenantSelection ? contract.tenant.full_name : 'Chưa chọn')}</dd></div>
+        <div className="py-2"><dt className="text-xs text-slate-500">Thời hạn (ngày cuối ở)</dt><dd className="text-slate-800">{startDate ? formatDate(startDate) : '—'} → {endDate ? formatDate(endDate) : '—'}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Tiền thuê / tháng</dt><dd className="font-bold text-sky-700 text-right">{money(rent)}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Tiền cọc</dt><dd className="font-semibold text-right">{money(deposit)}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Số người ở</dt><dd className="font-semibold">{typeof occupants === 'number' && Number.isInteger(occupants) ? occupants : '—'}</dd></div>
+      </dl>
+      <p className="mt-3 text-xs text-slate-500">Chỉ hiển thị giá trị đang nhập. Số liệu chính thức là bản Laravel lưu sau khi bấm lưu.</p>
+    </aside>
     </div>
   </form>
 }

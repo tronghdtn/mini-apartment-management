@@ -8,6 +8,21 @@ export const depositStatusLabels: Record<string, string> = {
   unpaid: 'Chưa nhận', held: 'Đang giữ cọc', settled: 'Đã đối soát', transferred: 'Đã chuyển cọc',
 }
 
+export const earlyTerminationFeeLabels = { none: 'Không thu phí trước hạn', fixed: 'Số tiền cố định', rent_multiple: 'Hệ số nhân tiền thuê tháng' } as const
+
+type StatusTone = 'emerald' | 'sky' | 'amber' | 'slate'
+export const contractStatusTones: Record<ContractStatus, StatusTone> = { draft: 'amber', active: 'emerald', terminated: 'slate', expired: 'slate' }
+export const depositStatusTone = (status: string): StatusTone => ({ held: 'sky', settled: 'emerald' } as Record<string, StatusTone>)[status] ?? 'slate'
+/** Hợp đồng cọc 0đ không có khoản phải nhận; tránh hiện "Chưa nhận" gây hiểu nhầm. */
+export const depositStatusText = (contract: Pick<Contract, 'deposit_amount' | 'deposit_status'>) =>
+  contract.deposit_amount === 0 && contract.deposit_status === 'unpaid' ? 'Không yêu cầu cọc' : depositStatusLabels[contract.deposit_status] ?? contract.deposit_status
+
+/** Mã hiển thị: hợp đồng chỉ có mã sau khi kích hoạt. */
+export const contractLabel = (contract: Pick<Contract, 'id' | 'contract_number'>) => contract.contract_number ?? `Bản nháp #${contract.id}`
+
+/** Hợp đồng vẫn hiệu lực sau ngày cuối được ở (chưa bàn giao). Chỉ để cảnh báo, không đổi trạng thái hay tiền. */
+export const isPastLastDay = (contract: Pick<Contract, 'status' | 'end_date'>, today: string) => contract.status === 'active' && contract.end_date < today
+
 export interface Contract {
   id: number
   lifecycle_revision: string | null

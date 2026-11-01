@@ -3,19 +3,70 @@ import { Link, useParams } from 'react-router'
 import { isAxiosError } from 'axios'
 import { useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Camera, CheckCircle2, Droplets, FileText, Plus, Receipt, Trash2, Zap } from 'lucide-react'
+import { Camera, CheckCircle2, ChevronRight, Droplets, FileText, Plus, Receipt, ShieldAlert, Trash2, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { createFinalInvoiceDraft, getContract, previewFinalContractMeters, saveContractInspection } from '@/features/contracts/api'
 import { finalMeterPreviewSchema, closureReasonLabels, type FinalMeterPreview, type FinalMeterPreviewInput } from '@/features/contracts/closure'
 import { finalInvoiceInputSchema, type FinalInvoiceDraft, type FinalInvoiceInput } from '@/features/contracts/finalInvoice'
 import { contractInspectionSchema, type ContractInspectionInput } from '@/features/contracts/inspection'
-import type { Contract } from '@/features/contracts/types'
+import { contractLabel, contractStatusLabels, contractStatusTones, depositStatusText, earlyTerminationFeeLabels, type Contract } from '@/features/contracts/types'
 import { ContractSettlementPanel } from '@/features/contracts/ContractSettlementPanel'
 import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
 import type { Invoice } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
 import { apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
 import { formatDate, formatDateTime, formatVND } from '@/lib/format'
+
+type StepState = 'done' | 'current' | 'pending'
+const stepStyles: Record<StepState, { label: string; dot: string }> = {
+  done: { label: 'Đã xong', dot: 'bg-emerald-500 text-white' },
+  current: { label: 'Cần thực hiện', dot: 'bg-sky-600 text-white' },
+  pending: { label: 'Chưa tới', dot: 'bg-slate-200 text-slate-600' },
+}
+
+/** Tiến trình chỉ đọc từ dữ liệu đã lưu (kiểm kê, hóa đơn tất toán, trạng thái hợp đồng); Laravel quyết định điều kiện thật. */
+function HandoverProgress({ contract, finalInvoice }: { contract: Contract; finalInvoice?: Invoice | null }) {
+  const terminated = contract.status === 'terminated'
+  const issued = !!finalInvoice && ['issued', 'partially_paid', 'paid'].includes(finalInvoice.status)
+  const steps: { title: string; state: StepState; note?: string }[] = [
+    { title: 'Kiểm tra tài sản', state: terminated || contract.inspection_result ? 'done' : 'current' },
+    { title: 'Ngày bàn giao và chỉ số chốt', state: terminated || finalInvoice ? 'done' : 'current', note: finalInvoice || terminated ? undefined : 'Xem trước, chưa ghi' },
+    { title: 'Hóa đơn tất toán', state: terminated || issued ? 'done' : finalInvoice ? 'current' : 'pending',
+      note: finalInvoice?.status === 'draft' ? 'Bản nháp, chưa phát hành' : finalInvoice?.status === 'cancelled' ? 'Đã hủy, cần lập lại' : undefined },
+    { title: 'Đối soát cọc và trả phòng', state: terminated ? 'done' : issued ? 'current' : 'pending' },
+  ]
+  return <ol aria-label="Tiến trình bàn giao" className="space-y-3">{steps.map((step, index) => <li key={step.title} className="flex items-start gap-3">
+    <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${stepStyles[step.state].dot}`}>{step.state === 'done' ? <CheckCircle2 className="h-3.5 w-3.5" /> : index + 1}</span>
+    <span className="min-w-0 text-sm"><span className="block font-semibold text-slate-900">{step.title}</span><span className="text-xs text-slate-500">{stepStyles[step.state].label}{step.note ? ` · ${step.note}` : ''}</span></span>
+  </li>)}</ol>
+}
+
+function ContractSummary({ contract, finalInvoice }: { contract: Contract; finalInvoice?: Invoice | null }) {
+  const terms = contract.early_termination_fee_type
+  return <aside className="space-y-4 lg:sticky lg:top-4">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Hợp đồng</h2>
+      <dl className="divide-y divide-slate-100 text-sm">
+        <div className="py-2"><dt className="text-xs text-slate-500">Phòng</dt><dd className="font-semibold text-slate-900">{contract.room.code} · {contract.room.building.name}</dd></div>
+        <div className="py-2"><dt className="text-xs text-slate-500">Người thuê đại diện</dt><dd className="font-semibold text-slate-900 break-words">{contract.tenant.full_name} · {contract.tenant.phone}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Ngày nhận</dt><dd>{formatDate(contract.start_date)}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Ngày cuối được ở</dt><dd className="font-semibold">{formatDate(contract.end_date)}</dd></div>
+        {contract.actual_end_date && <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Ngày bàn giao</dt><dd className="font-semibold">{formatDate(contract.actual_end_date)}</dd></div>}
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Tiền thuê / tháng</dt><dd className="font-semibold text-sky-700">{formatVND(contract.monthly_rent)}</dd></div>
+        <div className="py-2 flex justify-between gap-2"><dt className="text-xs text-slate-500">Tiền cọc</dt><dd className="text-right">{formatVND(contract.deposit_amount)}<span className="block text-xs text-slate-500">{depositStatusText(contract)}</span></dd></div>
+      </dl>
+      <Link className="inline-block text-sm font-semibold text-sky-700 underline" to={`/admin/contracts/${contract.id}`}>Mở chi tiết hợp đồng</Link>
+    </section>
+    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 space-y-2 text-sm text-amber-950">
+      <h2 className="flex items-center gap-2 font-bold"><ShieldAlert className="h-4 w-4 shrink-0" />Điều khoản trả trước hạn đã ký</h2>
+      <p>{terms ? earlyTerminationFeeLabels[terms] : 'Chưa có snapshot điều khoản'}{terms === 'fixed' && contract.early_termination_fee_amount !== null ? `: ${formatVND(contract.early_termination_fee_amount)}` : ''}{terms === 'rent_multiple' && contract.early_termination_fee_multiplier ? `: hệ số ${contract.early_termination_fee_multiplier}` : ''}</p>
+      {!!contract.early_termination_waiver_conditions?.length && <ul className="list-disc space-y-1 pl-5 text-xs">{contract.early_termination_waiver_conditions.map(item => <li key={item.code} className="break-words">Điều kiện miễn: {item.description}</li>)}</ul>}
+      <p className="text-xs text-amber-800">Số phí thực tế do hệ thống tính khi xem trước theo ngày bàn giao; trang này không tự tính.</p>
+    </section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Tiến trình</h2><HandoverProgress contract={contract} finalInvoice={finalInvoice} /></section>
+  </aside>
+}
 
 export function AdminContractTerminatePage() {
   const { contractId } = useParams<{ contractId: string }>()
@@ -37,27 +88,36 @@ export function AdminContractTerminatePage() {
     return () => abort.abort()
   }, [contractId, retry, refresh])
   const current = result?.id === `${contractId}:${retry}` ? result : undefined
+  const contract = current?.contract
   return <div className="space-y-6">
-    <header className="border-b border-slate-200 pb-5"><Link to="/admin/contracts" className="text-sm text-sky-700 underline">Hợp đồng</Link>
-      <h1 className="mt-3 flex items-center gap-2 text-2xl font-extrabold text-slate-900"><FileText className="h-6 w-6 text-sky-600" />Bàn giao hợp đồng</h1>
-      <p className="mt-2 text-sm text-slate-500">Kiểm tra ngày bàn giao và phí theo điều khoản đã ký trước khi quyết toán.</p></header>
-    {!current ? <p role="status">Đang tải hợp đồng…</p> : current.error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 p-5"><p>{current.error}</p><Button onClick={() => setRetry(value => value + 1)}>Thử lại</Button></div>
-      : current.contract && <><section className="rounded-2xl border border-slate-200 bg-white p-5"><h2 className="font-bold">{current.contract.contract_number ?? `Hợp đồng #${current.contract.id}`}</h2>
-        <p className="mt-2 text-sm">{current.contract.room.building.name} · Phòng {current.contract.room.code} · {current.contract.tenant.full_name}</p>
-        <p className="mt-2 text-sm text-slate-600">Ngày nhận: {formatDate(current.contract.start_date)} · Ngày cuối được ở: {formatDate(current.contract.end_date)}</p>
-        <Link className="mt-3 inline-block text-sm text-sky-700 underline" to={`/admin/contracts/${current.contract.id}`}>Xem điều khoản hợp đồng</Link></section>
-        {current.contract.status === 'terminated' ? <>
+    <header className="space-y-3 border-b border-slate-200 pb-5">
+      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/contracts" className="hover:text-slate-900">Hợp đồng</Link><ChevronRight className="h-3.5 w-3.5" />
+        {contract ? <><Link to={`/admin/contracts/${contract.id}`} className="hover:text-slate-900">{contractLabel(contract)}</Link><ChevronRight className="h-3.5 w-3.5" /></> : null}<span className="font-bold text-slate-900">Bàn giao và thanh lý</span></nav>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0">
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-extrabold text-slate-900"><FileText className="h-6 w-6 shrink-0 text-sky-600" />Bàn giao và thanh lý hợp đồng</h1>
+        <p className="mt-1 text-sm text-slate-500">{contract ? `${contractLabel(contract)} · Phòng ${contract.room.code} · ${contract.tenant.full_name}` : 'Kiểm tra tài sản, chốt chỉ số, lập hóa đơn tất toán rồi đối soát cọc trước khi trả phòng.'}</p></div>
+        {contract && <Badge tone={contractStatusTones[contract.status]} dot>{contractStatusLabels[contract.status]}</Badge>}</div>
+    </header>
+    {!current ? <p role="status" className="text-sm text-slate-500">Đang tải hợp đồng…</p> : current.error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p className="text-sm text-rose-700">{current.error}</p><div className="flex flex-wrap items-center gap-3"><Button variant="outline" onClick={() => setRetry(value => value + 1)}>Thử lại</Button><Link to="/admin/contracts" className="text-sm text-sky-700 underline">Về danh sách hợp đồng</Link></div></div>
+      : contract && <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="order-2 min-w-0 space-y-6 lg:order-1">
+        {contract.status === 'terminated' ? <>
           {current.finalInvoice && <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${current.finalInvoice.id}`}>Mở hóa đơn tất toán</Link>}
-          <ContractSettlementPanel contractId={current.contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />
-        </> : current.contract.status !== 'active' ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5">Chỉ xem trước bàn giao cho hợp đồng đang hiệu lực.</p>
+          <ContractSettlementPanel contractId={contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />
+        </> : contract.status !== 'active' ? <div role="status" className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><p>Chỉ bàn giao và thanh lý hợp đồng đang hiệu lực. Bản nháp cần được nhận cọc (nếu có) và kích hoạt trước.</p><Link to={`/admin/contracts/${contract.id}`} className="font-semibold text-sky-700 underline">Về chi tiết hợp đồng</Link></div>
           : current.finalInvoice ? <><section role="status" className="space-y-3 rounded-2xl border border-teal-200 bg-teal-50 p-5">
             <h2 className="font-bold text-teal-950">Đã lưu hóa đơn tất toán #{current.finalInvoice.id}</h2>
             <p className="text-sm text-teal-900">Chỉ số chốt và căn cứ đã được lưu. Mở hóa đơn để kiểm tra, phát hành hoặc lập lại bản đã hủy. Hợp đồng và phòng chưa được thanh lý.</p>
             <Link className="inline-block font-semibold text-sky-700 underline" to={`/admin/invoices/${current.finalInvoice.id}`}>Mở hóa đơn tất toán</Link>
-          </section>{['issued', 'partially_paid', 'paid'].includes(current.finalInvoice.status) && <ContractSettlementPanel
-            contractId={current.contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />}</> : <><ClosureForm key={`${current.contract.id}:${current.contract.lifecycle_revision}`} contract={current.contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} />
-            <InspectionForm key={current.contract.id} contract={current.contract}
-              onAuthFailure={() => void refresh()} onSaved={contract => setResult({ id: `${contractId}:${retry}`, contract })} /></>}</>}
+          </section>{['issued', 'partially_paid', 'paid'].includes(current.finalInvoice.status) ? <ContractSettlementPanel
+            contractId={contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />
+            : <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Đối soát cọc và trả phòng mở sau khi hóa đơn tất toán được phát hành.</p>}</> : <>
+            <InspectionForm key={contract.id} contract={contract}
+              onAuthFailure={() => void refresh()} onSaved={saved => setResult({ id: `${contractId}:${retry}`, contract: saved })} />
+            <ClosureForm key={`${contract.id}:${contract.lifecycle_revision}`} contract={contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} /></>}
+        </div>
+        <div className="order-1 lg:order-2"><ContractSummary contract={contract} finalInvoice={current.finalInvoice} /></div>
+      </div>}
   </div>
 }
 
@@ -83,7 +143,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
     } finally { flight.current = false; setBusy(false) }
   }
   return <><form noValidate onSubmit={event => { void handleSubmit(submit)(event) }} className="rounded-2xl border border-slate-200 bg-white p-5"><fieldset disabled={busy} className="space-y-4">
-    <h2 className="font-bold text-slate-900">1. Ngày bàn giao và chỉ số chốt</h2>
+    <h2 className="font-bold text-slate-900">2. Ngày bàn giao và chỉ số chốt</h2>
     <label className="block text-sm font-bold">Ngày bàn giao thực tế<input type="date" {...register('actual_end_date')} min={contract.start_date} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 sm:max-w-xs" />{errors.actual_end_date && <span role="alert" className="mt-1 block text-rose-700">{errors.actual_end_date.message}</span>}</label>
     <label className="block text-sm font-bold">Lý do và ghi chú<textarea {...register('closure_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />{errors.closure_note && <span role="alert" className="mt-1 block text-rose-700">{errors.closure_note.message}</span>}</label>
     <p className="text-sm text-slate-500">Bắt buộc ghi lý do khi nhận–trả cùng ngày, trả trước hạn hoặc quá hạn. Ngày bàn giao không tính tiền phòng cho hợp đồng cũ.</p>
@@ -115,7 +175,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
       <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Khi lập nháp, hệ thống kiểm tra lại chuỗi chỉ số và nguồn tiền.</p></section>}
     {preview && (contract.inspection_result
       ? <FinalInvoiceForm key={result?.key} contract={contract} closure={finalMeterPreviewSchema.parse(values)} preview={preview} onAuthFailure={onAuthFailure} onReload={onReload} />
-      : <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Hãy ghi kết quả kiểm tra tài sản trước khi lập hóa đơn tất toán.</p>)}
+      : <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Hãy lưu kết quả kiểm tra tài sản ở bước 1 trước khi lập hóa đơn tất toán.</p>)}
   </>
 }
 
@@ -295,7 +355,7 @@ function InspectionForm({ contract, onAuthFailure, onSaved }: { contract: Contra
   }
 
   return <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-    <header className="flex items-start gap-3"><Camera className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="font-bold text-slate-900">2. Kiểm tra tài sản</h2>
+    <header className="flex items-start gap-3"><Camera className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="font-bold text-slate-900">1. Kiểm tra tài sản</h2>
       <p className="mt-1 text-sm text-slate-500">Ghi kết quả và ảnh bàn giao. Đây là bước bắt buộc trước khi lập hóa đơn tất toán; hư hỏng phải có căn cứ và ảnh riêng tư.</p></div></header>
     {contract.inspection_result && <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
       <p className="font-semibold">Kết quả gần nhất: {contract.inspection_result === 'damaged' ? 'Có hư hỏng' : 'Không có hư hỏng'}</p>

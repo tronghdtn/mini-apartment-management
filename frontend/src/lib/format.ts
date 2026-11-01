@@ -36,3 +36,10 @@ export function formatDateTime(isoStr: string): string {
     dateTimeFormatter.formatToParts(date).find((p) => p.type === type)?.value ?? ''
   return `${part('hour')}:${part('minute')} ${part('day')}/${part('month')}/${part('year')}`
 }
+
+const businessDateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' })
+
+/** Ngày lịch hiện tại theo giờ Việt Nam, dạng `YYYY-MM-DD`, để so sánh với cột DATE. */
+export function businessToday(now: Date = new Date()): string {
+  return businessDateFormatter.format(now)
+}

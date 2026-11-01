@@ -7,9 +7,8 @@ import { applyApiErrors } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
 import { saveContractTerms } from './api'
 import { contractTermsSchema, type ContractTermsInput } from './schemas'
-import type { Contract } from './types'
+import { earlyTerminationFeeLabels as labels, type Contract } from './types'
 
-const labels = { none: 'Không thu phí trước hạn', fixed: 'Số tiền cố định', rent_multiple: 'Hệ số nhân tiền thuê tháng' }
 export function ContractTermsPanel({ contract, onSaved, onReload, onBusy, onAuthFailure }: { contract: Contract; onSaved: (contract: Contract) => void; onReload: () => void; onBusy: (busy: boolean) => void; onAuthFailure: () => void }) {
   const defaults = (): ContractTermsInput => ({ early_termination_fee_type: contract.early_termination_fee_type ?? '', early_termination_fee_amount: contract.early_termination_fee_amount ?? null,
     early_termination_fee_multiplier: contract.early_termination_fee_multiplier ?? null, early_termination_waiver_conditions: contract.early_termination_waiver_conditions ?? [] })

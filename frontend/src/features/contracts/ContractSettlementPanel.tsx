@@ -37,7 +37,7 @@ export function ContractSettlementPanel({ contractId, onTerminated, onAuthFailur
   const closed = data?.status === 'terminated'
   const reload = () => { if (!busy) { setAction(null); setVersion(value => value + 1) } }
   return <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5">
-    <header className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-bold text-slate-900">6–7. Đối soát tiền cọc và trả phòng</h2>
+    <header className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-bold text-slate-900">4. Đối soát tiền cọc và trả phòng</h2>
       <Button variant="outline" size="sm" onClick={reload} disabled={busy}>Tải đối soát mới</Button></header>
     {!current ? <p role="status">Đang đối chiếu hóa đơn và tiền cọc…</p> : current.error ? <p role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{current.error} Hãy tải đối soát mới để kiểm tra kết quả trước khi thao tác tiếp.</p> : data && <>
       {closed ? <div role="status" className="space-y-2 rounded-xl bg-teal-50 p-4 text-teal-950"><p className="font-bold">Hợp đồng đã thanh lý</p>

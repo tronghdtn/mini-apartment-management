@@ -63,3 +63,22 @@ test('draft service request never includes a client price, dates, status or dupl
   assert.equal(draftContractServicesSchema.safeParse({ services: [line, line] }).success, false)
   for (const service_id of [0, -1, 1.5, true, null, '1']) assert.equal(draftContractServicesSchema.safeParse({ services: [{ ...line, service_id }] }).success, false)
 })
+
+test('ngày hiện tại theo giờ Việt Nam và cảnh báo quá ngày cuối chỉ áp dụng hợp đồng hiệu lực', async () => {
+  const { businessToday } = await import('../src/lib/format.ts')
+  const { isPastLastDay, contractLabel } = await import('../src/features/contracts/types.ts')
+  assert.equal(businessToday(new Date('2026-10-31T16:59:59Z')), '2026-10-31')
+  assert.equal(businessToday(new Date('2026-10-31T17:00:00Z')), '2026-11-01')
+  assert.equal(isPastLastDay({ status: 'active', end_date: '2026-10-31' }, '2026-11-01'), true)
+  assert.equal(isPastLastDay({ status: 'active', end_date: '2026-11-01' }, '2026-11-01'), false)
+  for (const status of ['draft', 'terminated', 'expired']) assert.equal(isPastLastDay({ status, end_date: '2026-10-01' }, '2026-11-01'), false)
+  assert.equal(contractLabel({ id: 7, contract_number: null }), 'Bản nháp #7')
+  assert.equal(contractLabel({ id: 7, contract_number: 'HD-0007' }), 'HD-0007')
+})
+
+test('nhãn cọc 0đ không hiển thị như khoản chưa nhận', async () => {
+  const { depositStatusText } = await import('../src/features/contracts/types.ts')
+  assert.equal(depositStatusText({ deposit_amount: 0, deposit_status: 'unpaid' }), 'Không yêu cầu cọc')
+  assert.equal(depositStatusText({ deposit_amount: 1000000, deposit_status: 'unpaid' }), 'Chưa nhận')
+  assert.equal(depositStatusText({ deposit_amount: 0, deposit_status: 'settled' }), 'Đã đối soát')
+})
