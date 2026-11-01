@@ -249,3 +249,9 @@ Chủ dự án duyệt: **chặn hủy trực tiếp mọi hóa đơn của hợ
 
 ### DB-D80 / FILE-03 — CONFIRMED 31/10/2026
 Chủ dự án duyệt tổng **30 MiB (30 ×1024×1024 byte) và20 ảnh mỗi lần gửi**, cộng tất cả ảnh hư hỏng/miễn phí trong cùng request; giữ5 MiB/ảnh và5 ảnh/hạng mục. PHP/Nginx nhận request tối đa32 MiB để dành chỗ cho multipart và các trường văn bản. Không âm thầm cắt/bỏ ảnh, không tự thay đổi số tiền hoặc dữ liệu đã lưu; vượt ngân sách trả lỗi trước khi ghi. Đây là giới hạn tổng bổ sung, không có nghĩa mọi tổ hợp10hạng mục ×5ảnh đều được gửi đồng thời. Laravel/React cùng kiểm tra; PHP phải phân tích được hơn20 file để Laravel phát hiện trường hợp vượt số lượng thay vì PHP tự bỏ phần dư. Không đổi schema hoặc chạy migration dev.
+
+### DB-D81 / NOTIF-03 — CONFIRMED 01/11/2026
+Chủ dự án duyệt API `POST /api/v1/notifications/read-all`, trả `{data:{marked_count}}`, không nhận dữ liệu đầu vào. Cập nhật mọi thông báo chưa đọc của chính tài khoản active, giữ thời điểm của dòng đã đọc; gọi lại an toàn, không Admin đọc hộ. Cookie/session/CSRF và Policy hiện hành vẫn bắt buộc. Không thay schema/dữ liệu dev. Hợp đồng HTTP và tiêu chí tại brief§36; thực hiện yêu cầu Đánh dấu tất cả đã đọc đã có trong RES-09.
+
+### DB-D82 / DASH-01 — CONFIRMED 01/11/2026
+Chủ dự án duyệt lát cắt Dashboard Admin4thẻ và GET /api/v1/dashboard chỉ đọc tại brief§42. Phòng đếm theo hợp đồng active; thực nhận tính theo reviewed_at tháng Việt Nam, confirmed cash/bank_transfer và loại tiền cọc; công nợ issued/partially_paid gồm hợp đồng terminated; sửa chữa chờ là pending. Chưa các bảng/biểu đồ, không schema/migration/ghi dev hoặc thay cách xác nhận tiền. Tổng nhiều hóa đơn/thanh toán dùng chuỗi chữ số VND theo cơ chế aggregate đã có ở DEBT/CLOSE; không float hoặc React tính tiền.

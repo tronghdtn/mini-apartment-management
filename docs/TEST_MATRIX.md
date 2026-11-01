@@ -374,6 +374,21 @@ MAINT-A01..08 đã có bằng chứng mới bổ sung: HTTP15+12+6 kiểm tra PA
 
 Artifacts khôngGit: `backups/maintenance-qa-20261031/`, ảnh `technician-resolved.png` và `resident-after-f5.png`, HTTP JSON và log tự động. Fixture đã dọn đúngID/run, hai HTTP test container dừng; không ghi/migration dev. Mobile/OSoffline/mất response sau commit CHƯA kiểm trong đợt này. Không gọi toàn bộ bảy UI, toàn bộ NOTIF hoặc toàn bộ FullMVP đã hoàn thành.
 
+## NOTIF-B — kế hoạch nghiệm thu 01/11/2026 (DB-D73/81, brief§36)
+
+Danh sách đã lập trước chạy; kết quả mới dưới đây/Plan§12.45. Chỉ DBtest, không dữ liệu dev; nguồn UI là sự kiện nghiệp vụ thật trên fixture test, không broadcast giả.
+
+| ID | Mức | Tình huống/tiêu chí |
+| --- | --- | --- |
+| N-B01 | P0 |5vai trò chỉ list/read/read-all own; Admin không override, wrong morph/foreign giữ nguyên; guest401/locked403/CSRF419/input422/schema503 |
+| N-B02 | P0 | read-all mọi trang21+, marked_count đúng, replay0, read_at/updated_at đã đọc không đổi; tranh chấp read/read-all không ghi lại thời điểm |
+| N-B03 | P0 | Chuông Admin/Resident/Staff vào đúng vùng; user có workspace trong account, Guard có empty thật; không fake nguồn cho Guard |
+| N-B04 | P0 | Xem chi tiết đánh dấu xong mới điều hướng đúng role/owner; read lỗi không tự mở, F5/Back giữ read_at; đã đọc không gửi lại POST |
+| N-B05 | P1 | all/unread,21+/trang cuối/empty; đọc dòng cuối hoặc đọc tất cả từ unread trang2 không hiện Trang2/1; URL/F5 và prefix account không đụng lịch hẹn |
+| N-B06 | P1 | tải503/retry giữ status/page hợp lệ; tham số sai có lỗi/reset; session hết hạn/locked không hiện dữ liệu cache sai user |
+| N-B07 | P1 | Mobile390, nội dung thực/link/nút/bảng không tràn toàn trang; loading/error/empty/timestampVN, ảnh bằng chứng |
+| N-B08 | P0 | Nguồn MAINT/invoice/viewing đúng người sau commit; không thay hóa đơn/cọc/phòng khi đọc thông báo; cleanup đúng fixture, snapshotdev bằng nhau |
+
 ## FILE-03 / PAY-B — nghiệm thu 31/10–01/11/2026
 
 Nguồn DB-D80/brief§34/41/Plan§12.44; mọi ghi trên DBtest. Đây là bằng chứng mới, không thay lịch sử PAY-A/MAINT-A.14 tình huống browser dưới đây đã quan sát sau sửa tương ứng; không tính API replay thành browser.
@@ -400,3 +415,7 @@ Nguồn DB-D80/brief§34/41/Plan§12.44; mọi ghi trên DBtest. Đây là bằn
 **Sự cố chưa khép nguyên nhân:** POST400k đầu gặp504; FPM201 và hậu kiểm có1pending/paid0. Không resend400k, dùngF5 phục hồi. Chưa xác minh nguyên nhân chậm; cảnh báo mạng mới không phải sửa gốc504. Đây không phải một lần happy-path upload PASS; happy-path bình thường đã thử riêng ở100k. Chưa OSoffline/đảoresponse/mất phản hồi có kiểm soát ngay sau commit; chưa browserwizardfinal21ảnh. Không có provideronline/PDF/tiềnthật/ghi nghiệp vụ dev trong vòng này.
 
 Frontend118/build/lint0lỗi9cảnhbáocũ PASS; nhóm Backend27/565 PASS; full Backend1383/13545 (669.10s,exit0)/Pint338 PASS. Hậu kiểm test0record/schema phục hồi/quyền dev1142; snapshot dev identity/metadata/data/migrations bằng nhau29bảng/29migration. Bốn HTTPstateless dev đạt200health/401me/25MiB401/33MiB413JSON, không cookie/ghi dữ liệu. Fixture7ảnh/3payment/1invoice/1maintenance/7user được dọn đúngrun, giữ file private cũ; haiHTTPtestcontainerdừng và schema test pending khôi phục trước fullsuite. Artifacts ignored `backups/upload-pay-qa-20261031/`:26JSONchecks,logs/configs/manifest/snapshots, `admin-paid-after-f5.png`, `resident-mobile.png`, `uncertain-result.png`.
+
+NOTIF-B kết quả01/11:25kiểm tra HTTP PASS +1kiểm tra accesslog không POST lại itemđãđọc;1race hai phiên read/read-all trên notice lịch hẹn còn unread, delayed replay giữ timestamp. UI5vai trò đã quan sát: chuông3area, Admin21/unread/page2/đọc cuối resetpage/F5/batch từallpage2 đọc20dòngẩn/nút disabled;503GETretrygiữquery và503POSTreadkhôngđiềuhướng, restore rồi mởđúng invoice/MAINT/assigned/appointments; ResidentBack/alreadyread/mobile390; khóaTechF5 vềlogin; Guardempty/URLinvalidreset; Guestmobilelịchhẹn/notice_prefix/F5/link. Không ghi race là browser; bulk từ unreadpage2 thuộc Featuretest, browser batch tại allpage2. Console cuối Guest0error chỉ document cuối, không suy vòngkhôngHTTP503 chủ động. UI mới sau bản vá mobile đã reload build121 để kiểm.
+
+Backend targeted10/252 và morph1/10 PASS ở hai lượt; frontendcuối121/build/lint0lỗi9cảnhbáocũ PASS. Full **1390test/13682assertion PASS**,624.73s,exit0; Pint338 PASS. Số1383/13545 ở§12.44 là lịch sử. Devdata/history/schema giữ nguyên29/29; raw TABLES có21AUTO_INCREMENT cold khác warm, đã đối chiếu warm=repeat=toàn bộ snapshot xác minh lượttrước, chỉ metadata lạnh chứ không sửa counter; chi tiết Plan§12.45/dev-comparison.json. Chín bảng nghiệp vụ test count/hash bằng nhau; fixture7user/2contract/3room/2building/21repair/1invoice/1appointment/25notice đã dọn đúngrun,4schema test pending khôi phục, guarddev1142. RoleTech khóa/resetstatus trong test để kiểm lại403rồi401 theo middleware, không đổi Auth cho khớp harness. Setuphelper sai cột đã rollback0data và phục hồi đúng4bảng test rỗng trước sửa; không coi lỗihelper là lỗi sản phẩm. Cổng8082 không bind được nên dùng18082loopback/newtestcookie, không chỉnh hostnetwork/dev. ChưaOSoffline/đảoresponse/mất phản hồi đúngsaucommit/newnotice đối đầu bulk; không tuyên bốFullMVPxong. Artifacts ignored `backups/notifications-qa-20261101/`, ảnh JPEG thật (chụp khi browser hiển thị; chụp nền ban đầu không được), không stage logs/manifest/helpers/credentials.
