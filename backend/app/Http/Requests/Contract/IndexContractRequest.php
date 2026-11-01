@@ -30,6 +30,7 @@ class IndexContractRequest extends FormRequest
             'building_id' => ['sometimes', new NotBoolean, 'integer', 'min:1'],
             'room_id' => ['sometimes', new NotBoolean, 'integer', 'min:1'],
             'user_id' => ['sometimes', new NotBoolean, 'integer', 'min:1'],
+            'due' => ['sometimes', Rule::in(['expiring', 'overdue'])],
             'q' => ['nullable', 'string', 'max:191'],
             'page' => ['sometimes', new NotBoolean, 'integer', 'min:1'],
         ];
@@ -43,11 +44,22 @@ class IndexContractRequest extends FormRequest
             'string' => ':attribute phải là chuỗi ký tự.',
             'max' => ':attribute không được vượt quá :max ký tự.',
             'status.enum' => 'Trạng thái hợp đồng không hợp lệ.',
+            'due.in' => 'Bộ lọc hạn hợp đồng không hợp lệ.',
         ];
+    }
+
+    public function after(): array
+    {
+        return [function ($validator): void {
+            // Quá hạn/sắp hết hạn chỉ áp dụng cho hợp đồng đang hiệu lực.
+            if ($this->filled('due') && $this->filled('status') && $this->input('status') !== ContractStatus::Active->value) {
+                $validator->errors()->add('due', 'Bộ lọc hạn chỉ áp dụng cho hợp đồng đang hiệu lực.');
+            }
+        }];
     }
 
     public function attributes(): array
     {
-        return ['status' => 'Trạng thái', 'building_id' => 'Tòa nhà', 'room_id' => 'Phòng', 'user_id' => 'Người thuê', 'q' => 'Từ khóa', 'page' => 'Trang'];
+        return ['status' => 'Trạng thái', 'building_id' => 'Tòa nhà', 'room_id' => 'Phòng', 'user_id' => 'Người thuê', 'q' => 'Từ khóa', 'due' => 'Hạn hợp đồng', 'page' => 'Trang'];
     }
 }

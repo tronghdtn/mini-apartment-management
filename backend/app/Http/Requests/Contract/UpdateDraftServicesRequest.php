@@ -21,8 +21,9 @@ class UpdateDraftServicesRequest extends FormRequest
             'services.*' => ['required', 'array:service_id,quantity'],
             'services.*.service_id' => ['required', new NotBoolean, 'integer', 'min:1', 'distinct:strict'],
             'services.*.quantity' => ['required', new NotBoolean, 'integer', 'between:1,99999999'],
+            'expected_revision' => ['sometimes', 'string', 'regex:/^[a-f0-9]{64}$/'],
         ];
-        foreach (array_diff(array_keys($this->all()), ['services']) as $field) {
+        foreach (array_diff(array_keys($this->all()), ['services', 'expected_revision']) as $field) {
             $rules[$field] = ['missing'];
         }
 
@@ -41,6 +42,8 @@ class UpdateDraftServicesRequest extends FormRequest
             'between' => ':attribute phải từ :min đến :max.',
             'distinct' => 'Không được chọn trùng dịch vụ.',
             'missing' => 'Không được gửi trường :attribute trong thao tác này.',
+            'expected_revision.regex' => 'Phiên bản hợp đồng không hợp lệ. Vui lòng tải lại.',
+            'expected_revision.string' => 'Phiên bản hợp đồng không hợp lệ. Vui lòng tải lại.',
         ];
     }
 

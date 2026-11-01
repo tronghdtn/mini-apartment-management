@@ -41,7 +41,10 @@ class ContractController extends Controller
     {
         Gate::authorize('viewAny', Contract::class);
 
-        return ContractResource::collection($this->contracts->paginate($request->validated()));
+        $listing = $this->contracts->listing($request->validated());
+
+        return ContractResource::collection($listing['page'])
+            ->additional(['meta' => ['counts' => $listing['counts'], 'due' => $listing['due']]]);
     }
 
     public function closurePreview(ClosurePreviewRequest $request, string $contract, ContractClosureService $closure): ClosurePreviewResource
@@ -127,7 +130,7 @@ class ContractController extends Controller
         $model = $this->contracts->find($contract);
         Gate::authorize('update', $model);
 
-        return new ContractResource($this->contracts->updateDraftServices($model, $request->validated()));
+        return new ContractResource($this->contracts->updateServices($model, $request->validated()));
     }
 
     public function updateTerms(ContractLifecycleRequest $request, string $contract, ContractTermsService $terms): ContractResource

@@ -18,7 +18,7 @@ export async function createFinalInvoiceDraft(id: number, closure: FinalMeterPre
 export async function getContracts(page: number, filters: ContractFilters, signal?: AbortSignal): Promise<ContractPage> {
   const input = contractFiltersSchema.parse(filters)
   const params = { page, status: input.status || undefined, building_id: input.building_id || undefined,
-    room_id: input.room_id || undefined, user_id: input.user_id || undefined, q: input.q || undefined }
+    room_id: input.room_id || undefined, user_id: input.user_id || undefined, q: input.q || undefined, due: input.due || undefined }
   return (await http.get<ContractPage>('/contracts', { params, signal })).data
 }
 
@@ -66,10 +66,11 @@ export async function getContractServiceOptions(signal?: AbortSignal): Promise<C
   return getAllOptions<ContractServiceOption>('/services', {}, signal)
 }
 
-export async function saveDraftContractServices(id: number, input: DraftContractServicesInput): Promise<Contract> {
+/** Nháp: thay tập dịch vụ soạn thảo. Hợp đồng hiệu lực: gửi kèm phiên bản đã đọc, Laravel áp dụng từ 01 tháng sau. */
+export async function saveDraftContractServices(id: number, input: DraftContractServicesInput, expectedRevision?: string): Promise<Contract> {
   const body = draftContractServicesSchema.parse(input)
   await fetchCsrfCookie()
-  return (await http.put<ApiResource<Contract>>(`/contracts/${id}/services`, body)).data.data
+  return (await http.put<ApiResource<Contract>>(`/contracts/${id}/services`, expectedRevision ? { ...body, expected_revision: expectedRevision } : body)).data.data
 }
 
 export async function saveContractTerms(id: number, input: ContractTermsInput): Promise<Contract> {

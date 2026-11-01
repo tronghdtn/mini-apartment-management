@@ -31,7 +31,10 @@ export const contractFiltersSchema = z.object({
   room_id: filterId,
   user_id: filterId,
   q: z.string().trim().refine(value => Array.from(value).length <= 191, 'Từ khóa tối đa 191 ký tự.'),
-}).strict()
+  due: z.enum(['', 'expiring', 'overdue'], { error: 'Bộ lọc hạn hợp đồng không hợp lệ.' }).optional(),
+}).strict().refine(input => !input.due || input.status === '' || input.status === 'active', {
+  path: ['due'], message: 'Bộ lọc hạn chỉ áp dụng cho hợp đồng đang hiệu lực.',
+})
 export type ContractFilters = z.infer<typeof contractFiltersSchema>
 
 export const draftContractServicesSchema = z.object({

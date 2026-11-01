@@ -82,3 +82,25 @@ test('nhãn cọc 0đ không hiển thị như khoản chưa nhận', async () =
   assert.equal(depositStatusText({ deposit_amount: 1000000, deposit_status: 'unpaid' }), 'Chưa nhận')
   assert.equal(depositStatusText({ deposit_amount: 0, deposit_status: 'settled' }), 'Đã đối soát')
 })
+
+test('nhãn quá hạn/sắp hết hạn dùng cửa sổ ngày của server và ngày áp dụng thay dịch vụ là 01 tháng sau', async () => {
+  const { contractDueState, serviceChangeEffectiveDate } = await import('../src/features/contracts/types.ts')
+  const window = { today: '2026-11-02', expiring_until: '2026-12-02' }
+  assert.equal(contractDueState({ status: 'active', end_date: '2026-11-01' }, window), 'overdue')
+  assert.equal(contractDueState({ status: 'active', end_date: '2026-11-02' }, window), 'expiring')
+  assert.equal(contractDueState({ status: 'active', end_date: '2026-12-02' }, window), 'expiring')
+  assert.equal(contractDueState({ status: 'active', end_date: '2026-12-03' }, window), null)
+  assert.equal(contractDueState({ status: 'terminated', end_date: '2026-01-01' }, window), null)
+  assert.equal(serviceChangeEffectiveDate({ start_date: '2026-10-01' }, '2026-11-02'), '2026-12-01')
+  assert.equal(serviceChangeEffectiveDate({ start_date: '2026-10-01' }, '2026-12-31'), '2027-01-01')
+  assert.equal(serviceChangeEffectiveDate({ start_date: '2027-01-10' }, '2026-11-02'), '2027-01-10')
+})
+
+test('bộ lọc hạn chỉ đi với tab tất cả hoặc đang hiệu lực', async () => {
+  const { contractFiltersSchema } = await import('../src/features/contracts/schemas.ts')
+  const base = { status: '', building_id: '', room_id: '', user_id: '', q: '' }
+  for (const due of ['', 'expiring', 'overdue']) assert.equal(contractFiltersSchema.safeParse({ ...base, due }).success, true)
+  assert.equal(contractFiltersSchema.safeParse({ ...base, status: 'active', due: 'overdue' }).success, true)
+  assert.equal(contractFiltersSchema.safeParse({ ...base, status: 'draft', due: 'overdue' }).success, false)
+  assert.equal(contractFiltersSchema.safeParse({ ...base, due: 'late' }).success, false)
+})

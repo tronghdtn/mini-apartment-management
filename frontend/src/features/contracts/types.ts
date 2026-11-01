@@ -71,9 +71,19 @@ export interface ContractServiceLine {
   service: Omit<ContractServiceOption, 'id' | 'price'>
 }
 
+export type ContractTabCounts = Record<'all' | 'draft' | 'active' | 'expiring' | 'overdue' | 'terminated' | 'expired', number>
+/** Cửa sổ ngày do Laravel tính theo giờ Việt Nam và cấu hình contract.expiring_warning_days. */
+export interface ContractDueWindow { today: string; expiring_until: string; expiring_warning_days: number }
 export interface ContractPage {
   data: Contract[]
-  meta: { current_page: number; last_page: number; total: number; per_page: number }
+  meta: { current_page: number; last_page: number; total: number; per_page: number; counts?: ContractTabCounts; due?: ContractDueWindow }
+}
+
+/** Nhãn suy ra, không phải trạng thái: hợp đồng vẫn active cho tới khi thanh lý. */
+export function contractDueState(contract: Pick<Contract, 'status' | 'end_date'>, window: Pick<ContractDueWindow, 'today' | 'expiring_until'>): 'overdue' | 'expiring' | null {
+  if (contract.status !== 'active') return null
+  if (contract.end_date < window.today) return 'overdue'
+  return contract.end_date <= window.expiring_until ? 'expiring' : null
 }
 
 export interface ContractRoomOption {
@@ -97,3 +107,10 @@ export interface ContractTenantOption {
 }
 
 export interface ContractOptions { rooms: ContractRoomOption[]; tenants: ContractTenantOption[] }
+
+/** Ngày áp dụng hiển thị cho hợp đồng hiệu lực: 01 tháng sau theo giờ VN (hoặc ngày bắt đầu nếu muộn hơn). Laravel tính lại khi lưu. */
+export function serviceChangeEffectiveDate(contract: Pick<Contract, 'start_date'>, today: string): string {
+  const [year, month] = today.split('-').map(Number)
+  const next = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, '0')}-01`
+  return contract.start_date > next ? contract.start_date : next
+}

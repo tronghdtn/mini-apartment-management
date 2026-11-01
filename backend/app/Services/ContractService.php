@@ -13,7 +13,9 @@ use App\Models\Contract;
 use App\Models\MeterReading;
 use App\Models\Room;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -40,9 +42,63 @@ class ContractService
 
     public function paginate(array $filters): LengthAwarePaginator
     {
+        return $this->listing($filters)['page'];
+    }
+
+    /**
+     * Danh sách kèm số đếm từng tab. Số đếm dùng cùng bộ lọc phòng/tòa/người thuê/từ khóa nhưng bỏ qua tab,
+     * nên khớp đúng số dòng khi bấm tab; không lọc trên dữ liệu một trang.
+     *
+     * @return array{page: LengthAwarePaginator, counts: array<string, int>, due: array{today: string, expiring_until: string, expiring_warning_days: int}}
+     */
+    public function listing(array $filters): array
+    {
         $this->ensureReady();
+        $due = $this->dueWindow();
         $query = $this->query();
-        foreach (['status', 'room_id', 'user_id'] as $field) {
+        $this->applyScopeFilters($query, $filters);
+        $active = ContractStatus::Active->value;
+        $counts = (clone $query)->toBase()->selectRaw(
+            'COUNT(*) AS all_count, COALESCE(SUM(status = ?), 0) AS draft_count, COALESCE(SUM(status = ?), 0) AS active_count, '
+            .'COALESCE(SUM(status = ? AND end_date < ?), 0) AS overdue_count, COALESCE(SUM(status = ? AND end_date BETWEEN ? AND ?), 0) AS expiring_count, '
+            .'COALESCE(SUM(status = ?), 0) AS terminated_count, COALESCE(SUM(status = ?), 0) AS expired_count',
+            [ContractStatus::Draft->value, $active, $active, $due['today'], $active, $due['today'], $due['expiring_until'],
+                ContractStatus::Terminated->value, ContractStatus::Expired->value],
+        )->first();
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+        if (isset($filters['due'])) {
+            // Quá hạn/sắp hết hạn chỉ là nhãn suy ra từ ngày cuối được ở; hợp đồng vẫn active (DB-D43, BR-CTR-09).
+            $query->where('status', $active);
+            $filters['due'] === 'overdue'
+                ? $query->where('end_date', '<', $due['today'])
+                : $query->whereBetween('end_date', [$due['today'], $due['expiring_until']]);
+        }
+
+        return [
+            'page' => $query->orderBy('id')->paginate(20, ['*'], 'page', (int) ($filters['page'] ?? 1))->appends($filters),
+            'counts' => ['all' => (int) $counts->all_count, 'draft' => (int) $counts->draft_count, 'active' => (int) $counts->active_count,
+                'expiring' => (int) $counts->expiring_count, 'overdue' => (int) $counts->overdue_count, 'terminated' => (int) $counts->terminated_count,
+                'expired' => (int) $counts->expired_count],
+            'due' => $due,
+        ];
+    }
+
+    /** Ngày lịch Việt Nam; "sắp hết hạn" = ngày cuối được ở trong [hôm nay, hôm nay + contract.expiring_warning_days]. */
+    private function dueWindow(): array
+    {
+        $today = CarbonImmutable::now(config('app.business_timezone'))->startOfDay();
+        $stored = Schema::hasTable('settings') ? Setting::where('key', 'contract.expiring_warning_days')->value('value') : null;
+        $days = is_string($stored) && preg_match('/^[1-9]\d{0,2}$/', $stored) === 1 && (int) $stored <= 365
+            ? (int) $stored : (int) SettingService::DEFAULT_SETTINGS['contract.expiring_warning_days']['value'];
+
+        return ['today' => $today->format('Y-m-d'), 'expiring_until' => $today->addDays($days)->format('Y-m-d'), 'expiring_warning_days' => $days];
+    }
+
+    private function applyScopeFilters(Builder $query, array $filters): void
+    {
+        foreach (['room_id', 'user_id'] as $field) {
             if (isset($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
@@ -62,8 +118,6 @@ class ContractService
                     });
             });
         }
-
-        return $query->orderBy('id')->paginate(20, ['*'], 'page', (int) ($filters['page'] ?? 1))->appends($filters);
     }
 
     public function find(string|int $id): Contract
@@ -146,8 +200,115 @@ class ContractService
         }
     }
 
+    /** Nháp: thay tập dịch vụ soạn thảo. Đang hiệu lực: thay đổi áp dụng từ ngày 01 tháng sau (DB09 §3.11, brief §8.1b). */
+    public function updateServices(Contract $contract, array $data): Contract
+    {
+        return $contract->status === ContractStatus::Active
+            ? $this->changeActiveServices($contract, $data)
+            : $this->updateDraftServices($contract, $data);
+    }
+
+    /**
+     * Dòng đang hiệu lực đóng vào ngày cuối tháng hiện tại, dòng mới bắt đầu 01 tháng sau; dòng đã lưu giữ đơn giá snapshot
+     * khi chỉ đổi số lượng (như quy tắc nháp brief §25), dịch vụ thêm mới lấy giá danh mục (DB-D59). Không sửa hóa đơn đã lập.
+     */
+    private function changeActiveServices(Contract $contract, array $data): Contract
+    {
+        $this->ensureReady();
+        if (! isset($data['expected_revision'])) {
+            throw ValidationException::withMessages(['expected_revision' => 'Vui lòng tải lại hợp đồng trước khi thay đổi dịch vụ.']);
+        }
+        try {
+            return DB::transaction(function () use ($contract, $data): Contract {
+                $this->lockParents([$contract->room_id], [$contract->user_id]);
+                $current = Contract::whereKey($contract->id)->lockForUpdate()->firstOrFail();
+                $this->ensureUnchangedParents($contract, $current);
+                if ($current->status !== ContractStatus::Active || $current->actual_end_date !== null) {
+                    abort(409, 'Chỉ thay dịch vụ cho hợp đồng đang hiệu lực chưa bắt đầu bàn giao. Vui lòng tải lại.');
+                }
+                $this->assertLifecycleRevision($current, $data['expected_revision']);
+                $lines = $current->contractServices->load('service');
+                $nextMonth = CarbonImmutable::now(config('app.business_timezone'))->startOfMonth()->addMonth();
+                $from = max($nextMonth->format('Y-m-d'), $current->start_date->format('Y-m-d'));
+                $fromMonth = CarbonImmutable::parse($from)->startOfMonth()->format('Y-m-d');
+                if (Schema::hasTable('invoices') && DB::table('invoices')->where('contract_id', $current->id)
+                    ->where('status', '!=', 'cancelled')->where('period', '>=', $fromMonth)->lockForUpdate()->exists()) {
+                    abort(409, 'Đã có hóa đơn cho kỳ '.CarbonImmutable::parse($fromMonth)->format('m/Y').' trở đi. Thay đổi dịch vụ không được làm thay đổi hóa đơn đã lập.');
+                }
+                $periodic = $lines->reject(fn ($line) => $line->service->isMetered()
+                    || in_array($line->service->code, [Service::CODE_ELECTRICITY, Service::CODE_WATER], true));
+                if ($periodic->contains(fn ($line) => $line->start_date->format('Y-m-d') > $from)) {
+                    abort(409, 'Dịch vụ hợp đồng có khoảng hiệu lực bất thường. Vui lòng kiểm tra dữ liệu.');
+                }
+                $covering = $periodic->filter(fn ($line) => $line->start_date->format('Y-m-d') <= $from
+                    && ($line->end_date === null || $line->end_date->format('Y-m-d') >= $from));
+                if ($covering->unique('service_id')->count() !== $covering->count()) {
+                    abort(409, 'Dịch vụ đã có nhiều khoảng hiệu lực chồng nhau. Vui lòng kiểm tra dữ liệu hợp đồng.');
+                }
+                $covering = $covering->keyBy('service_id');
+                $ids = array_map(fn (array $line): int => (int) $line['service_id'], $data['services']);
+                if (count(array_unique($ids)) !== count($ids)) {
+                    throw ValidationException::withMessages(['services' => 'Không được chọn trùng dịch vụ.']);
+                }
+                $catalog = Service::whereIn('id', $ids)->orderBy('id')->sharedLock()->get()->keyBy('id');
+                foreach ($data['services'] as $index => $input) {
+                    $service = $catalog->get((int) $input['service_id']);
+                    $line = $covering->get((int) $input['service_id']);
+                    if (! $service || $service->isMetered() || in_array($service->code, [Service::CODE_ELECTRICITY, Service::CODE_WATER], true)) {
+                        throw ValidationException::withMessages(["services.$index.service_id" => 'Chỉ thay dịch vụ định kỳ; Điện/Nước tính theo chỉ số và không đổi tại đây.']);
+                    }
+                    if ($service->billing_type === ServiceBillingType::PerRoom && (int) $input['quantity'] !== 1) {
+                        throw ValidationException::withMessages(["services.$index.quantity" => 'Dịch vụ theo phòng phải có số lượng bằng 1.']);
+                    }
+                    $unchanged = $line && bccomp((string) $line->quantity, (string) $input['quantity'], 2) === 0;
+                    if (! $unchanged && $service->status !== ServiceStatus::Active) {
+                        throw ValidationException::withMessages(["services.$index.service_id" => 'Dịch vụ đã ngừng hoạt động chỉ được giữ nguyên hoặc ngừng sử dụng.']);
+                    }
+                    if (! $line && ($service->price === null || $service->price < 0 || $service->price > 9007199254740991)) {
+                        throw ValidationException::withMessages(["services.$index.service_id" => 'Dịch vụ chưa có đơn giá hợp lệ.']);
+                    }
+                }
+                $lastOldDay = CarbonImmutable::parse($from)->subDay()->format('Y-m-d');
+                $changed = false;
+                foreach ($covering as $id => $line) {
+                    $input = collect($data['services'])->first(fn (array $row) => (int) $row['service_id'] === (int) $id);
+                    if ($input && bccomp((string) $line->quantity, (string) $input['quantity'], 2) === 0) {
+                        continue;
+                    }
+                    $changed = true;
+                    if ($line->start_date->format('Y-m-d') >= $from) {
+                        // Dòng chưa từng có hiệu lực (bắt đầu từ kỳ áp dụng): sửa trực tiếp, không tạo lịch sử giả.
+                        $input ? $line->forceFill(['quantity' => $input['quantity']])->save() : $line->delete();
+
+                        continue;
+                    }
+                    $line->forceFill(['end_date' => $lastOldDay])->save();
+                    if ($input) {
+                        $current->contractServices()->create(['service_id' => $id, 'quantity' => $input['quantity'],
+                            'unit_price' => $line->unit_price, 'start_date' => $from, 'end_date' => null]);
+                    }
+                }
+                foreach ($data['services'] as $input) {
+                    $id = (int) $input['service_id'];
+                    if (! $covering->has($id)) {
+                        $changed = true;
+                        $current->contractServices()->create(['service_id' => $id, 'quantity' => $input['quantity'],
+                            'unit_price' => $catalog[$id]->price, 'start_date' => $from, 'end_date' => null]);
+                    }
+                }
+                if ($changed) {
+                    $current->touch();
+                }
+
+                return $this->find($current->id);
+            }, 3);
+        } catch (QueryException) {
+            $this->databaseFailure('thay đổi dịch vụ của');
+        }
+    }
+
     /** Chỉ soạn dịch vụ định kỳ của nháp; không kích hoạt hay sửa lịch sử hợp đồng active. */
-    public function updateDraftServices(Contract $contract, array $data): Contract
+    private function updateDraftServices(Contract $contract, array $data): Contract
     {
         $this->ensureReady();
         try {

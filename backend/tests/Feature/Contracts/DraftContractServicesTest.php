@@ -146,10 +146,13 @@ class DraftContractServicesTest extends TestCase
     public function test_non_drafts_history_and_missing_targets_are_protected(): void
     {
         $this->login();
-        foreach ([ContractStatus::Active, ContractStatus::Terminated, ContractStatus::Expired] as $status) {
+        foreach ([ContractStatus::Terminated, ContractStatus::Expired] as $status) {
             $contract = Contract::factory()->create(['status' => $status]);
             $this->save($contract, [])->assertConflict();
         }
+        // Hợp đồng active dùng luồng thay đổi từ tháng sau, bắt buộc phiên bản đã đọc (ActiveContractServicesTest).
+        $active = Contract::factory()->active()->create();
+        $this->save($active, [])->assertUnprocessable()->assertJsonValidationErrors('expected_revision');
         $contract = Contract::factory()->create();
         $service = Service::factory()->create();
         $contract->contractServices()->create(['service_id' => $service->id, 'quantity' => 1, 'unit_price' => 50, 'start_date' => '2026-11-01']);
