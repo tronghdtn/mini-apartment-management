@@ -261,9 +261,13 @@ class ContractService
                     if ($service->billing_type === ServiceBillingType::PerRoom && (int) $input['quantity'] !== 1) {
                         throw ValidationException::withMessages(["services.$index.quantity" => 'Dịch vụ theo phòng phải có số lượng bằng 1.']);
                     }
-                    $unchanged = $line && bccomp((string) $line->quantity, (string) $input['quantity'], 2) === 0;
-                    if (! $unchanged && $service->status !== ServiceStatus::Active) {
-                        throw ValidationException::withMessages(["services.$index.service_id" => 'Dịch vụ đã ngừng hoạt động chỉ được giữ nguyên hoặc ngừng sử dụng.']);
+                    if ($service->status !== ServiceStatus::Active) {
+                        if (! $line) {
+                            throw ValidationException::withMessages(["services.$index.service_id" => 'Không được đăng ký mới dịch vụ đã ngừng hoạt động.']);
+                        }
+                        if (bccomp((string) $input['quantity'], (string) $line->quantity, 2) > 0) {
+                            throw ValidationException::withMessages(["services.$index.quantity" => 'Dịch vụ đã ngừng hoạt động chỉ được giữ nguyên, giảm số lượng hoặc ngừng sử dụng.']);
+                        }
                     }
                     if (! $line && ($service->price === null || $service->price < 0 || $service->price > 9007199254740991)) {
                         throw ValidationException::withMessages(["services.$index.service_id" => 'Dịch vụ chưa có đơn giá hợp lệ.']);

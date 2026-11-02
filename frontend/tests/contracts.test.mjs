@@ -104,3 +104,12 @@ test('bộ lọc hạn chỉ đi với tab tất cả hoặc đang hiệu lực'
   assert.equal(contractFiltersSchema.safeParse({ ...base, status: 'draft', due: 'overdue' }).success, false)
   assert.equal(contractFiltersSchema.safeParse({ ...base, due: 'late' }).success, false)
 })
+
+test('dịch vụ inactive cho giữ/giảm, chặn đăng ký mới hoặc tăng; active vẫn cho thay số lượng', async () => {
+  const { inactiveServiceQuantityError } = await import('../src/features/contracts/serviceChanges.ts')
+  for (const quantity of [1, 2]) assert.equal(inactiveServiceQuantityError('inactive', '2.00', quantity), undefined)
+  assert.match(inactiveServiceQuantityError('inactive', '2.00', 3), /giảm số lượng/)
+  assert.match(inactiveServiceQuantityError('inactive', undefined, 1), /đăng ký mới/)
+  for (const quantity of [1, 3, 99999999]) assert.equal(inactiveServiceQuantityError('active', '2.00', quantity), undefined)
+  assert.equal(inactiveServiceQuantityError('active', undefined, 1), undefined)
+})

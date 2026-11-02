@@ -135,6 +135,71 @@ class ActiveContractServicesTest extends TestCase
         $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 5]])->assertOk();
     }
 
+    public function test_inactive_service_can_decrease_next_month_with_snapshot_and_issued_items_unchanged(): void
+    {
+        $this->login();
+        [$contract, $cleaning] = $this->activeContract();
+        $invoice = Invoice::factory()->issued()->create(['contract_id' => $contract->id, 'period' => '2026-11-01', 'total_amount' => 80000]);
+        $item = $invoice->items()->create(['item_type' => 'service', 'description' => 'Phí đã phát hành', 'quantity' => '2.00',
+            'unit_price' => 40000, 'amount' => 80000]);
+        $oldInvoice = $invoice->fresh()->getRawOriginal();
+        $oldItem = $item->fresh()->getRawOriginal();
+        $cleaning->update(['status' => ServiceStatus::Inactive, 'price' => 99999]);
+
+        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 1]])->assertOk();
+
+        $lines = $contract->contractServices()->where('service_id', $cleaning->id)->orderBy('id')->get();
+        $this->assertCount(2, $lines);
+        $this->assertSame(['2.00', 40000, '2026-10-01', '2026-11-30'],
+            [$lines[0]->quantity, $lines[0]->unit_price, $lines[0]->start_date->format('Y-m-d'), $lines[0]->end_date->format('Y-m-d')]);
+        $this->assertSame(['1.00', 40000, '2026-12-01', null],
+            [$lines[1]->quantity, $lines[1]->unit_price, $lines[1]->start_date->format('Y-m-d'), $lines[1]->end_date]);
+        $this->assertSame($oldInvoice, $invoice->fresh()->getRawOriginal());
+        $this->assertSame($oldItem, $item->fresh()->getRawOriginal());
+    }
+
+    public function test_inactive_future_line_can_decrease_repeatedly_without_duplicating_history(): void
+    {
+        $this->login();
+        [$contract, $cleaning] = $this->activeContract();
+        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 4]])->assertOk();
+        $lines = $contract->contractServices()->where('service_id', $cleaning->id)->orderBy('id')->get();
+        $old = $lines[0]->getRawOriginal();
+        $future = $lines[1];
+        $cleaning->update(['status' => ServiceStatus::Inactive, 'price' => 99999]);
+        foreach ([3, 2] as $quantity) {
+            $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => $quantity]])->assertOk();
+            $this->assertSame($quantity.'.00', $future->fresh()->quantity);
+            $this->assertSame(40000, $future->fresh()->unit_price);
+            $this->assertSame($old, $lines[0]->fresh()->getRawOriginal());
+            $this->assertSame(2, $contract->contractServices()->where('service_id', $cleaning->id)->count());
+        }
+        $before = $this->lines($contract);
+        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 3]])->assertUnprocessable()
+            ->assertJsonValidationErrors('services.0.quantity');
+        $this->assertSame($before, $this->lines($contract));
+        $this->change($contract, [])->assertOk();
+        $this->assertDatabaseMissing('contract_services', ['id' => $future->id]);
+        $before = $this->lines($contract);
+        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 1]])->assertUnprocessable()
+            ->assertJsonValidationErrors('services.0.service_id');
+        $this->assertSame($before, $this->lines($contract));
+    }
+
+    public function test_invalid_inactive_quantity_rejects_entire_batch_before_adding_active_service(): void
+    {
+        $this->login();
+        [$contract, $cleaning, $wifi] = $this->activeContract();
+        $cleaning->update(['status' => ServiceStatus::Inactive]);
+        $before = $this->lines($contract);
+        $revision = $this->spa('GET', '/api/v1/contracts/'.$contract->id)->json('data.lifecycle_revision');
+        $this->change($contract, [['service_id' => $wifi->id, 'quantity' => 1], ['service_id' => $cleaning->id, 'quantity' => 3]], $revision)
+            ->assertUnprocessable()->assertJsonValidationErrors('services.1.quantity');
+        $this->assertSame($before, $this->lines($contract));
+        $this->assertSame($revision, $this->spa('GET', '/api/v1/contracts/'.$contract->id)->json('data.lifecycle_revision'));
+        $this->assertDatabaseMissing('contract_services', ['contract_id' => $contract->id, 'service_id' => $wifi->id]);
+    }
+
     public function test_stale_or_missing_revision_and_repeated_submission_are_rejected(): void
     {
         $this->login();
@@ -166,9 +231,9 @@ class ActiveContractServicesTest extends TestCase
             $this->change($contract, $services)->assertUnprocessable();
         }
         $this->assertSame($before, $this->lines($contract));
-        // Dịch vụ đang dùng đã ngừng hoạt động: được giữ nguyên hoặc ngừng, không được đổi số lượng.
+        // Dịch vụ inactive đang dùng: giữ/giảm/ngừng hợp lệ; tăng số lượng bị chặn ở trường số lượng.
         $cleaning->update(['status' => ServiceStatus::Inactive]);
-        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 3]])->assertUnprocessable()->assertJsonValidationErrors('services.0.service_id');
+        $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 3]])->assertUnprocessable()->assertJsonValidationErrors('services.0.quantity');
         $this->change($contract, [['service_id' => $cleaning->id, 'quantity' => 2]])->assertOk();
         $this->assertSame($before, $this->lines($contract));
         $this->change($contract, [])->assertOk();

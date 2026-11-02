@@ -8,6 +8,7 @@ import { apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
 import { businessToday, formatDate, formatVND } from '@/lib/format'
 import { getContractServiceOptions, saveDraftContractServices } from './api'
 import { draftContractServicesSchema } from './schemas'
+import { inactiveServiceQuantityError } from './serviceChanges'
 import type { DraftContractServicesInput } from './schemas'
 import { serviceChangeEffectiveDate, type Contract, type ContractBillingType, type ContractServiceOption } from './types'
 
@@ -39,6 +40,16 @@ function DraftServicesForm({ contract, options, onSaved, onReload, onBusy, effec
     inFlight.current = true
     try {
       await handleSubmit(async input => {
+        if (active) {
+          let invalid = false
+          input.services.forEach((value, index) => {
+            const option = merged.get(value.service_id)
+            const saved = savedLines.find(line => line.service_id === value.service_id)
+            const message = option && inactiveServiceQuantityError(option.status, saved?.quantity, value.quantity)
+            if (message) { setError(`services.${index}.quantity`, { message }); invalid = true }
+          })
+          if (invalid) return
+        }
         onBusy?.(true)
         setSuccess('')
         try {
@@ -55,7 +66,7 @@ function DraftServicesForm({ contract, options, onSaved, onReload, onBusy, effec
   return <form onSubmit={submit} noValidate aria-busy={isSubmitting} className="space-y-4 border-t border-slate-100 pt-5">
     {active && <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900">Áp dụng từ {formatDate(effective ?? '')} (tháng sau). Hóa đơn đã phát hành không thay đổi. Điện/Nước không đổi tại đây.</p>}
     <p className="text-xs text-slate-500">Đơn giá do hệ thống lấy từ danh mục khi thêm mới. Dòng đã lưu giữ nguyên giá; thay số người ở không tự đổi số lượng dịch vụ.</p>
-    <fieldset disabled={isSubmitting} className="space-y-3"><legend className="text-sm font-bold text-slate-800 mb-3">{active ? 'Dịch vụ định kỳ từ ngày áp dụng' : 'Chọn dịch vụ định kỳ cho bản nháp'}</legend>
+    <fieldset disabled={isSubmitting} className="min-w-0 space-y-3"><legend className="text-sm font-bold text-slate-800 mb-3">{active ? 'Dịch vụ định kỳ từ ngày áp dụng' : 'Chọn dịch vụ định kỳ cho bản nháp'}</legend>
       {selectable.length === 0 && <p className="text-sm text-slate-500">Chưa có dịch vụ định kỳ đang hoạt động để chọn.</p>}
       {selectable.map(option => {
         const index = values.findIndex(value => value.service_id === option.id)
@@ -66,11 +77,11 @@ function DraftServicesForm({ contract, options, onSaved, onReload, onBusy, effec
           <label className="flex items-start gap-3"><input type="checkbox" className="accent-sky-600 mt-1" checked={index >= 0}
             onChange={event => { setSuccess(''); if (event.target.checked) append({ service_id: option.id, quantity: option.billing_type === 'per_person' ? contract.occupant_count : 1 }); else remove(index) }} />
             <span className="min-w-0 text-sm"><span className="font-bold text-slate-800 break-words">{option.name}</span> <span className="text-slate-500">· {labels[option.billing_type]}</span>
-              {option.status === 'inactive' && <Badge tone="slate">{active ? 'Ngừng hoạt động — chỉ giữ nguyên hoặc ngừng' : 'Ngừng hoạt động — bỏ chọn trước khi lưu'}</Badge>}
+              {option.status === 'inactive' && <><Badge tone="slate">Ngừng hoạt động</Badge><span className="block text-xs text-slate-500 mt-1">{active ? 'Được giữ nguyên, giảm số lượng hoặc ngừng.' : 'Bỏ chọn trước khi lưu.'}</span></>}
               <span className="block text-xs text-slate-500 mt-1">{saved ? 'Giá đã lưu' : 'Giá danh mục'}: {price === null ? 'Chưa có giá' : formatVND(price)}{option.unit ? ` / ${option.unit}` : ''}</span></span>
           </label>
           {index >= 0 && <div className="sm:max-w-xs"><label htmlFor={`service-quantity-${option.id}`} className="text-xs font-semibold text-slate-600">Số lượng {option.name}</label>
-            <input key={fields[index]?.id} id={`service-quantity-${option.id}`} type="number" min={1} max={99999999} step={1} readOnly={option.billing_type === 'per_room'}
+            <input key={fields[index]?.id} id={`service-quantity-${option.id}`} type="number" min={1} max={active && option.status === 'inactive' && saved ? Number(saved.quantity) : 99999999} step={1} readOnly={option.billing_type === 'per_room'}
               aria-invalid={Boolean(fieldError?.quantity)} {...register(`services.${index}.quantity`, { valueAsNumber: true })}
               className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm read-only:bg-slate-50" />
             {fieldError?.quantity && <p role="alert" className="text-xs text-rose-700 mt-1">{fieldError.quantity.message}</p>}
