@@ -1394,3 +1394,23 @@ Ví dụ minh họa, thay37 bằng ID phòng đang mở: URL giao diện `/admin
 Câu hỏi bảo vệ: (1) F5 giữ bộ lọc nhờ đâu? URLSearchParams. (2) Tại sao không lọc20dòng bằngReact? Có thể bỏ sót dữ liệu nằm ở trang khác. (3) Đổi queryroom_id có xem nhầm phòng không? Panel lấy roomId từ route, Laravel vẫn bảo vệ quyền Admin. (4) Tại sao không parseFloat để tính tiền? Tiền do backend tính và snapshot; frontend chỉ format. (5) Lỗi503 khác danh sách rỗng thế nào? Lỗi có thông báo/Thử lại, rỗng chỉ khi GET thành công và data=[] thực.
 
 Frontend141test/build/lint đạt, HTTP/browser trên DBtest theo Plan§12.57; mobile375 đã xem ảnh, chưa thử Back/Forward hoặc mất mạng hệ điều hành. Không có API mới, không ghi dữ liệu dev.
+
+### 11.65. Tổng quan Cư dân RES-01 (03/11/2026)
+
+Chức năng: trang `/resident` hiện phòng đang thuê, cảnh báo hạn hợp đồng, tổng công nợ/số hóa đơn quá hạn (kể cả hợp đồng đã thanh lý), 3 yêu cầu sửa chữa gần đây, thông báo chưa đọc và giữ panel gửi chỉ số. Bảng: `contracts`, `rooms`, `buildings`, `invoices` (đọc), `settings` (số ngày cảnh báo), `maintenance_requests`, `notifications`.
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `frontend/src/pages/resident/ResidentOverviewPage.tsx:10` | Ghép các thẻ; `canCreate` của thẻ sửa chữa = có `active_contract` từ API. |
+| `frontend/src/features/resident-overview/useResidentOverview.ts:9` → `api.ts` | Gọi GET `/api/v1/resident/overview` qua `http` (cookie Sanctum), parse Zod `schemas.ts`; 401/403 gọi `refresh()`. |
+| `frontend/src/features/resident-overview/ResidentOverviewCards.tsx:7` / `:38` | Banner phòng/cảnh báo và thẻ Cần thanh toán; chỉ định dạng `formatVND(BigInt(...))`, không cộng tiền. |
+| `frontend/src/features/maintenance-requests/ResidentRecentRequestsCard.tsx:15` | GET `/maintenance-requests` trang 1, lấy 3 dòng đầu (Backend đã lọc theo user và sắp id giảm dần). |
+| `frontend/src/features/notifications/RecentUnreadNotificationsCard.tsx:13` | GET `/notifications?status=unread&page=1`; số chưa đọc là `unread_count` của Backend. |
+| `backend/routes/api.php:66` → `ResidentOverviewController.php:15` | Route + middleware `auth:sanctum`, `active`; trả Resource kèm `no-store`. |
+| `backend/app/Http/Requests/ResidentOverview/ResidentOverviewRequest.php:12` / `:22` | Gate `viewOwnContracts` (resident đang active); mọi query đều 422 nên không thể chọn `user_id`. |
+| `backend/app/Services/ResidentOverviewService.php:23` | Một transaction đọc: hợp đồng active; hóa đơn còn nợ của mọi hợp đồng (`withTrashed`) của user (`:33`); `Money::remaining`/`Money::aggregate` (`:38`, `:52`). |
+| `backend/app/Services/ContractService.php:89` — `dueWindow()` | Ngày VN và cửa sổ sắp hết hạn từ setting `contract.expiring_warning_days` (DB-D86). |
+
+Ví dụ minh họa: DevTools Network lọc `resident/overview` → status 200, `data.debt.outstanding_amount` là chuỗi như `"4128475"`. Thử thêm `?user_id=1` sẽ nhận 422. Muốn đổi số dòng sửa chữa: sửa `slice(0, 3)` trong thẻ; muốn đổi cách tính quá hạn: sửa Service (không sửa React).
+
+Câu hỏi bảo vệ: (1) Vì sao không cộng tiền ở React từ `/invoices`? Danh sách phân trang 20, cộng một trang sẽ thiếu; tiền do Backend tính. (2) Payment pending có giảm nợ không? Không, `paid_amount` chỉ cộng payment confirmed. (3) Cư dân đã thanh lý còn thấy nợ không? Có, truy vấn lấy mọi hợp đồng của user kể cả terminated/soft-delete. (4) Cư dân A xem được nợ của B không? Không; user lấy từ session, query lạ bị 422, role khác 403. (5) Ẩn nút gửi sửa chữa ở React có đủ an toàn không? Không, Backend `store` vẫn chặn khi không có hợp đồng active; nút chỉ là trải nghiệm.
