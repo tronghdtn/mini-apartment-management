@@ -1346,3 +1346,12 @@ Bằng chứng: full1439 test/14440 assertion/Pint358 PASS; frontend133/build/li
 
 
 **Lưu ý học từ lỗi giao diện:** `ContractServicesPanel.tsx:69` thêm min-w-0 cho fieldset (nhóm ô nhập), vì mặc định nó có thể ép nội dung rộng hơn hộp thoại. Badge tại:80 chỉ giữ nhãn trạng thái, lời giải thích đặt ở dòng cho phép xuống hàng. Đo documentWidth chưa đủ với hộp thoại fixed; cần đo scrollWidth/clientWidth của chính dialog và xem ảnh. Bằng chứng cuối:325test/3599assertion, frontend138,29HTTP/browser và giới hạn ở Plan§12.54; không phải fullsuite backend mới hoặc nghiệm thu ghi tiền dev.
+
+
+### 11.62. Tách thời gian request để điều tra PAY504 (02/11/2026)
+
+- **Mở code thật:** `backend/public/index.php` nạp `vendor/autoload.php`, tạo app từ `bootstrap/app.php`, rồi `handleRequest`. Cấu hình `docker/nginx/default.conf` chuyển API đến FPM và đợi60giây. Có504 không đồng nghĩa Laravel chưa ghi: Nginx có thể ngừng chờ trong lúc PHP còn xử lý. Source PAY và cách đọc lại kết quả vẫn theo§11.58.
+- **Tách khái niệm:** autoload là nạp lớp PHP; bootstrap là khởi tạo framework; handler xử lý route/middleware/controller; terminate là hậu xử lý. Client còn có thời gian chờ kết nối/hàng đợi trước khi PHP bắt đầu. Probe đo riêng chỉ trên testvhost, đã gỡ; không thêm endpoint debug công khai hoặc log dữ liệu cá nhân.
+- **Kết quả và giới hạn:**12GET200 cho thấy health lần lạnh chậm chủ yếu ở nạp/bootstrap, SQLhealth sau guard khoảng1ms. Chưa tái hiện timeout60giây hoặc chứng minh nguyên nhân31/10. Timer cũ đặt sau bootstrap bỏ sót giai đoạn này; đơn vị1.019mili giây là khoảng1,019giây. Không suy từ CLI chậm sang FPM vì CLI không bật OPcache (bộ nhớ giữ mã đã biên dịch) trong môi trường hiện tại. Không sửa cách tính tiền để xử lý lỗi proxy.
+
+**3 câu hỏi bảo vệ:** (1)504 là lỗi thanh toán chắc chắn thất bại? Không, đọc lại sổ payment/invoice thật trước khi gửi hay chuyển tiền lần nữa. (2)SQL chỉ1ms có chứng minh cả request nhanh? Không, còn nạp lớp/framework/session/queue/filesystem và thời gian trước PHP. (3)Vì sao không tăng timeout để nói đã sửa? Tăng thời gian chờ không giải thích nguyên nhân; cần đo đúng request chậm trước khi chọn bản vá. Biên bản riêng Plan§12.55, không gộp vào sửa dịch vụ.
