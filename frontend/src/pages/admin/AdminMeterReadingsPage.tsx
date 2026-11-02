@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 import { isAxiosError } from 'axios'
 import { Camera, FileText, Info, Layers, Plus, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -7,11 +7,11 @@ import { Modal } from '@/components/ui/Modal'
 import { useAuth } from '@/features/auth/useAuth'
 import { getMeterOptions, getMeterReadings } from '@/features/meter-readings/api'
 import { MeterReadingForm } from '@/features/meter-readings/MeterReadingForm'
+import { MeterReadingsTable } from '@/features/meter-readings/MeterReadingsTable'
 import { SubmissionList } from '@/features/meter-submissions/SubmissionList'
 import { meterFiltersSchema } from '@/features/meter-readings/schemas'
 import type { MeterOptions, MeterReading, MeterReadingPage } from '@/features/meter-readings/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
-import { formatDate, formatVND } from '@/lib/format'
 
 type MeterTab = 'list' | 'batch' | 'verify'
 export function AdminMeterReadingsPage() {
@@ -83,7 +83,7 @@ export function AdminMeterReadingsPage() {
         <label className="text-xs font-bold text-slate-700">Loại chỉ số<select value={kind} onChange={event => filter('kind', event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm"><option value="">Tất cả loại</option><option value="periodic">Định kỳ</option><option value="final">Chốt thanh lý</option></select></label>
       </fieldset>
       {loading ? <p role="status">Đang tải chỉ số điện nước…</p> : error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p>{error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại</Button>{queryError && <Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc không hợp lệ</Button>}</div> : data && <>
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white"><table className="w-full whitespace-nowrap text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr>{['Phòng / Tòa', 'Kỳ / Ngày đo', 'Dịch vụ', 'Chỉ số trước → mới', 'Tiêu thụ', 'Đơn giá', 'Thành tiền', 'Ghi nhận'].map(title => <th key={title} className="px-4 py-3">{title}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{!data.data.length ? <tr><td colSpan={8} className="p-8 text-center text-slate-500">Chưa có chỉ số trong phạm vi đã chọn.</td></tr> : data.data.map(reading => <tr key={reading.id}><td className="px-4 py-4"><Link className="font-bold text-sky-700" to={`/admin/rooms/${reading.room_id}`}>{reading.room.code}</Link><p className="text-xs text-slate-500">{reading.room.building_name}</p></td><td className="px-4 py-4">{formatDate(reading.period)}<p className="text-xs text-slate-500">{formatDate(reading.reading_date)}</p></td><td className="px-4 py-4">{reading.service.name}<p className="text-xs text-slate-500">{reading.service.unit}</p></td><td className="px-4 py-4 font-mono">{reading.previous_reading} → {reading.current_reading}</td><td className="px-4 py-4 font-mono">{reading.consumption}</td><td className="px-4 py-4">{formatVND(reading.unit_price)}</td><td className="px-4 py-4 font-bold text-sky-800">{formatVND(reading.amount)}</td><td className="px-4 py-4 text-xs"><p>{reading.kind === 'periodic' ? 'Định kỳ' : 'Chốt thanh lý'}</p>{reading.contract_id ? <Link className="text-sky-700 underline" to={`/admin/contracts/${reading.contract_id}`}>Hợp đồng #{reading.contract_id}</Link> : <span>Phòng trống</span>}<p className="text-slate-500">{reading.invoice_id ? `Hóa đơn #${reading.invoice_id}` : 'Chưa gắn hóa đơn'}</p></td></tr>)}</tbody></table></div>
+        <MeterReadingsTable readings={data.data} />
         <nav aria-label="Phân trang chỉ số" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"><p>Trang {data.meta.current_page}/{data.meta.last_page} · {data.meta.total} chỉ số</p><div className="flex gap-2"><Button variant="outline" disabled={busy || Number(page) <= 1} onClick={() => filter('page', String(Number(page) - 1))}>Trang trước</Button><Button variant="outline" disabled={busy || Number(page) >= data.meta.last_page} onClick={() => filter('page', String(Number(page) + 1))}>Trang sau</Button></div></nav>
       </>}
     </>}

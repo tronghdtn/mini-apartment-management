@@ -14,9 +14,13 @@ async function allOptions<T>(url: string, signal?: AbortSignal): Promise<T[]> {
 export async function getMeterOptions(signal?: AbortSignal): Promise<MeterOptions> {
   const [rooms, buildings, services] = await Promise.all([
     allOptions<MeterOptions['rooms'][number]>('/rooms', signal), allOptions<MeterOptions['buildings'][number]>('/buildings', signal),
-    allOptions<MeterOptions['services'][number] & { billing_type: string; status: string }>('/services', signal),
+    getMeterServiceOptions(signal),
   ])
-  return { rooms, buildings, services: services.filter(service => ['ELECTRICITY', 'WATER'].includes(service.code) && service.billing_type === 'metered' && service.status === 'active') }
+  return { rooms, buildings, services }
+}
+export async function getMeterServiceOptions(signal?: AbortSignal): Promise<MeterOptions['services']> {
+  const services = await allOptions<MeterOptions['services'][number] & { billing_type: string; status: string }>('/services', signal)
+  return services.filter(service => ['ELECTRICITY', 'WATER'].includes(service.code) && service.billing_type === 'metered' && service.status === 'active')
 }
 export async function getMeterReadings(input: MeterFilters, signal?: AbortSignal): Promise<MeterReadingPage> {
   const filters = meterFiltersSchema.parse(input)

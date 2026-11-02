@@ -1,6 +1,6 @@
 import { RoomPhotosPanel } from '@/features/room-photos/RoomPhotosPanel'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { isAxiosError } from 'axios'
 import { ChevronRight, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Tabs } from '@/components/ui/Tabs'
 import { RoomContractsPanel } from '@/features/contracts/RoomContractsPanel'
+import { RoomMeterReadingsPanel } from '@/features/meter-readings/RoomMeterReadingsPanel'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
 import { getRoom } from '@/features/room-management/api'
@@ -28,7 +29,11 @@ export function AdminRoomDetailPage() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
-  const [tab, setTab] = useState<'info' | 'contracts' | 'utilities' | 'maintenance' | 'appointments'>('info')
+  const [params, setParams] = useSearchParams()
+  const rawTab = params.get('tab') ?? 'info'
+  const validTab = ['info', 'contracts', 'utilities', 'maintenance', 'appointments'].includes(rawTab)
+  const tab = validTab ? rawTab : 'info'
+  const setTab = (value: string) => setParams(current => { const next = new URLSearchParams(current); next.set('tab', value); return next })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,6 +69,7 @@ export function AdminRoomDetailPage() {
         </div>
         <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
       </div>
+      {!validTab && <p role="alert" className="text-sm text-rose-700">Tab không hợp lệ. Đang hiển thị thông tin phòng.</p>}
       <Tabs tabs={[{ id: 'info', label: 'Thông tin phòng' }, { id: 'contracts', label: 'Hợp đồng' }, { id: 'utilities', label: 'Điện nước' }, { id: 'maintenance', label: 'Sửa chữa' }, { id: 'appointments', label: 'Lịch xem phòng' }]} activeTab={tab} onChange={setTab} />
       <div hidden={tab !== 'info'} className="space-y-6"><section className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-5">
         <h2 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h2>
@@ -80,7 +86,8 @@ export function AdminRoomDetailPage() {
       <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. </p></div>
       {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
       {tab === 'maintenance' && <MaintenanceRequestList audience="admin" roomId={room.id} />}
-      {['utilities', 'appointments'].includes(tab) && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">{tab === 'utilities' ? 'Chỉ số điện nước' : 'Lịch xem phòng'}</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
+      {tab === 'utilities' && <RoomMeterReadingsPanel key={room.id} roomId={room.id} />}
+      {tab === 'appointments' && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">Lịch xem phòng</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
       <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
         <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
       </Modal>
