@@ -261,3 +261,7 @@ Chủ dự án duyệt lát cắt Dashboard Admin4thẻ và GET /api/v1/dashboar
 ### DB-D84 / CTR-API-2 — CONFIRMED 02/11/2026
 
 Chủ dự án duyệt lát cắt Người ở cùng: giữ `occupant_count` nhập riêng (đã gồm người đại diện), chỉ cảnh báo khi khác `1 + số hồ sơ người ở cùng`; không tự đồng bộ số người, số lượng dịch vụ hoặc hóa đơn. Admin active thêm/sửa/gỡ danh sách **chỉ trên hợp đồng nháp** qua API riêng; hợp đồng hiệu lực/đã thanh lý chỉ đọc. Kiểm tra sức chứa phòng vẫn bắt buộc. Dùng `contract_occupants` hiện có, không đổi schema, không ghi dữ liệu dev. Các hợp đồng cũ không được tự điền/xóa hồ sơ hoặc sửa số người. API/AC tại brief §45; không phê duyệt xác nhận chi hoàn cọc hoặc các diễn giải tài chính còn mở ở §44.
+
+
+### DB-D85 / CTR-API-4 — CONFIRMED 02/11/2026
+Chủ dự án duyệt gói brief§46: Admin xác nhận đã hoàn **đủ một lần** tiền cọc ngoài hệ thống; thêm contracts.deposit_refunded_at (TIMESTAMP NULL) và deposit_refunded_by (BIGINT UNSIGNED NULL FK users RESTRICT), POST xác nhận có revision/đối chiếu số tiền/ack, tích hợp panel hiện có. Không hoàn từng phần, hủy xác nhận, chuyển tiền thật, payment hoàn giả hoặc thay đổi invoice/room. Bổ sung D78, không xóa nghĩa vụ lịch sử deposit_refund_amount hoặc đổi ý nghĩa deposit_settled_at; số còn phải hoàn do server suy từ audit. Hai trường cũ giữ NULL, không backfill giả; rollback dừng nếu đã có dấu vết. Chỉ chuẩn bị ALTER mới và kiểm thử DBtest; **chưa duyệt migration dev**. Phạm vi quyền Admin/active/CSRF giữ hiện hành, không mở Resident/Staff.

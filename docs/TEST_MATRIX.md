@@ -498,3 +498,30 @@ Phạm vi: sửa lỗi kỹ thuật trên biểu mẫu PAY đã duyệt, không 
 8nhóm browser: proof100k sau commit504; proof20k trướchandler503; cash200k saucommit504; confirm100k saucommit504; reject50k saucommit504; reloadbutton/close đọc lại; F5ledger300k/700k/3row/2RCP; mobile390 không tràn. Form submit disabled và sourceflightguard được xác minh; thử Enter lên form không focusable lỗi công cụ nên không tính PASSkeyboard-bypass. 15assertionHTTPnghiệp vụ+8quyền,10GETlatency riêng; sandboxEACCES lượt đầu không tính là lỗiserver. Console document cuối0error;503/504 được tạo có kiểm soát, không gọi toàn lượt không có lỗi.
 
 Frontend135/build/lintPASS (0lỗi/9cảnh báo cũ); backend hồi quy18/237PASS, không đổi PHP và không fullsuite mới,1439/14440/Pint358 vẫn lịch sử. Source checkpoint90ea3d7. Test-vhost khôi phục đúng bytes, gateway/control ignored đã gỡ; testpair stopped/tabriêngđóng/viewportreset/RUNfalse. Không devwrite/migrationdev/push. Chưa OSoffline/TCPdrop thật/Adminthậtdev cho recovery; không coi lỗi gốc60s đã sửa. Bằng chứng/gateway fixture nằm trong artifacts ignored backups/pay-recovery-qa-20261102/; không Git cookie/credentials/logs.
+
+## REFUND — xác nhận hoàn đủ cọc (DB-D85/brief§46,02/11/2026, đã kiểm thử theo phạm vi)
+
+Môi trường ghi duy nhất mysql_test/mini_apartment_test với tài khoản riêng; RUNfalse, không migrate dev. CUA tuần tự trên một tab riêng, laneAPI/nguồn tách; không tác nhân cùng sửa file. Scope một lần hoàn đủ, không chuyển tiền hoặc payment hoàn giả.
+
+| ID/mức | Ca kiểm thử | Kết quả cần có |
+|---|---|---|
+| RF-01 P0 | Migration up với dữ liệu cũ/down chưa audit/down có audit/FK | CộtNULL, dữ liệu nguyên; không tự xóa dấu vết khirollback; reviewerFKRESTRICT |
+| RF-02 P0 | Admin xác nhận đúng khoản đã terminated+settled |200, chỉauditcontract/updated_at; nghĩa vụgốc giữ, outstanding0; invoice/payment/room/notice nguyên |
+| RF-03 P0 | Lặp/hai Admin cùngrevision/đãxácnhận |200 cùngactor/time, một dấu vết; không trảphòng/tấttoán lại |
+| RF-04 P0 | Sai tiền/stale/fieldcấm/0/âm/thập phân/Boolean/thiếuack |409/422, không audit dởdang |
+| RF-05 P0 | Guest4rolekhác/lockedCSRF/actorđổiquyền/xóa mềm/missing |401/403/419/404; server kiểm lại quyền |
+| RF-06 P0 | Active/draft/expired/cọc0/hếtcọc/ledger/auditlệch/SQLrollback |409/500 an toàn, không giả đã hoàn hoặc mất lịch sử |
+| RF-07 P0 | DB chưa 2cột | Preview/terminate cũ vẫn200, không trường xác nhận/nút mới; POSTrefund503 |
+| RF-08 P1 | Browserthêmcheckbox/hủy/doubleclick/F5/mobile/readonlypaid | Chỉ1POST; dữliệu API thật, hiện đúngactor/time, khôngfrontmath |
+| RF-09 P0 |409/503 trướcghi/mấtresponse saucommit | Form cũ đóng, buộc đọc lại snapshot; không chi lại vì lỗi; replay không đổi audit |
+| RF-10 P0 | Cleanup/dev/private/source | Đúngrun/IDs/schema restored/FK1/devdenied1142; devdata/history/metadata và tệp private cũ nguyên |
+| RF-11 P1 | Revision trả sau terminate/confirm so với GET | Token dùng tiếp được khi dữ liệu không đổi, không409 giả do default DB chưa hydrate |
+
+
+**RF kết quả mới:** full1452test/14615assertion PASS(720.15s,exit0), Pint364PASS, frontend137test/build/lintPASS(0lỗi/9cảnh báo cũ). Thêm13testbackend và2testNode. RF01/02/03/04/05/06/07/11 cóFeature/schema/process; RF08/09 browserđạt theo10nhóm bên dưới, RF10postflightđạt. Hai caRF11/race từngđỏ doModelRAM chưa hydrate mặc định payment/generated keys hợp đồng; đã giữ regression, refresh và kiểm lại2/26PASS trước full, không đổi số tiền hoặc hạ assertion.
+
+35HTTPcheck:10input422,9quyền/CSRF,9preview/sai tiền/stale/zero/2Adminrace,7replay/finalinvoice/payment. RaceHTTP200/200 cùngactor/time, không đếm thànhraceprocesshoặcbrowser.10nhómbrowser: nghĩa vụ thật2,1triệu;khôngtick;cancel;doubleclick1POST200;F5paid+ẩnbutton;503beforekhôngaudit;504aftercommitcóaudit/reloadđúng/khôngresend;mobile390modal390=scroll390/trang382=scroll382;zero;active. Snapshot3confirmed(normal/fault/race),zero/activeNULL; tiền/phòng/dịch vụ/notice/contractngoàiaudit nguyên. Legacythiếucột kiểmFeature+Node, không tuyên bố đã thửgỡschema trongbrowser có dữliệu. Console documentcuối0error, lỗi503/504 đượcchủđộngtạo; chưa OSoffline/TCPdrop thực/Adminthậtdev. Hình refund-paid-desktop.png đã xem; hình mobilepaid chỉ chụp đầu panel, không lấy đó làm bằng chứng banner đã hoàn.
+
+Guard ghi nhận rõ: usershash đầu đổi do CLIbcrypt12→FPMtest4; providerprobe chỉpassword/updated_at, plaintext và11danh tính/role/statuskhớp. Giữ baselinegốc và capture sauauth có lýdo, strictguard cácbảng khác không bỏ; không nói mọibyteusers nguyên từ lúcseed. Helpercleanup kiểmMAINTabsent gâySQLerrortrướcxóa, đãsửa hasTable+catchThrowableexit1 rồicleanupđạt; không thêm MAINT để tránhlỗi. Banđầu anonymousnoCSRF419 làharness, ca401cuốicóCSRFđạt. Artifacts ignored backups/refund-qa-20261102/ chứa cảlượt lỗi và lượtchốt, khôngGitsecrets/cookie/log.
+
+RunREFUNDQA-a07613802a11user/5contract/5room/5building/2service; trạngtháiactive banđầu factory, final/terminate thực, không coi đãtestlại toànbộ wizard tạo/kíchhoạt. Exactcleanup/sessiondelta/sixpendingrestored/refund2columnsgỡ; test0data/FK1/devdenied1142. Devsnapshotidentity/metadata/data/history nguyênvẹn29bảng/29migration; privatebaseline1file nguyênpath+hash. Testproxybytesrestored/gatewaycontrolgỡ/testpairstopped/tabđóng/viewportreset/RUNfalse. Sourcecheckpoint32cab18. Migrationdev chưađượcduyệt/chạy, PAY504gốc và quy tắc dịch vụ§44 vẫn mở; không push.

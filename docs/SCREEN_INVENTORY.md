@@ -305,3 +305,8 @@ ADM-13 thêm tab Người ở cùng giữ ?tab=occupants, không màn mới/side
 ### PAY-04 — phục hồi phản hồi thanh toán (02/11/2026,Plan§12.51)
 
 Các biểu mẫu thanh toán trong chi tiết hóa đơn Admin/Resident và ADM-18 đối soát giữ giao diện hiện có. Sau lỗi mạng/5xx/kết quả chưa rõ, khóa submit và cho tải lại hóa đơn/lịch sử; đóng modal cũng đọc lại. Nhãn reload trung tính, không thông báo giả đã thu tiền. Không màn/API/schema/quyền mới, không thay đổi số màn đã tích hợp. BrowserDBtest đã kiểm proof/cash/confirm/reject saucommit504,503trướchandler,reload/F5/mobile390; ledger cuối300kđãtrả/700knợ/2RCP/1rejected. Frontend135/build/lintPASS, backend hồi quy18/237; code90ea3d7. Chưa OSoffline/TCPdrop/Adminthậtdev và chưa khép căn nguyên PAY504; không suy toàn FullMVP/UI hoàn thiện từ lượt này.
+
+
+### CTR-API-4 — xác nhận hoàn đủ cọc (DB-D85,02/11/2026;Plan§12.52)
+
+ADM-14 tái dùng panel đối soát trên trang Bàn giao/thanh lý: hợp đồng terminated còn cọc dư có nút Ghi nhận đã hoàn đủ cọc, modal checkbox và snapshot tiền; hoàn đủ một lần bên ngoài, không chuyển khoản thật. Sau ghi hiện số gốc/người/thời điểm và số còn phải hoàn0, bỏ nút. Cọc0/active không có thao tác; môi trường thiếu2cột giữ luồng cũ và báo tính năng chưa sẵn sàng, không màn hoặc sidebar mới.10tìnhhuốngbrowser DBtest gồm validation/cancel/doubleclick/F5/503trướcghi/504saucommit/reload/mobile390/zero/active;35HTTP có1race2phiên,1race2process riêng. Full1452/14615/Pint364, frontend137/build/lintPASS(9cảnh báo cũ), code32cab18. Không tăng tổng sốmàn/tỷlệ hoàn thiện từ thêm một nút; devchưa migration, chưa thao tác Adminthậtdev/OSoffline/TCPdrop hoặc hoàn từng phần/hủy audit.
