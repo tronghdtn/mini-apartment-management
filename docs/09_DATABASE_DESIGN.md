@@ -179,7 +179,7 @@ Index `(attachable_type,attachable_id,collection)`. Polymorphic không có FK SQ
 | `deposit_paid_at` | TIMESTAMP | NULL; cọc>0 phải được xác nhận thực nhận đủ (`held` + thời điểm thu) trước kích hoạt; cọc0 không cần thu (DB-D62) |
 | `deposit_deducted_amount`, `deposit_refund_amount` | BIGINT UNSIGNED | NN, DEF 0; khấu trừ vào hóa đơn / nghĩa vụ cọc dư tại thanh lý; dấu vết đã chi và số còn phải hoàn theo DB-D85, không xóa số gốc (DB-D78/85) |
 | `deposit_settled_at` | TIMESTAMP | NULL; hoàn tất đối soát cọc, không xác nhận đã hoàn tiền (DB-D78) |
-| `deposit_refunded_at` | TIMESTAMP | NULL; server ghi khi Admin xác nhận đã hoàn đủ cọc ngoài hệ thống (DB-D85); pending, chưa áp dụng dev |
+| `deposit_refunded_at` | TIMESTAMP | NULL; server ghi khi Admin xác nhận đã hoàn đủ cọc ngoài hệ thống (DB-D85); đã áp dụng riêng dev02/11 theo phê duyệt vận hành, DBplan§23 |
 | `deposit_refunded_by` | BIGINT UNSIGNED | NULL, FK→users.id RESTRICT; Admin xác nhận lần đầu, giữ nguyên khi gọi lặp (DB-D85) |
 | `inspection_result` | VARCHAR(20) | NULL; `no_damage` / `damaged` (DB-D67); bắt buộc trước khi thanh lý (DB-D49) |
 | `inspected_by` | BIGINT UNSIGNED | NULL, FK → users.id, RESTRICT; chỉ Backend gán Admin đã xác thực |

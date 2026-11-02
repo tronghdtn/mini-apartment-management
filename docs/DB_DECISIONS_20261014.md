@@ -264,4 +264,6 @@ Chủ dự án duyệt lát cắt Người ở cùng: giữ `occupant_count` nh�
 
 
 ### DB-D85 / CTR-API-4 — CONFIRMED 02/11/2026
+**Cập nhật vận hành sau quyết định:** chủ dự án duyệt riêng1migrationdev; đã áp dụng02/11 sau backup/restore/diễn tập/pretend đạt, dev29bảng/30migration, dữ liệu cũ nguyên vẹn (DBplan§23, Plan§12.53). Nội dung “chưa duyệt migration dev” trong biên bản phê duyệt code ban đầu dưới đây là trạng thái lịch sử, không phải blocker hiện hành. Không mở rộng nghiệp vụ hoặc quyền cho migration tương lai.
+
 Chủ dự án duyệt gói brief§46: Admin xác nhận đã hoàn **đủ một lần** tiền cọc ngoài hệ thống; thêm contracts.deposit_refunded_at (TIMESTAMP NULL) và deposit_refunded_by (BIGINT UNSIGNED NULL FK users RESTRICT), POST xác nhận có revision/đối chiếu số tiền/ack, tích hợp panel hiện có. Không hoàn từng phần, hủy xác nhận, chuyển tiền thật, payment hoàn giả hoặc thay đổi invoice/room. Bổ sung D78, không xóa nghĩa vụ lịch sử deposit_refund_amount hoặc đổi ý nghĩa deposit_settled_at; số còn phải hoàn do server suy từ audit. Hai trường cũ giữ NULL, không backfill giả; rollback dừng nếu đã có dấu vết. Chỉ chuẩn bị ALTER mới và kiểm thử DBtest; **chưa duyệt migration dev**. Phạm vi quyền Admin/active/CSRF giữ hiện hành, không mở Resident/Staff.
