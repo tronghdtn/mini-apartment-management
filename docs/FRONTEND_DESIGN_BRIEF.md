@@ -1137,7 +1137,7 @@ Theo yêu cầu trực tiếp của chủ dự án, dựa trên brief ADM-11/ADM
 
 **Business Rules bổ sung:** BR-CTR-10 = cửa sổ sắp hết hạn nêu trên; BR-SVC-05 = giữ đơn giá khi đổi lượng; BR-SVC-06 = hạn chế dịch vụ inactive nêu trên. BR-SVC-04 cũ tính trọn tháng đã bị thay bởi DB-D09, không phục hồi. AC: active tăng/giảm hợp lệ; inactive giữ/giảm/ngừng hợp lệ, thêm mới/tăng bị422 không ghi dở dang; lịch sử/giá và invoice_items đã phát hành giữ nguyên; sửa tiếp dòng kỳ sau chưa hiệu lực không tạo lịch sử thừa; stale409/CSRF/phân quyền; hai biên sắp hết hạn và timezone; frontend hiển thị/giới hạn số lượng đúng.
 
-**Còn mở, không tự duyệt:** chính sách chặn khi có hóa đơn kỳ áp dụng giữ hành vi hiện có nhưng chưa có phê duyệt mới trong DB-D86; xử lý dòng dịch vụ tương lai khi thanh lý trước ngày hiệu lực đang chờ quyết định riêng. Người ở cùng DB-D84 và hoàn cọc DB-D85 đã triển khai, migration hoàn cọc dev đã được duyệt riêng và áp dụng (DBplan§23/Plan§12.53).
+**Còn mở, không tự duyệt:** chính sách chặn khi có hóa đơn kỳ áp dụng giữ hành vi hiện có nhưng chưa có phê duyệt mới trong DB-D86; xử lý dòng dịch vụ kỳ sau khi thanh lý đã được duyệt riêng DB-D87 tại§47. Người ở cùng DB-D84 và hoàn cọc DB-D85 đã triển khai, migration hoàn cọc dev đã được duyệt riêng và áp dụng (DBplan§23/Plan§12.53).
 
 ## 45. CTR-API-2 — Người ở cùng (DB-D84, duyệt 02/11/2026)
 
@@ -1167,3 +1167,21 @@ Chủ dự án đã chọn “Duyệt hoàn đủ một lần (đề xuất)” 
 - AC: quyền/CSRF/locked; terminated+settled+refund>0; sai tiền/revision/field cấm; xác nhận/replay/concurrency hai Admin giữ đúng một actor/time; rollback SQL; lịch sử không backfill; invoice/payment/room bất biến; schema thiếu503; migration up/down có guard; React cảnh báo trước ghi và phục hồi sau mất response; ghi/test chỉ DBtest. Nâng cấp dev cần backup/restore/pretend và duyệt riêng sau code/test.
 
 Tương thích kỹ thuật: nếu hai cột chưa tồn tại, GET settlement-preview giữ response cũ (không ba trường xác nhận mới), UI không hiện thao tác xác nhận; POST mới trả503 trước khi ghi. Khi đủ schema, trả cả ba trường kể cả NULL/0; revision bao gồm trạng thái này. refund_recording giữ phân loại nghĩa vụ ban đầu theo D78, không phải trạng thái đã chi; trạng thái hiện tại dựa trên thời điểm/người xác nhận và refund_outstanding_amount.
+
+
+## 47. CLOSE-SVC — dòng dịch vụ kỳ sau khi thanh lý (DB-D87, CONFIRMED 02/11/2026)
+
+Chủ dự án duyệt bỏ riêng dòng dịch vụ định kỳ chưa từng có hiệu lực và chưa được bất kỳ hóa đơn nào tham chiếu. Phạm vi là dòng thêm/thay cho kỳ sau: start_date sau ngày bắt đầu hợp đồng và từ ngày bàn giao trở đi. Ngày bàn giao không thuộc ngày ở của hợp đồng cũ (DB-D32), nên dòng kỳ sau bắt đầu đúng ngày bàn giao cũng chưa có ngày sử dụng. Giữ nguyên các dòng gốc lúc kích hoạt, Điện/Nước và lịch sử đã sử dụng; không dọn lại hợp đồng đã thanh lý hoặc dữ liệu dev cũ.
+
+Trước POSTterminate, kiểm lại nguồn trong transaction/khóa cha hiện có. Nếu invoice_items.meta.contract_service_id của bất kỳ hóa đơn nào (kể cả nháp/đã hủy) tham chiếu dòng cần bỏ thì chặn409, không thanh lý hoặc ghi cọc/phòng dở dang. GETsettlement-preview dùng blockers/can_terminate hiện có để nêu nguyên nhân, không thêm route/trườngJSON. Nếu không có tham chiếu thì chỉ xóa đúng dòng kỳ sau đó; dòng đã phát sinh vẫn đóng theo DB-D32. Sau khi bỏ dòng, response/revision và GETđọc lại phải khớp dữ liệu thực; gọi lặp/tranh chấp không khấu trừ cọc hay xóa lịch sử thêm lần nữa.
+
+Không thay số tiền/tính chia ngày/PAY/refund/nghiệp vụ hóa đơn khác; không schema/migration/devwrite. Frontend dùng panel đối soát hiện có, Backend quyết định quyền/trạng thái. AC: trước/ngay ngày hiệu lực; giữ dòng gốc trả cùng ngày/metered/lịch sử; chặn mọi trạng thái hóa đơn và cả tham chiếu khác hợp đồng; nguồn thay sau preview phải kiểm lại; lỗiDB rollback toàn bộ; stale/role/CSRF/pending/replay/race và revision sau xóa. Schema và mọi ghi nghiệm thu chỉ trên DBtest đã guard.
+
+
+## 48. ROOM-03b — nối tab Điện nước ADM-05 bằng API đã có
+
+Lát cắt tích hợp từ yêu cầu MVP ADM-05 và MTR§30, không thêm nghiệp vụ/API/schema. Tab Điện nước chỉ đọc GET `/api/v1/meter-readings?room_id=<phòng đang mở>&service_id=&period=&kind=&page=` theo API đã duyệt. Hiển thị lịch sử/loại/ngày/chỉ số/tiêu thụ/giá/thành tiền/hợp đồng hoặc phòng trống/hóa đơn; dùng dữ liệu server, không tự tính tiền. Lọc Điện/Nước, kỳngày01, loại periodic/final;20dòng/trang theo API, không lọc một trang tạiReact. Catalog dịch vụ lấy GETservices phân trang có sẵn, không đoán ID. Tái dùng bảng lịch sử MTR hiện có; liên kết tới trang nhập/quản lý chỉ số hiện có, không tạo biểu mẫu ghi hoặc màn mới.
+
+Giữ skin Antigravity, bảng cuộn trong khung. Tab và bộ lọc/phân trang lưu trênURL để F5 giữ; đổi lọc về trang1. room_id luôn theo phòng đang mở, không lấy room_id khác từ query phụ; việc này để dữ liệu đúng ngữ cảnh, không thay PolicyAdmin của Backend. Abort request khi đổi phòng/lọc, không hiện kết quả phòng cũ sau response muộn. Loading/lỗi/retry/rỗng có phân biệt;401/403 theo cơ chế Auth hiện có; query sai báo lỗi và cho xóa bộ lọc, không giả dữ liệu rỗng. Tab Lịch xem vẫn chưa nối vì API hiện chưa nhận room_id, không lấy tất cả rồi lọc một trang.
+
+AC: chỉ đúng phòng và đủ trang; lọc kỳ/dịch vụ/loại; querysai/F5/back/chuyểnphòng/empty/lỗi/retry; link hợp đồng/hóa đơn đúngid; mobile không tràn cả trang. Không route/JSON/quyền mới, không migration hoặc ghi dev. Nghiệm thu có ghi fixture chỉ DBtest sauguard; phần tiếp nhận nhómMTR đã có không thiết kế lại.

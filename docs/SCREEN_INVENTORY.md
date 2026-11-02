@@ -317,3 +317,9 @@ ADM-14 tái dùng panel đối soát trên trang Bàn giao/thanh lý: hợp đ�
 
 ### CTR-API-3b — ADM-13 dịch vụ inactive (DB-D86,02/11/2026)
 Modal hiện có cho giữ/giảm/ngừng inactive, chặn tăng trướcPUT và vẫn kiểmBackend; giá snapshot/kỳ sau/hóa đơn cũ giữ nguyên. Badge chỉ nhãn, lời giải thích xuống dòng; fieldsetmin-w-0 sửa tràn375px phát hiện qua ảnh thật (không thay Modal/Badge dùng chung). Dialogclient=scroll334/fieldset286, ảnh inactive-mobile-fixed.png đã xem; frontend138/build/lintPASS,29HTTP/7nhóm browser và kiểm lại bảnmobile cuối, backend325/3599/Pint2file. Code3533a56, Plan§12.54/học tập§11.61. Chưa Adminthậtdev/OSoffline/TCPdrop hoặc toànUI; không tăng sốmàn hoàn chỉnh từ việc thêm validation. Dev29bảng/30migration/data/history toàn bộ nguyên vẹn, không schema/devwrite/PAYcode.
+
+### CLOSE-SVC / ROOM-MTR — cập nhật 02/11/2026
+
+- **ADM-14:** panel đối soát hiện có hiển thị blocker từ Laravel và khóa nút khi dịch vụ tương lai đã được hóa đơn tham chiếu. Dòng chưa sử dụng, không có tham chiếu được bỏ trong transaction thanh lý. Browser xác nhận/F5/bấm hai lần chỉ1POST200; không thêm màn hình hoặc thao tác hoàn tiền.
+- **ADM-05:** tab Điện nước đã đọc API thật theo phòng, lọc dịch vụ/kỳ/loại, phân trang20dòng, giữ URL khi F5. Bảng cuộn trong khung ở375px; có loading/rỗng/URLsai/503 và thử lại. ADM-07 tái dùng cùng bảng, đã smoke20dòng. Tab Lịch xem còn placeholder vì API chưa nhận room_id; không lọc một trang bằngReact.
+- Code e3c3030/25ae0db; full1469/14836/Pint365, frontend141/build/lint0lỗi9cảnh báo cũ; bằng chứng và giới hạn Plan§12.56–57. Không tăng số màn hoàn chỉnh từ hai lát cắt; chưa Admin thậtdev/BackForward/OSoffline/TCPdrop. DB dev không thay đổi.

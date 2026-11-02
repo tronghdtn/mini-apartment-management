@@ -271,3 +271,7 @@ Chủ dự án duyệt gói brief§46: Admin xác nhận đã hoàn **đủ mộ
 
 ### DB-D86 / CTR-API-3b — CONFIRMED 02/11/2026
 Chủ dự án duyệt: cửa sổ sắp hết hạn inclusive `0 <= end_date - today <= warning_days`, chỉ active, không tự đổi trạng thái; thay số lượng cùng dịch vụ giữ unit_price snapshot, áp dụng từ kỳ sau; dịch vụ inactive không đăng ký mới/không tăng, dòng đã đăng ký được giữ nguyên/giảm/ngừng. Không sửa invoice_items đã phát hành. Đã làm rõ và chọn A: tháng nhận/trả phòng vẫn chia theo ngày ở theo DB-D09/32/43, không đổi cách tính tiền hay luồng thanh toán. Nháp giữ quy tắc cũ; không schema/route mới hoặc quyền ghi dev. Nghiệp vụ nguồn tại brief§44, BR-CTR-10/BR-SVC-05/06. Chưa duyệt xử lý dòng tương lai khi thanh lý hoặc chính sách hóa đơn kỳ áp dụng ngoài hành vi hiện có; không suy phê duyệt các điểm này từ lần cập nhật.
+
+
+### DB-D87 / CLOSE-SVC — CONFIRMED 02/11/2026
+Chủ dự án trả lời “Duyệt bỏ dòng tương lai chưa phát sinh”: khi thanh lý trước hiệu lực dịch vụ kỳ sau, chỉ bỏ dòng chưa sử dụng và không invoice nào tham chiếu; có tham chiếu thì409, không tự xóa. Giữ mọi lịch sử đã phát sinh, không schema hoặc ghi dev. Chi tiết ranh giới DB-D32/giữ dòng gốc và Điện-Nước, kiểm meta mọi trạng thái hóa đơn, transaction/replay/revision và AC tại brief§47. Đây không phải quyền xóa lịch sử hoặc chạy thao tác dọn dữ liệu dev. Chính sách chặn đổi dịch vụ khi đã có hóa đơn kỳ áp dụng vẫn chờ quyết định riêng; DB-D86 không đổi.

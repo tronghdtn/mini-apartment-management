@@ -228,6 +228,8 @@ Index `(contract_id,service_id,start_date,end_date)`. Không chồng lấn kho�
 
 **DB-D86 / BR-SVC-05/06 (02/11):** đổi số lượng giữ đơn giá đã chụp, áp dụng kỳ tiếp theo. Dịch vụ inactive không đăng ký mới hoặc tăng; đăng ký đã có được giữ/giảm/ngừng. Tháng nhận/trả phòng tiếp tục chia theo ngày theo DB-D09/32/43; không phục hồi BR-SVC-04 cũ. Không sửa cấu trúc bảng hoặc hóa đơn đã phát hành.
 
+**DB-D87 / BR-SVC-07:** thanh lý chỉ bỏ đăng ký định kỳ kỳ sau chưa sử dụng (start_date sau ngày bắt đầu hợp đồng, từ ngày bàn giao trở đi), không có invoice_items.meta.contract_service_id nào tham chiếu. Có tham chiếu ở bất kỳ invoice/status nào thì409; giữ dòng gốc kích hoạt, metered và lịch sử đã phát sinh. Không thêm cột/constraint/migration; khóa cha và kiểm lại ở Service.
+
 ### 3.12 `utility_prices` (timestamps)
 
 **U1 / DB-D63 — thiết kế chuyển đổi đã duyệt chỉ để chuẩn bị/test:** thêm `building_id BIGINT UNSIGNED NOT NULL`, FK → buildings.id RESTRICT; thay UNIQUE chung bằng `(building_id,service_id,effective_from)`, bổ sung index riêng `service_id` để tiếp tục đỡ FK khi bỏ UNIQUE cũ. Giữ nguyên giá/ngày/timestamps lịch sử, sao chép cho các tòa đang có; tòa mới không tự thừa hưởng giá. File nằm trong `database/migrations/pending/`, không tự chạy bởi migrate mặc định; API và schema dev hiện hành vẫn theo baseline bên dưới cho đến khi chuyển đổi được duyệt/triển khai riêng. Không thay snapshot điện nước hoặc tiền của hóa đơn đã phát hành.

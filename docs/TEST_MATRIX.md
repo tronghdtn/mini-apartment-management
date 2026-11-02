@@ -545,3 +545,20 @@ PAY504 là nhóm đo độc lập; không tạo fault injection/thay luồng tha
 
 
 **PAY-C07 / PAY-05 cập nhật độc lập02/11:** loggốc public-test chứng minh POST~63,8s/FPM201/Nginx504header60s, CSRF~45,1s/client499. Đo mới12GET (6health/6native) đều200: health1,634–5,785giây, bootstrap1,015–4,008giây, sau guardSQL1query0,47–1,33ms; không tái hiện60s/504. Probe đo từPHPentry, có overhead guard và chưa đo queue trướcPHP; đã gỡ/khôi phụcproxybytes. Các số cũ1.019–7.371ms là1.019–7.371mili giây (khoảng1,0–7,4giây), không khẳng định là1–7ms. PAY-05a/b đã khảo sát/đo, PAY-05c vẫn mở; không sửa PAYcode/timeout hoặc ghép với DB-D86. Chi tiết/giới hạn Plan§12.55; artifactspay-runtime riêng, không Git.
+
+## CLOSE-SVC / ROOM-MTR — ca nghiệm thu 02/11/2026
+
+| ID | Tình huống | Bằng chứng trước live |
+|---|---|---|
+| CS-01 | Bỏ đúng dòng kỳ sau chưa sử dụng, giữ dòng ban đầu/metered/lịch sử | Feature 13/159 đạt; full1469/14836 đạt |
+| CS-02 | Mọi tham chiếu hóa đơn, kể cả draft/cancelled/khác hợp đồng/string ID | Feature409 + snapshot không đổi đạt; HTTP/browser chờ |
+| CS-03 | SQL rollback, replay, race hai process, pending/quyền | Fullsuite đạt; HTTP hai phiên và browser chờ |
+| RM-01 | Tab điện nước chỉ phòng đang mở, phân trang/lọc server, không tính tiền React | Node3ca + frontend141/build/lint đạt; live chờ |
+| RM-02 | F5/URL lỗi/empty/retry/375px, bảng MTR cũ không hỏng | Browser chờ |
+| SAFE-87 | Exact fixture cleanup/schema/private/dev snapshot/RUNfalse | Trước live guard đạt; hậu kiểm chờ |
+
+Không ghi DB dev; testpair18082 dùng account riêng. PAY504 và chính sách hóa đơn kỳ áp dụng là việc độc lập, không được coi đã khép bởi nhóm này.
+
+**Kết quả CS/RM mới:** CS01–03 có full1469test/14836assertion/Pint365; hai regression đầu đỏ rồi nhóm13/159 xanh, có rollback và race process. HTTP25check/26response +10authsetup đạt; reference409 không đổi revision, hai Admin200/200 chỉ1payment. Browser blocker/nút khóa, confirm/doubleclick1POST200/F5closed đạt. RM01–02: frontend141/build/lint0lỗi9cảnh báo cũ; phân trang20+3/23ID và các lọc/401/403/422/empty đạt. Browser lọc/resetpage/F5/URLsai/xóalọc/empty/503retry/MTRcũ/mobile375 đã kiểm; panel335=scroll335/table808 nằm trong khung334, ảnh đã xem. Chưa browser BackForward/datepicker/chuyển phòng giữa request/OSoffline/TCPdrop/Adminthậtdev; không đánh dấu các ca đó PASS.
+
+SAFE87 đạt: exact fixture/session cleanup,6schema test khôi phục, test nguồn0/FK1/refundcolumns0/devdenied1142/privatefilepath+SHA nguyên; dev toàn bộ7nhóm snapshot khớp29bảng/30migration/RUNfalse. Proxybytes gốc/cặp18082stopped/tabđóng/viewportreset. Code e3c3030/25ae0db; Plan§12.56–57/học tập§11.63–64. Lượt HTTP đầu bị sandbox EACCES trước request, chạy lại với quyền localhost đạt; selector/getByLabel và select báo lỗi được xác minh DOM/URL, không tính là lỗi nghiệp vụ. PAY504 vẫn mở, không dùng503 chủ động ởGET làm bằng chứng đã tái hiện504 gốc.

@@ -1355,3 +1355,42 @@ Bằng chứng: full1439 test/14440 assertion/Pint358 PASS; frontend133/build/li
 - **Kết quả và giới hạn:**12GET200 cho thấy health lần lạnh chậm chủ yếu ở nạp/bootstrap, SQLhealth sau guard khoảng1ms. Chưa tái hiện timeout60giây hoặc chứng minh nguyên nhân31/10. Timer cũ đặt sau bootstrap bỏ sót giai đoạn này; đơn vị1.019mili giây là khoảng1,019giây. Không suy từ CLI chậm sang FPM vì CLI không bật OPcache (bộ nhớ giữ mã đã biên dịch) trong môi trường hiện tại. Không sửa cách tính tiền để xử lý lỗi proxy.
 
 **3 câu hỏi bảo vệ:** (1)504 là lỗi thanh toán chắc chắn thất bại? Không, đọc lại sổ payment/invoice thật trước khi gửi hay chuyển tiền lần nữa. (2)SQL chỉ1ms có chứng minh cả request nhanh? Không, còn nạp lớp/framework/session/queue/filesystem và thời gian trước PHP. (3)Vì sao không tăng timeout để nói đã sửa? Tăng thời gian chờ không giải thích nguyên nhân; cần đo đúng request chậm trước khi chọn bản vá. Biên bản riêng Plan§12.55, không gộp vào sửa dịch vụ.
+
+### 11.63. Thanh lý khi có dịch vụ chưa đến kỳ áp dụng — DB-D87
+
+Bản đồ code (checkpoint e3c3030):
+
+| Mở file / hàm | Vai trò |
+|---|---|
+| `backend/app/Services/ContractSettlementService.php:130` — `unstartedScheduledServices()` | Chọn riêng đăng ký định kỳ sau ngày bắt đầu hợp đồng, chưa có ngày sử dụng trước bàn giao; giữ dòng gốc và Điện/Nước. |
+| Cùng file:171 — `summary()` | Đọc `invoice_items.meta.contract_service_id` của mọi hóa đơn. Có tham chiếu thì thêm blocker (lý do chặn), `can_terminate=false`; POST cũng kiểm lại. |
+| Cùng file:64 — `terminate()` | Trong transaction (giao dịch nguyên tử), chỉ sau khi đủ điều kiện mới đối soát cọc, bỏ dòng tương lai, đóng hợp đồng và trả phòng. Lọc dòng đã bỏ khỏi revision (phiên bản dữ liệu) trả về. |
+| `frontend/src/features/contracts/ContractSettlementPanel.tsx:129` — `SettlementConfirmation.submit()` | Gửi xác nhận/expected_revision; panel dùng blocker từ server, không tự quyết định tiền. |
+| `backend/routes/api.php:149` / `:179` | GET settlement-preview và POST contracts/{id}/terminate; Sanctum/active/Policy hiện có. |
+
+Luồng: React đọc preview → Admin xác nhận → POST có cookie/CSRF và phiên bản → Controller/Policy → Service khóa phòng/người/hợp đồng/các nguồn theo thứ tự → kiểm lại mọi tham chiếu → ghi toàn bộ hoặc rollback (hoàn tác cả giao dịch). Bảng chính: contracts, contract_services, rooms, invoices, invoice_items, payments. Gọi lại sau thành công trả trạng thái đã thanh lý, không khấu trừ thêm. Chức năng không chuyển tiền ngoài hệ thống.
+
+Câu hỏi bảo vệ: (1) Vì sao hóa đơn đã hủy vẫn bảo vệ dòng dịch vụ? Vì snapshot/lịch sử vẫn tham chiếu nguồn. (2) Vì sao kiểm lại sau preview? Dữ liệu có thể đổi giữa hai request. (3) Vì sao response revision phải bỏ dòng đã xóa? Để trùng với GET mới, tránh xung đột giả. (4) Lỗi SQL giữa chừng xử lý thế nào? Transaction rollback cả tiền/trạng thái/phòng; có regression thực tế.
+
+Kiểm thử mới: 13test/159assertion riêng; full1469/14836 có race process, SQLrollback và pending; HTTP hai phiên + browser và hậu kiểm tại Plan§12.56. Không phải nghiệm thu bằng Admin thậtdev.
+
+### 11.64. Xem lịch sử điện nước ngay trong chi tiết phòng
+
+Bản đồ code (checkpoint25ae0db):
+
+| Mở file / hàm | Vai trò |
+|---|---|
+| `frontend/src/pages/admin/AdminRoomDetailPage.tsx:22` — `AdminRoomDetailPage()` | Đọc roomId từ route, tab từ URL; tab utilities ghép panel lịch sử. |
+| `frontend/src/features/meter-readings/RoomMeterReadingsPanel.tsx:13` | Sự kiện đổi bộ lọc cập nhật URL; effect gọi API, hủy request cũ và chỉ hiển thị kết quả đúng khóa room/filter. |
+| `frontend/src/features/meter-readings/roomFilters.ts:4` / `:9` / `:18` | Lấy bộ lọc, đổi lọc/reset trang, xóa lọc sai; room_id luôn là phòng đang mở. |
+| `frontend/src/features/meter-readings/api.ts:25` — `getMeterReadings()` | Client `http` GET `/meter-readings`, gửi query đã qua Zod và cookie Sanctum. `:21` đọc danh mục dịch vụ qua API có sẵn. |
+| `backend/routes/api.php:158` → `MeterReadingController.php:19` | Route GET → FormRequest kiểm dữ liệu → Policy Admin → Service. |
+| `backend/app/Services/MeterReadingService.php:38` — `paginate()` | Lọc room_id/service_id/period/kind trên MySQL; sắp reading_date DESC, id DESC, phân trang20. |
+| `backend/app/Http/Resources/MeterReadingResource.php:10` | JSON gồm chỉ số/tiêu thụ dạng chuỗi, tiền VND số nguyên, phòng/dịch vụ/hợp đồng/hóa đơn. |
+| `frontend/src/features/meter-readings/MeterReadingsTable.tsx:6` | Chỉ định dạng/hiển thị dữ liệu; dùng chung với trang quản lý chỉ số, không tính tiền. |
+
+Ví dụ minh họa, thay37 bằng ID phòng đang mở: URL giao diện `/admin/rooms/37?tab=utilities&meter_kind=final&meter_page=2` → GET `/api/v1/meter-readings?room_id=37&kind=final&page=2`. Response chuẩn `data/links/meta`; React hiện đúng trang server, không tải một trang rồi lọc cục bộ. DevTools Network lọc `meter-readings` để xem query/status/response; không chia sẻ Cookie hoặc XSRF token.
+
+Câu hỏi bảo vệ: (1) F5 giữ bộ lọc nhờ đâu? URLSearchParams. (2) Tại sao không lọc20dòng bằngReact? Có thể bỏ sót dữ liệu nằm ở trang khác. (3) Đổi queryroom_id có xem nhầm phòng không? Panel lấy roomId từ route, Laravel vẫn bảo vệ quyền Admin. (4) Tại sao không parseFloat để tính tiền? Tiền do backend tính và snapshot; frontend chỉ format. (5) Lỗi503 khác danh sách rỗng thế nào? Lỗi có thông báo/Thử lại, rỗng chỉ khi GET thành công và data=[] thực.
+
+Frontend141test/build/lint đạt, HTTP/browser trên DBtest theo Plan§12.57; mobile375 đã xem ảnh, chưa thử Back/Forward hoặc mất mạng hệ điều hành. Không có API mới, không ghi dữ liệu dev.
