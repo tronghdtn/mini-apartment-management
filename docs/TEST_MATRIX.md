@@ -525,3 +525,20 @@ Môi trường ghi duy nhất mysql_test/mini_apartment_test với tài khoản 
 Guard ghi nhận rõ: usershash đầu đổi do CLIbcrypt12→FPMtest4; providerprobe chỉpassword/updated_at, plaintext và11danh tính/role/statuskhớp. Giữ baselinegốc và capture sauauth có lýdo, strictguard cácbảng khác không bỏ; không nói mọibyteusers nguyên từ lúcseed. Helpercleanup kiểmMAINTabsent gâySQLerrortrướcxóa, đãsửa hasTable+catchThrowableexit1 rồicleanupđạt; không thêm MAINT để tránhlỗi. Banđầu anonymousnoCSRF419 làharness, ca401cuốicóCSRFđạt. Artifacts ignored backups/refund-qa-20261102/ chứa cảlượt lỗi và lượtchốt, khôngGitsecrets/cookie/log.
 
 RunREFUNDQA-a07613802a11user/5contract/5room/5building/2service; trạngtháiactive banđầu factory, final/terminate thực, không coi đãtestlại toànbộ wizard tạo/kíchhoạt. Exactcleanup/sessiondelta/sixpendingrestored/refund2columnsgỡ; test0data/FK1/devdenied1142. Devsnapshotidentity/metadata/data/history nguyênvẹn29bảng/29migration; privatebaseline1file nguyênpath+hash. Testproxybytesrestored/gatewaycontrolgỡ/testpairstopped/tabđóng/viewportreset/RUNfalse. Sourcecheckpoint32cab18. Migrationdev chưađượcduyệt/chạy, PAY504gốc và quy tắc dịch vụ§44 vẫn mở; không push.
+
+
+## CTR-SVC — dịch vụ inactive và snapshot (DB-D86, 02/11/2026)
+
+| ID | Luồng cần kiểm | Trạng thái trước nghiệm thu live |
+|---|---|---|
+| SVC-01 | Active: thêm/tăng/giảm từ kỳ sau, giữ giá cũ khi đổi lượng, mới lấy giá danh mục | Feature hiện có + kiểm lại HTTP/browser |
+| SVC-02 | Inactive: giữ/giảm/ngừng được, không thêm mới/tăng; lỗi422 đúng trường | Regression đỏ422 đã tái hiện, nhóm13test/162assertion đạt; live chưa chạy |
+| SVC-03 | Dòng tương lai sửa giảm nhiều lần không thêm lịch sử; invoice/items đã phát hành không đổi, lỗi giữa batch không ghi dở dang | Feature đạt; HTTP đối chiếu snapshot cần kiểm |
+| SVC-04 | Revision/401/403/locked/CSRF/không mở metered hoặc nháp inactive | Feature hiện có, HTTP cần kiểm |
+| SVC-05 | Modal hiện nhãn đúng, giới hạn tăng, giảm thành công/F5/không submit lặp/mobile | Frontend138test/build/lint đạt; browser chưa chạy |
+| SVC-06 | Biên hôm nay/ngày cuối cảnh báo/ngoài khoảng/timezone/active; chia ngày tháng đầu/cuối không đổi | Bộ lọc13test chung đạt; hồi quy tính hóa đơn cần kiểm |
+
+PAY504 là nhóm đo độc lập; không tạo fault injection/thay luồng thanh toán trong CTR-SVC. Cleanup theo run, testguard/dev snapshot trước-sau, không ghi nghiệp vụ dev.
+
+
+**Kết quả SVC đã chốt:** SVC01–04 có Feature/HTTP tương ứng, SVC05 browser7nhóm + lượt mobile cuối, SVC06 có ContractListDueTest/Contracts+Invoices+FinalCalculation.29HTTP gồm auth/CSRF, không29nghiệp vụ độc lập; browser4PUT qua2run, doubleclick mỗi lần chỉ1. Hồi quy325/3599/Pint2file; frontend cuối138/build/lintPASS(9cảnh báo cũ). Mobile ban đầu bị cắt dù documentWidth375, không tínhPASS; sau min-w-0/táchbadge, ảnhđãxem và dialogclient=scroll334/fieldset286/không vượt375 đạt. Hai selectorloading và một lần bấm gộp không gửiPUT được ghi riêng; kiểm DB/log trước khi thử lại. Snapshot invoices/items/payments nguyên; fixture/helper lỗi scope ban đầu rollback trước setup lại. Cleanup2run đúngIDs/test0/FK1/dev1142/privatefilecũ nguyên; dev snapshot tất cảkeys khớp29bảng/30migration/RUNfalse, testpair/tabđóng/viewportreset. Không Adminthậtdev/OSoffline/TCPdrop/fullsuite mới. Code3533a56; Plan§12.54, artifacts ignored backups/service-rules-qa-20261102/.

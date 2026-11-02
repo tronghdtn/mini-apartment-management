@@ -313,3 +313,7 @@ ADM-14 tái dùng panel đối soát trên trang Bàn giao/thanh lý: hợp đ�
 
 
 **CTR-RF-DEV02/11 — cập nhật vận hành sau§12.52:** đúng1migration đã được duyệt riêng và áp dụng dev,29bảng/30migration; ADM-14 có đủ schema cho panel hoàn cọc hiện có. Không thay UI/API hoặc nâng số màn hoàn chỉnh. Restore/diễn tập/pretend/đối chiếu dữ liệu và4HTTPstateless8080 đạt; chưa nhấn xác nhận đã chi bằng Admin thậtdev, không tạo giao dịch thử. Các dòng “devchưa migration” ở checkpoint CTR-API-4 phía trên là lịch sử. Plan§12.53/DBplan§23.
+
+
+### CTR-API-3b — ADM-13 dịch vụ inactive (DB-D86,02/11/2026)
+Modal hiện có cho giữ/giảm/ngừng inactive, chặn tăng trướcPUT và vẫn kiểmBackend; giá snapshot/kỳ sau/hóa đơn cũ giữ nguyên. Badge chỉ nhãn, lời giải thích xuống dòng; fieldsetmin-w-0 sửa tràn375px phát hiện qua ảnh thật (không thay Modal/Badge dùng chung). Dialogclient=scroll334/fieldset286, ảnh inactive-mobile-fixed.png đã xem; frontend138/build/lintPASS,29HTTP/7nhóm browser và kiểm lại bảnmobile cuối, backend325/3599/Pint2file. Code3533a56, Plan§12.54/học tập§11.61. Chưa Adminthậtdev/OSoffline/TCPdrop hoặc toànUI; không tăng sốmàn hoàn chỉnh từ việc thêm validation. Dev29bảng/30migration/data/history toàn bộ nguyên vẹn, không schema/devwrite/PAYcode.
