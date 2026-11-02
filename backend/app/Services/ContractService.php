@@ -86,7 +86,7 @@ class ContractService
     }
 
     /** Ngày lịch Việt Nam; "sắp hết hạn" = ngày cuối được ở trong [hôm nay, hôm nay + contract.expiring_warning_days]. */
-    private function dueWindow(): array
+    public function dueWindow(): array
     {
         $today = CarbonImmutable::now(config('app.business_timezone'))->startOfDay();
         $stored = Schema::hasTable('settings') ? Setting::where('key', 'contract.expiring_warning_days')->value('value') : null;

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PublicRoomController;
 use App\Http\Controllers\Api\V1\ResidentContractController;
+use App\Http\Controllers\Api\V1\ResidentOverviewController;
 use App\Http\Controllers\Api\V1\RoomController;
 use App\Http\Controllers\Api\V1\RoomPhotoController;
 use App\Http\Controllers\Api\V1\ServiceController;
@@ -62,6 +63,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('maintenance-requests')->n
         ->whereNumber('maintenanceRequest')->whereNumber('attachment')->name('photo');
 });
 
+Route::get('resident/overview', [ResidentOverviewController::class, 'show'])->middleware(['auth:sanctum', 'active'])->name('api.v1.resident.overview.show');
 Route::middleware(['auth:sanctum', 'active'])->prefix('resident/contracts')->name('api.v1.resident.contracts.')->group(function () {
     Route::get('/', [ResidentContractController::class, 'index'])->name('index');
     Route::get('/{contract}', [ResidentContractController::class, 'show'])->whereNumber('contract')->name('show');

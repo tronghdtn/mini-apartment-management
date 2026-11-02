@@ -1,11 +1,29 @@
-import { Home } from 'lucide-react'
-import { UnavailableWorkspace } from '@/components/ui/UnavailableWorkspace'
+import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/features/auth/useAuth'
+import { ResidentRecentRequestsCard } from '@/features/maintenance-requests/ResidentRecentRequestsCard'
 import { ResidentMeterReadingsPanel } from '@/features/meter-submissions/ResidentMeterReadingsPanel'
+import { RecentUnreadNotificationsCard } from '@/features/notifications/RecentUnreadNotificationsCard'
+import { ResidentDebtCard, ResidentRoomBanner } from '@/features/resident-overview/ResidentOverviewCards'
+import { useResidentOverview } from '@/features/resident-overview/useResidentOverview'
 
-// Source: ui-antigravity-full/src/pages/resident/ResidentOverviewPage.tsx. No business mock is imported.
+// Source: ui-antigravity-full/src/pages/resident/ResidentOverviewPage.tsx. Hợp đồng/công nợ do Backend tổng hợp (/resident/overview).
 export function ResidentOverviewPage() {
-  return <div className="space-y-6"><ResidentMeterReadingsPanel /><UnavailableWorkspace title="Tổng quan cư dân" icon={Home} description="Các mục tổng quan bên dưới chưa kết nối; gửi ảnh chỉ số ở panel phía trên đã có API riêng."
-    stats={["Hợp đồng đang hiệu lực","Hóa đơn chưa thanh toán","Yêu cầu sửa chữa","Thông báo chưa đọc"]}
-    sections={[{"title":"Thông tin căn hộ","fields":["Tòa nhà","Phòng","Thời hạn hợp đồng"]},{"title":"Hóa đơn gần nhất","fields":["Kỳ","Số tiền còn nợ","Hạn thanh toán"]},{"title":"Sửa chữa gần đây","fields":["Yêu cầu","Trạng thái xử lý"]},{"title":"Thông báo gần đây","fields":["Nội dung","Thời gian"]}]}
-  /></div>
+  const { user } = useAuth()
+  const { current, reload } = useResidentOverview()
+  const overview = current?.data
+  return <div className="space-y-6">
+    {!current ? <p role="status" className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Đang tải tổng quan…</p>
+      : current.error ? <div role="alert" className="rounded-2xl border border-rose-200 bg-white p-5">
+        <p className="text-sm text-rose-700">{current.error}</p>
+        <Button className="mt-3" variant="outline" onClick={reload}>Thử lại tổng quan</Button>
+      </div> : overview && <>
+        <ResidentRoomBanner name={user?.full_name ?? ''} overview={overview} />
+        <ResidentDebtCard debt={overview.debt} />
+      </>}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <ResidentRecentRequestsCard canCreate={overview?.active_contract != null} />
+      <RecentUnreadNotificationsCard to="/resident/notifications" />
+    </div>
+    <ResidentMeterReadingsPanel />
+  </div>
 }
