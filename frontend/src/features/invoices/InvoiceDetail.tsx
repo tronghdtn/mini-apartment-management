@@ -39,7 +39,7 @@ export function InvoiceDetail({ admin = false, renderPayments }: { admin?: boole
     setAction(null); setMessage('Thao tác đã được hệ thống ghi nhận.'); setVersion(value => value + 1)
   }
   function paymentsChanged() {
-    setMessage('Thanh toán đã được cập nhật.'); setVersion(value => value + 1)
+    setMessage('Đã tải lại dữ liệu thanh toán từ máy chủ.'); setVersion(value => value + 1)
   }
   async function recalculate(invoice: Invoice) {
     if (flight.current) return

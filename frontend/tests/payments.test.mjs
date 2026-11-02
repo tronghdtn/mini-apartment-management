@@ -1,6 +1,26 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {paymentProofSchema,directPaymentSchema,confirmPaymentSchema,rejectPaymentSchema,paymentFiltersSchema} from '../src/features/payments/schemas.ts'
+import { paymentSubmissionError } from '../src/features/payments/submissionError.ts'
+
+test('payment network, server and response-decoding failures require checking history, not a blind resend', () => {
+  for (const failure of [new Error('Invalid response'), { isAxiosError: true },
+    ...[200, 201, 500, 502, 503, 504].map(status => ({ isAxiosError: true, response: { status } }))]) {
+    const issue = paymentSubmissionError(failure)
+    assert.equal(issue.requiresReload, true)
+    assert.match(issue.message, /Chưa xác định/)
+    assert.match(issue.message, /Không chuyển tiền hoặc gửi lại/)
+  }
+})
+
+test('definitive payment validation and authorization failures retain safe field/form recovery', () => {
+  for (const status of [401, 403, 404, 409, 419, 422, 429]) {
+    const issue = paymentSubmissionError({ isAxiosError: true, response: { status } })
+    assert.equal(issue.requiresReload, false)
+    assert.doesNotMatch(issue.message, /Chưa xác định/)
+    if (status === 409) assert.match(issue.message, /tải lại/)
+  }
+})
 
 test('unselected proof is rejected when RHF omits the field entirely', () => {
   for (const input of [{ amount: 1000 }, { amount: 1000, proof: undefined }, { amount: 1000, proof: null },
