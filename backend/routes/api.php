@@ -177,6 +177,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
         Route::post('contracts/{contract}/deposit', [ContractController::class, 'confirmDeposit'])->whereNumber('contract')->name('contracts.deposit.confirm');
         Route::post('contracts/{contract}/activate', [ContractController::class, 'activate'])->whereNumber('contract')->name('contracts.activate');
         Route::post('contracts/{contract}/terminate', [ContractController::class, 'terminate'])->whereNumber('contract')->name('contracts.terminate');
+        Route::post('contracts/{contract}/deposit-refund-confirmation', [ContractController::class, 'confirmRefund'])->whereNumber('contract')->name('contracts.deposit-refund-confirmation');
         Route::put('contracts/{contract}/services', [ContractController::class, 'updateServices'])->whereNumber('contract')->name('contracts.services.update');
         Route::patch('contracts/{contract}', [ContractController::class, 'update'])->whereNumber('contract')->name('contracts.update');
         Route::delete('contracts/{contract}', [ContractController::class, 'destroy'])->whereNumber('contract')->name('contracts.destroy');

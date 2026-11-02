@@ -25,10 +25,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use RuntimeException;
 
-/** Reconciles held funds; a recorded refund remains an unpaid obligation (DB-D78). */
+/** Reconciles held funds (D78); an explicit later confirmation records full external repayment (D85). */
 class ContractSettlementService
 {
     public function __construct(private readonly ContractFinalInvoiceService $finalInvoices, private readonly InvoiceService $invoices) {}
@@ -36,6 +37,28 @@ class ContractSettlementService
     public function preview(Contract $contract, User $actor): array
     {
         return $this->locked($contract, $actor, fn ($current, $room, $state) => $this->summary($current, $room, $state));
+    }
+
+    public function confirmRefund(Contract $contract, User $actor, array $data): array
+    {
+        abort_unless($this->hasRefundSchema(), 503, 'Cấu trúc xác nhận hoàn cọc chưa sẵn sàng trên môi trường này.');
+        abort_unless(in_array($data['confirmed_paid'] ?? null, [true, 1, '1'], true), 422, 'Cần xác nhận đã hoàn đủ tiền cọc.');
+
+        return $this->locked($contract, $actor, function ($current, $room, $state) use ($actor, $data) {
+            $preview = $this->summary($current, $room, $state);
+            abort_unless($current->status === ContractStatus::Terminated && $current->deposit_status === DepositStatus::Settled
+                && $current->deposit_refund_amount > 0, 409, 'Chỉ xác nhận khoản cọc dư đã đối soát của hợp đồng đã thanh lý.');
+            abort_unless($current->deposit_refund_amount === (int) $data['expected_refund_amount'], 409, 'Số cọc cần hoàn không khớp đối soát. Vui lòng tải lại.');
+            if ($current->deposit_refunded_at !== null) {
+                return $preview; // Replay preserves the first reviewer and timestamp, even from another Admin.
+            }
+            abort_unless(hash_equals($preview['revision'], $data['expected_revision']), 409, 'Đối soát vừa thay đổi. Vui lòng tải lại trước khi xác nhận hoàn cọc.');
+            $current->deposit_refunded_at = now();
+            $current->deposit_refunded_by = $actor->id;
+            $current->save();
+
+            return $this->summary($current, $room, $state);
+        });
     }
 
     public function terminate(Contract $contract, User $actor, array $data): array
@@ -64,7 +87,8 @@ class ContractSettlementService
                 $payment->save();
                 $payment->receipt_number = 'RCP-'.now(config('app.business_timezone'))->format('Ym').'-'.str_pad((string) $payment->id, 4, '0', STR_PAD_LEFT);
                 $payment->save();
-                $state['payments']->push($payment);
+                // Include DB defaults in the revision returned to the next action, just like a fresh GET.
+                $state['payments']->push($payment->refresh());
                 $invoice->paid_amount = Money::sum([$invoice->paid_amount, $payment->amount]);
                 $invoice->status = $invoice->paid_amount === $invoice->total_amount ? InvoiceStatus::Paid : InvoiceStatus::PartiallyPaid;
                 $invoice->save();
@@ -85,6 +109,10 @@ class ContractSettlementService
             }
             $room->status = RoomStatus::Available;
             $room->save();
+
+            // MySQL also changed the generated active_room_id/active_tenant_id to NULL.
+            // Reload these server-computed values before publishing the next revision.
+            $current->refresh()->setRelation('contractServices', $state['subscriptions']);
 
             return [...$this->summary($current, $room, $state), 'already_terminated' => false];
         });
@@ -205,7 +233,28 @@ class ContractSettlementService
                 'id' => $payment->id, 'invoice_id' => $payment->invoice_id, 'amount' => $payment->amount, 'receipt_number' => $payment->receipt_number,
             ])->values()->all(),
             'can_terminate' => ! $closed && $blockers === [], 'is_preview' => ! $closed, 'blockers' => $blockers,
-            'revision' => $this->revision($contract, $state), 'already_terminated' => $closed];
+            'revision' => $this->revision($contract, $state), 'already_terminated' => $closed,
+            ...$this->refundSummary($contract, $closed ? $contract->deposit_refund_amount : $remainingDeposit)];
+    }
+
+    private function hasRefundSchema(): bool
+    {
+        return Schema::hasColumns('contracts', ['deposit_refunded_at', 'deposit_refunded_by']);
+    }
+
+    private function refundSummary(Contract $contract, int $refundAmount): array
+    {
+        if (! $this->hasRefundSchema()) {
+            return []; // Existing preview/termination keep working before the separately approved dev upgrade.
+        }
+        $refunded = $contract->deposit_refunded_at !== null;
+        abort_unless($refunded === ($contract->deposit_refunded_by !== null), 409, 'Dấu vết hoàn cọc chưa đầy đủ; cần đối chiếu.');
+        abort_if($refunded && ($contract->status !== ContractStatus::Terminated || $contract->deposit_status !== DepositStatus::Settled
+            || $contract->deposit_refund_amount <= 0), 409, 'Xác nhận hoàn cọc không khớp trạng thái hợp đồng.');
+
+        return ['deposit_refunded_at' => $contract->deposit_refunded_at?->toISOString(),
+            'deposit_refunded_by' => $contract->deposit_refunded_by,
+            'refund_outstanding_amount' => $refunded ? 0 : $refundAmount];
     }
 
     private function assertLedger(Collection $invoices, Collection $payments): void

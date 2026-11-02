@@ -62,6 +62,8 @@ class Contract extends Model
             'closed_at' => 'datetime',
             'deposit_paid_at' => 'datetime',
             'deposit_settled_at' => 'datetime',
+            'deposit_refunded_at' => 'datetime',
+            'deposit_refunded_by' => 'integer',
             'monthly_rent' => 'integer',
             'early_termination_fee_type' => EarlyTerminationFeeType::class,
             'early_termination_fee_amount' => 'integer',

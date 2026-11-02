@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\ClosurePreviewRequest;
+use App\Http\Requests\Contract\ConfirmDepositRefundRequest;
 use App\Http\Requests\Contract\ContractInspectionRequest;
 use App\Http\Requests\Contract\ContractLifecycleRequest;
 use App\Http\Requests\Contract\CreateFinalInvoiceRequest;
@@ -181,5 +182,13 @@ class ContractController extends Controller
         Gate::authorize('update', $model);
 
         return new ContractSettlementResource($settlement->terminate($model, $request->user(), $request->validated()));
+    }
+
+    public function confirmRefund(ConfirmDepositRefundRequest $request, string $contract, ContractSettlementService $settlement): ContractSettlementResource
+    {
+        $model = $this->contracts->find($contract);
+        Gate::authorize('update', $model);
+
+        return new ContractSettlementResource($settlement->confirmRefund($model, $request->user(), $request->validated()));
     }
 }

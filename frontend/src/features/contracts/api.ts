@@ -1,5 +1,5 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
-import { terminateContractSchema, type ContractSettlement, type TerminateContractInput } from './settlement'
+import { confirmDepositRefundSchema, terminateContractSchema, type ConfirmDepositRefundInput, type ContractSettlement, type TerminateContractInput } from './settlement'
 import { closurePreviewSchema, finalMeterPreviewSchema, type ClosurePreview, type ClosurePreviewInput, type FinalMeterPreview, type FinalMeterPreviewInput } from './closure'
 import { contractInspectionSchema, type ContractInspectionInput } from './inspection'
 import type { ApiResource } from '@/types/api'
@@ -151,4 +151,10 @@ export async function terminateContract(id: number, input: TerminateContractInpu
   const body = terminateContractSchema.parse(input)
   await fetchCsrfCookie()
   return (await http.post<ApiResource<ContractSettlement>>(`/contracts/${id}/terminate`, body)).data.data
+}
+
+export async function confirmDepositRefund(id: number, input: ConfirmDepositRefundInput): Promise<ContractSettlement> {
+  const body = confirmDepositRefundSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.post<ApiResource<ContractSettlement>>(`/contracts/${id}/deposit-refund-confirmation`, body)).data.data
 }

@@ -33,9 +33,13 @@ echo "READY\n";
 flush();
 $status = in_array($input['action'], ['cash', 'proof'], true) ? 201 : 200;
 $temporary = null;
+$refund = null;
 try {
     $actor = User::findOrFail($input['actor']);
-    if ($input['action'] === 'proof') {
+    if ($input['action'] === 'refund') {
+        $refund = app(ContractSettlementService::class)->confirmRefund(Contract::findOrFail($input['contract']), $actor,
+            ['expected_revision' => $input['revision'], 'expected_refund_amount' => $input['refund_amount'], 'confirmed_paid' => true]);
+    } elseif ($input['action'] === 'proof') {
         $temporary = tempnam(sys_get_temp_dir(), 'settlement-race-');
         file_put_contents($temporary, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQWQAAAAASUVORK5CYII='));
         app(PaymentService::class)->store(Invoice::findOrFail($input['invoice']), $actor, ['amount' => 400000], new UploadedFile($temporary, 'proof.png', null, null, true));
@@ -56,4 +60,5 @@ try {
         unlink($temporary);
     }
 }
-echo json_encode(['action' => $input['action'], 'status' => $status], JSON_THROW_ON_ERROR)."\n";
+echo json_encode(['action' => $input['action'], 'status' => $status,
+    ...($refund === null ? [] : ['refunded_by' => $refund['deposit_refunded_by'], 'refunded_at' => $refund['deposit_refunded_at']])], JSON_THROW_ON_ERROR)."\n";
