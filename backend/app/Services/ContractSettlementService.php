@@ -101,12 +101,20 @@ class ContractSettlementService
             $current->status = ContractStatus::Terminated;
             $current->save(); // Existing observer schedules the deduplicated notification after commit.
             $lastDay = $current->actual_end_date->copy()->subDay()->format('Y-m-d');
+            $unstarted = $this->unstartedScheduledServices($current, $state['subscriptions'])->keyBy('id');
             foreach ($state['subscriptions'] as $subscription) {
+                if ($unstarted->has($subscription->id)) {
+                    $subscription->delete();
+
+                    continue;
+                }
                 if ($subscription->end_date === null || $subscription->end_date->format('Y-m-d') > $lastDay) {
                     $subscription->end_date = $lastDay;
                     $subscription->save();
                 }
             }
+            // The response revision must use the surviving rows, just like a fresh GET.
+            $state['subscriptions'] = $state['subscriptions']->reject(fn ($line) => $unstarted->has($line->id))->values();
             $room->status = RoomStatus::Available;
             $room->save();
 
@@ -116,6 +124,19 @@ class ContractSettlementService
 
             return [...$this->summary($current, $room, $state), 'already_terminated' => false];
         });
+    }
+
+    /** Only later periodic registrations; preserve original activation snapshots and metered history. */
+    private function unstartedScheduledServices(Contract $contract, Collection $subscriptions): Collection
+    {
+        if ($contract->actual_end_date === null) {
+            return collect();
+        }
+
+        return $subscriptions->filter(fn ($line) => ! $line->service->isMetered()
+            && ! in_array($line->service->code, [Service::CODE_ELECTRICITY, Service::CODE_WATER], true)
+            && $line->start_date->gt($contract->start_date)
+            && $line->start_date->gte($contract->actual_end_date));
     }
 
     private function locked(Contract $original, User $actor, callable $action): array
@@ -183,6 +204,14 @@ class ContractSettlementService
             if ($state['invoices']->contains('status', InvoiceStatus::Draft)) {
                 $blockers[] = 'Cần phát hành hoặc hủy hóa đơn nháp trước khi thanh lý.';
             }
+            $unstarted = $this->unstartedScheduledServices($contract, $state['subscriptions']);
+            // No status/contract restriction: even cancelled or legacy invoice references protect history.
+            // Official invoice writers hold this same contract lock before creating their item snapshots.
+            $hasReferencedScheduledService = $unstarted->isNotEmpty()
+                && InvoiceItem::whereIn('meta->contract_service_id', $unstarted->pluck('id')->all())->exists();
+            if ($hasReferencedScheduledService) {
+                $blockers[] = 'Dịch vụ kỳ sau chưa sử dụng đã được hóa đơn tham chiếu; cần đối chiếu trước khi thanh lý.';
+            }
             $finals = $state['invoices']->filter(fn ($invoice) => $invoice->type === InvoiceType::Final && $invoice->status !== InvoiceStatus::Cancelled);
             $final = $finals->count() === 1 ? $finals->first() : null;
             if (! $final || ! $final->issued_at || ! in_array($final->status, [InvoiceStatus::Issued, InvoiceStatus::PartiallyPaid, InvoiceStatus::Paid], true)
@@ -195,7 +224,7 @@ class ContractSettlementService
                     && $reading->room_id === $room->id && $reading->reading_date->format('Y-m-d') === $contract->actual_end_date->format('Y-m-d'))
                     || $state['readings']->contains(fn ($reading) => $reading->invoice_id === null)) {
                     $blockers[] = 'Chỉ số chốt hoặc liên kết hóa đơn chưa khớp; cần đối chiếu.';
-                } elseif ($pending->isEmpty() && ! $state['invoices']->contains('status', InvoiceStatus::Draft)) {
+                } elseif ($pending->isEmpty() && ! $state['invoices']->contains('status', InvoiceStatus::Draft) && ! $hasReferencedScheduledService) {
                     $final->setRelation('items', InvoiceItem::where('invoice_id', $final->id)->orderBy('id')->lockForUpdate()->get());
                     $this->invoices->assertFinalSnapshot($final, $contract, $state);
                 }

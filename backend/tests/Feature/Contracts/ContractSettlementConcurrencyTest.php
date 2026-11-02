@@ -30,7 +30,8 @@ class ContractSettlementConcurrencyTest extends TestCase
     public static function races(): array
     {
         return ['repeated terminate' => ['terminate'], 'new pending' => ['proof'], 'cash versus deposit' => ['cash'],
-            'confirm pending' => ['confirm'], 'cancel zero final' => ['cancel'], 'cancel unpaid monthly' => ['monthly_cancel']];
+            'confirm pending' => ['confirm'], 'cancel zero final' => ['cancel'], 'cancel unpaid monthly' => ['monthly_cancel'],
+            'future service cleanup' => ['future_services']];
     }
 
     #[DataProvider('races')]
@@ -48,6 +49,12 @@ class ContractSettlementConcurrencyTest extends TestCase
             $zeroDeposit = in_array($race, ['cancel', 'monthly_cancel'], true);
             [$contract, $invoice, $owner, $monthly] = DB::transaction(fn () => $this->settlementFixture($admin, $zeroDeposit ? 0 : 3000000,
                 history: $race === 'monthly_cancel' ? 'arrears' : '', sameDay: $race === 'cancel'));
+            $future = null;
+            if ($race === 'future_services') {
+                $service = Service::factory()->create(['price' => 100000]);
+                $future = $contract->contractServices()->create(['service_id' => $service->id, 'quantity' => '1.00',
+                    'unit_price' => 100000, 'start_date' => '2026-11-01']);
+            }
             $cancelTarget = $race === 'monthly_cancel' ? app(InvoiceService::class)->find($monthly[1]) : $invoice;
             $settlement = app(ContractSettlementService::class);
             $base = ['actor' => $admin->id, 'invoice' => $cancelTarget->id, 'contract' => $contract->id,
@@ -64,7 +71,12 @@ class ContractSettlementConcurrencyTest extends TestCase
             }
             $preview = $settlement->preview($contract, $admin);
             $base['revision'] = $preview['revision'];
-            $actions = [['action' => 'terminate', ...$base], ['action' => $race === 'monthly_cancel' ? 'cancel' : $race, ...$base,
+            $secondAction = match ($race) {
+                'monthly_cancel' => 'cancel',
+                'future_services' => 'terminate',
+                default => $race,
+            };
+            $actions = [['action' => 'terminate', ...$base], ['action' => $secondAction, ...$base,
                 'actor' => $race === 'proof' ? $owner->id : $admin->id]];
             DB::beginTransaction();
             Room::whereKey($contract->room_id)->lockForUpdate()->firstOrFail();
@@ -95,7 +107,7 @@ class ContractSettlementConcurrencyTest extends TestCase
             }
             $statuses = array_column($results, 'status');
             sort($statuses);
-            if ($race === 'terminate') {
+            if (in_array($race, ['terminate', 'future_services'], true)) {
                 $this->assertSame([200, 200], $statuses);
             } elseif ($race === 'proof') {
                 $this->assertContains($statuses, [[200, 409], [201, 409]]);
@@ -120,6 +132,11 @@ class ContractSettlementConcurrencyTest extends TestCase
             if ($closed) {
                 $settlement->terminate($current, $admin, ['expected_revision' => $preview['revision'], 'confirmed' => true]);
                 $this->assertSame(1, DB::table('notifications')->where('type', 'contract.terminated')->where('notifiable_id', $owner->id)->count());
+            }
+            if ($future) {
+                $this->assertTrue($closed);
+                $this->assertDatabaseMissing('contract_services', ['id' => $future->id]);
+                $this->assertSame(1, $payments->where('method', PaymentMethod::Deposit)->count());
             }
             if ($race === 'confirm') {
                 $this->assertFalse($closed);
