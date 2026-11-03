@@ -1440,3 +1440,20 @@ Câu hỏi bảo vệ: (1) Vì sao cần mật khẩu hiện tại? Hạn chế 
 Bằng chứng kiểm thử/trạng thái thực tế quản lý tại Plan§12.59/MatrixPR, không suy full MVP hoàn tất từ hai form này.
 
 **Kiểm chứng PROFILE-A:** code91a2ae8; full1507/15313 trước hồi quy whitelist cuối, Auth cuối131/2054 và Pint377 PASS; frontend146/build/lint0lỗi9cảnh báo cũ. HTTP40check gồm thu hồi hai phiên/giữ phiên người khác/login mật khẩu mới/race204-409; browser tên thật/F5/1PATCH khi bấm hai lần/hủy/lỗi rỗng/mobile375 đạt. Chưa đổi mật khẩu trực tiếp qua browser hoặc Admin thậtdev; không coi thông báo sau đổi đã được browser nghiệm thu. Dọn fixture đúngrun, test0/FK1/devdenied1142/privatefile nguyên, dev7nhóm snapshot khớp29bảng/30migration/RUNfalse. Chi tiết và giới hạn Plan§12.59.
+
+
+### 11.67. SET-SYS / USR-HISTORY — bản đồ code (03/11/2026)
+
+| Chức năng | File/hàm cần mở | API / Database |
+|---|---|---|
+| Sửa tên hệ thống/SĐT/email liên hệ | `frontend/src/pages/admin/AdminSettingsPage.tsx` ghép `features/settings/SystemSettingForm.tsx::submit/reload`; `schemas.ts::systemSettingSchema`, `api.ts::saveSystemSetting` | PUT `/api/v1/settings/{key}` với `{value,expected_value}`, cookie/CSRF qua http. Không liên quan users.phone/email. |
+| Kiểm dữ liệu và quyền | `backend/routes/api.php` nhóm Admin active/spa; `SettingController::update`; `Requests/Setting/UpdateSettingRequest::rules/after/prepareForValidation`; `SettingPolicy::update` | Chỉ3keysystem +2keydays hiện có; bank ngoài route404; field điều khiển422. Giá trị mới trim/rỗngNULL, giá trị kỳ vọng giữ nguyên byte đã đọc kể cả legacyspaces. |
+| Chặn ghi đè | `backend/app/Services/SettingService.php::updateSystem` | Transaction khóa `settings.key`, so sánh giá trị hiện tại với expected_value; lệch409, không ghi. Type/group do server quyết định. New key UNIQUE race409. |
+| Hồ sơ → lịch sử hợp đồng | `AdminUserDetailPage.tsx` → `features/user-management/UserContractsPanel.tsx`; `api.ts::getUserContracts`; `contractHistory.ts` | GET `/api/v1/contracts?user_id=133&page=2` là ví dụ fixture; dùng API hiện hành, không route mới. `contracts_page` trên URL giữ trang khi F5. |
+| Laravel lọc/phân trang | `IndexContractRequest::rules` → `ContractController::index` → `ContractService::listing/applyScopeFilters` → `ContractResource` | `contracts.user_id` lọc tại MySQL trước paginate20 và counts; quan hệ users/rooms/buildings. Không cộng tiền hay lọc một trang ở React; không tự mở hồ sơ đã soft-delete. |
+
+Luồng Cài đặt: nút Lưu → RHF/Zod → lấy CSRF → PUT kèm giá trị cũ → Policy/Request → khóa dòng/so sánh/ghi MySQL → Resource → form cập nhật baseline.409 giữ nội dung đang nhập, bấm “Tải lại giá trị hiện tại” rồi kiểm tra trước khi lưu lại. SĐT liên hệ có thể là hotline, không tự áp chuẩn hóa định danh đăng nhập. Mỗi form chỉ lưu một khóa, chưa có nút lưu tất cả/ngân hàng.
+
+Luồng lịch sử: mở hồ sơ → panel nhận user.id từ hồ sơ thật → query user_id/page → Laravel lọc trước phân trang → React hiển thị mã/phòng/ngày/giá/trạng thái và link chi tiết. Tổng hợp nợ/sửa chữa của tài khoản chưa nối tại đây; không gắn dữ liệu người khác qua tìm tên. Muốn xem request: DevTools Network lọc `settings` hoặc `contracts?`; kiểm method/body/query/status và response, không sao chép cookie vào tài liệu.
+
+Câu hỏi bảo vệ: (1) Vì sao expected_value? Phát hiện một Admin đã sửa sau lúc mình đọc; lock bảo vệ bước so sánh-và-ghi. (2) NULL khác chuỗi rỗng thế nào ở cấu hình? Xóa cấu hình lưu NULL, không chèn giá trị mẫu. (3) Vì sao lọc user_id ở Backend? Phân trang chỉ chứa20dòng, lọc trong React sẽ bỏ sót và số đếm sai; quyền Admin vẫn do Laravel. (4) Sửa SĐT liên hệ có đổi SĐT đăng nhập không? Không, bảng settings và users độc lập. (5) Tải lại sau409 có tự ghi đè không? Không, chỉ đọc baseline mới; Admin phải kiểm tra rồi chủ động lưu.

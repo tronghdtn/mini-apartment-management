@@ -278,3 +278,8 @@ Chủ dự án trả lời “Duyệt bỏ dòng tương lai chưa phát sinh”
 
 ### DB-D88 / PROFILE-A — CONFIRMED 03/11/2026
 Chủ dự án duyệt tên + mật khẩu và đăng xuất tất cả phiên. Mọi role active tự sửa duy nhất full_name qua PATCH /api/v1/auth/profile; PUT /api/v1/auth/password cần mật khẩu hiện tại, mật khẩu mới khác cũ theo quy tắc sẵn có và xác nhận. Đổi thành công thu hồi mọi phiên kể cả hiện tại, đăng nhập lại; không thay email/SĐT/role/status/pháp lý hoặc dữ liệu nghiệp vụ. Không schema/migration hay thao tác thử tài khoản dev. API/AC/rate limits tại AUTHENTICATION§10 và API_AUTHENTICATION§6; thay giới hạn chỉ đọc AUTH-D03 riêng cho hai thao tác này, không mở thay email/khôi phục.
+
+
+## AY. DB-D89 — Admin cập nhật thông tin hệ thống (CONFIRMED 03/11/2026)
+
+Chủ dự án chọn “Duyệt 3 khóa thông tin hệ thống”: mở ghi system.name/system.contact_phone/system.contact_email theo brief§50. Lưu riêng, NULL khi xóa, trim/giới hạn191 (phone30)/email đúng định dạng; kiểm giá trị cũ chống ghi đè409. Giữ bank.* chỉ đọc và hai khóa số ngày theo DB-D54. Đây là bổ sung phạm vi sau§27/DB-D54, không cho ghi settings tùy ý, đổi schema hoặc ghi dữ liệu dev. Chi tiết hợp đồng API và AC quản lý tại brief§50.

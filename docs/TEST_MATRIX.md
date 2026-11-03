@@ -578,3 +578,16 @@ SAFE87 đạt: exact fixture/session cleanup,6schema test khôi phục, test ngu
 Chỉ nghiệm thu phần profile mới; không tự mở email/SĐT/pháp lý hay kiểm toàn hệ thống trong lượt này.
 
 **Kết quả PR mới (03/11):** PR01–05 có full1507/15313 trước regression literal-key cuối; nhóm Auth cuối131/2054 và Pint377 PASS. HTTP40check đạt cả5role/field cấm/401/419/422/204, hai phiên bị thu hồi/người khác còn phiên, login cũ bị từ chối/mới được chấp nhận và race204-409; process race cũng đạt. PR06: frontend146/build/lint0lỗi9cảnh báo cũ, browser lưu tên/F5/cancel/rỗng/doubleclick1PATCH/mobile375 đạt; đổi mật khẩu và login notice trực tiếp browser **chưa kiểm**, không gộp vào PASS. PR-SAFE: exactrun5user/session/cache đã dọn, test0/FK1/devdenied1142/privatefile nguyên, không schema mới; dev7nhóm snapshot khớp29bảng/30migration/RUNfalse, proxy nguyên/cặp test stopped/tab đóng/viewport reset. Lượt HTTP đầu client20s timeout499 ở PATCH đã xác minh SQL trước chạy lại; helper70s không phải bản vá PAY504. Code91a2ae8/Plan§12.59.
+
+
+## SET-SYS / USR-HISTORY (03/11/2026)
+
+| Ca | Yêu cầu | Bằng chứng mới |
+|---|---|---|
+| SYS01 |3keyAdmin/trim/NULL/giới hạn/email; legacyexpectedspaces | Hồi quy75/739 PASS, Node151/build/lint0lỗi9cảnhbáocũ; HTTP3key/clear/email422 |
+| SYS02 | CAS409/atomic/race; giữ days/bankreadonly/quyền/CSRF | FeaturePASS; HTTP22checkgồmsetup, race200-409; browser stale409→reload giữinput→save200, doubleclick đầu1PUT |
+| UH01 | user_id lọc trước paginate/counts,21 dòng20+1, không lẫn user | Feature và HTTPPASS; browser20/1/F5/URLbad/empty0 |
+| SYS-UH-UI | Antigravity/mobile375/không tràn | Settings5form292=scroll292/doc367; historytable600 trongwrapper302; ảnh đã xem. Chưa OSoffline/503/BackForward/Admin thậtdev |
+| SYS-UH-SAFE | cleanup/testguard/dev nguyên/private/RUNfalse | Exactrun4user22contract dọn; test0/FK1/devdenied1142/privateSHA nguyên; dev7nhómkhớp29bảng30migration; testpairdừng |
+
+Codecd397cf/4c73544; Plan§12.60/học tập§11.67. Chưa chạy lại full PHPUnit, không dùng PASS scoped để gọi toàn hệ thống hoàn thành.

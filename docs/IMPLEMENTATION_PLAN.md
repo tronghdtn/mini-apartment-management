@@ -1292,3 +1292,19 @@ RunFUTUREQA-0a0bc56980 gồm8user/3contract/4room/3building/5service,21chỉ s�
 **Browser kiểm nhanh:** Admin fixture tự sửa tên, header/sidebar cập nhật, F5 giữ tên/phiên; tên rỗng và ba ô mật khẩu rỗng hiện lỗi, nút xóa nội dung/hủy tên hoạt động; bấm lưu hai lần chỉ1PATCH (access log), hai form khóa lúc gửi. Phone/email readonly;3input mật khẩu type=password/autocomplete đúng. Mobile375: document367≤375, mỗi form286=scroll286; ảnh đã xem/lưu. Không nhập mật khẩu mới qua browser (cần chủ tài khoản tự thao tác); browser PUT=0, không tuyên bố PASS luồng đổi mật khẩu giao diện/thông báo sau đổi. Full-page screenshot không chụp được, đã dùng ảnh viewport. Chưa OSoffline/BackForward/Admin thậtdev hoặc toàn hệ thống.
 
 **Hậu kiểm:** dọn đúng run PROFILEQA-9bd3632774 (5user + session/cache delta), không tạo/áp dụng schema trong lượt profile. Test bảng nguồn0/FK1/devdenied1142/privatefile cũ path+SHA nguyên; baseline24bảng/21migration giữ nguyên. Dev identity/schema/metadata/data/old_contracts/audit_non_null/migrations đều khớp trước-sau,29bảng/30migration; RUN_MIGRATIONS=false. Nginx test SHA gốc nguyên, cặp test dừng/tab riêng đóng/viewport reset. Artifacts ignored `backups/profile-qa-20261103/`; không đưa log/helper/credential/ảnh vào Git. Spec8502341/code91a2ae8 local, không push. Tiếp theo: chốt lát cắt email/xác minh/khôi phục còn thiếu theo Q4/Q10 trước khi thêm API; PAY504 và toàn hệ thống vẫn là việc độc lập.
+
+
+### 12.60. SET-SYS / USR-HISTORY — thông tin hệ thống và lịch sử hợp đồng tài khoản (03/11/2026)
+
+- [x] SET-SYS-01 — Chủ dự án duyệt3khóa hệ thống, NULL/trim/validation/CAS; DB-D89/brief§50. Bank giữ chỉ đọc, không schema/devwrite.
+- [x] SET-SYS-02 — Backend Request/Service/allowlist + test quyền/validation/409 và bảo vệ hai khóa ngày cũ.
+- [x] SET-SYS-03 — Form Antigravity hiện có + test frontend/build/lint/HTTP/browser phạm vi mới.
+- [x] USR-HISTORY-01 — Lịch sử hợp đồng theo user_id qua API hiện hành, phân trang/URL/link/error thật; chưa lịch sử hóa đơn/công nợ/sửa chữa.
+- [x] SAFE-SYS — Hậu kiểm DBtest/DBdev/privatefile, rà diff và local checkpoint; không push.
+
+
+**Bằng chứng SET-SYS/USR-HISTORY mới:** codecd397cf/4c73544 local. Hồi quy75backendtest/739assertion PASS (97,16giây), Pint toàn380file PASS; frontend151test/build PASS, lint0lỗi/9cảnh báo cũ. Không chạy lại full PHPUnit;1507/15313 ở§12.59 là lịch sử. Test cũ bỏ riêng kỳ vọng system.name404 vì DB-D89 đã mở route cho key này; giữ kiểm bank/unknown404, bổ sung SystemSettingsTest validation/CAS/quyền/CSRF/legacyspaces/NULL và UserContractHistoryTest lọc21dòng trước paginate20, không giảm kiểm tra để né lỗi.
+
+HTTP thật22check (gồm CSRF/login chuẩn bị):3key lưu/trim/clearNULL, email sai422/field literal cấm422/bank404/CSRF419/nonAdmin403/anon401, haiAdmin race200-409, ngày7 vẫn lưu theo contract cũ; lịch sử20+1/total21/khônglẫnngười khác. Browser Adminfixture: doubleclick tên chỉ1request ban đầu; sau đó stale409 giữ nội dung, reload baseline mới rồi chủ độngsave200 (accesslog3PUTtên:200/409/200). Email sai hiện lỗi; F5 bản build cuối giữ tên/phiên. Mobile375 document367,5form292=scroll292, ảnh đã xem. Lịch sử: trang1=20dòng/trang2=1; F5 giữ contracts_page2, URLbad hiện lỗi/nútvềđầu, tài khoản rỗng0 thật; mobiletable600 cuộn trong wrapper302, trang không tràn, ảnh đã xem. Chưa kiểm OSoffline/503retry/BackForward/chuyểnusergiữrequest đangchạy/Admin thậtdev, không gọi toànMVP hoàn thành.
+
+Hậu kiểm runSYSQA-4434b78ea1: dọn đúng4user/22contract/1room/1building/4setting +session/cache delta; nguồn test0/FK1/devdenied1142/privatefile cũSHA nguyên, không tạo/áp dụng schema. Dev7nhóm snapshot đều khớp29bảng/30migration/RUNfalse; proxySHA gốc giữ nguyên, cặp18082stopped/tabriêngđóng/viewportreset. Artifacts ignored `backups/settings-qa-20261103/`, khôngGithelper/log/credential/ảnh. Bank vẫn chỉ đọc; chưa tổng nợ/sửa chữa tại hồ sơ, chưa Dashboard hoặc email. Tiếp tục ROOM-VIEW theo phê duyệt riêng mới; không push.
