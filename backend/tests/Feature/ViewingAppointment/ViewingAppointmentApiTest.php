@@ -29,6 +29,9 @@ class ViewingAppointmentApiTest extends TestCase
 
     private $notifications;
 
+    /** @var list<string> Session có sẵn trước test; mọi session khác (kể cả khách chưa đăng nhập) do test này tạo. */
+    private array $sessionsBefore = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -41,6 +44,7 @@ class ViewingAppointmentApiTest extends TestCase
         $this->migration->up();
         $this->notifications->up();
         $this->ownsSchema = true;
+        $this->sessionsBefore = DB::table('sessions')->pluck('id')->all();
         Carbon::setTestNow(Carbon::parse('2026-10-30 01:00:00', 'UTC'));
         $this->room = Room::factory()->create(['is_public' => true]);
         $this->initializeSpaClient();
@@ -60,7 +64,7 @@ class ViewingAppointmentApiTest extends TestCase
                     $this->migration->down();
                 }
                 $this->notifications->down();
-                DB::table('sessions')->whereIn('user_id', $this->users)->delete();
+                DB::table('sessions')->whereNotIn('id', $this->sessionsBefore)->delete();
                 DB::table('users')->whereIn('id', $this->users)->delete();
                 DB::table('rooms')->where('id', $this->room->id)->delete();
                 DB::table('buildings')->where('id', $this->room->building_id)->delete();
