@@ -5,6 +5,9 @@ export async function getPayments(filters: PaymentFilters, signal?: AbortSignal)
   const input = paymentFiltersSchema.parse(filters)
   return (await http.get<PaymentPage>('/payments',{params:{status:input.status||undefined,method:input.method||undefined,invoice_id:input.invoice_id||undefined,page:input.page},signal})).data
 }
+export async function getPayment(id: string, signal?: AbortSignal): Promise<Payment> {
+  return (await http.get<{ data: Payment }>(`/payments/${encodeURIComponent(id)}`, { signal })).data.data
+}
 export async function submitPaymentProof(invoiceId:number,input:PaymentProofInput) {
   const valid=paymentProofSchema.parse(input), body=new FormData()
   body.append('amount',String(valid.amount)); body.append('proof',valid.proof!)

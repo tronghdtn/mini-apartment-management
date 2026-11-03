@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowLeft, FileText } from 'lucide-react'
+import { ArrowLeft, FileText, Printer } from 'lucide-react'
 import { isAxiosError } from 'axios'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -63,7 +63,7 @@ export function InvoiceDetail({ admin = false, renderPayments }: { admin?: boole
   }
   return <div className="mx-auto max-w-4xl space-y-6"><Link to={base} className="inline-flex items-center gap-2 text-sm font-bold text-sky-700"><ArrowLeft className="h-4 w-4" />Danh sách hóa đơn</Link>
     {error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p>{error}</p><Button variant="outline" onClick={() => setVersion(value => value + 1)}>Tải lại chi tiết</Button></div> : !data ? <p role="status">Đang tải chi tiết hóa đơn…</p> : <>
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5"><div><p className="text-xs font-bold uppercase text-sky-700">Tài chính / Chi tiết hóa đơn</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-extrabold"><FileText className="h-6 w-6 text-sky-600" />{data.invoice_number ?? `Hóa đơn nháp #${data.id}`}</h1><p className="mt-2 text-sm text-slate-500">{data.room.building_name} · {data.room.code} · {data.contract_number ?? `HĐ #${data.contract_id}`} · {data.tenant_name}</p></div><InvoiceBadge invoice={data} /></header>
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-5"><div><p className="text-xs font-bold uppercase text-sky-700">Tài chính / Chi tiết hóa đơn</p><h1 className="mt-2 flex items-center gap-2 text-2xl font-extrabold"><FileText className="h-6 w-6 text-sky-600" />{data.invoice_number ?? `Hóa đơn nháp #${data.id}`}</h1><p className="mt-2 text-sm text-slate-500">{data.room.building_name} · {data.room.code} · {data.contract_number ?? `HĐ #${data.contract_id}`} · {data.tenant_name}</p></div><div className="flex flex-wrap items-center gap-2"><InvoiceBadge invoice={data} />{data.status !== 'draft' && <Link to={`${base}/${data.id}/print`} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Printer className="h-4 w-4" />In hóa đơn</Link>}</div></header>
       {message && <p role="status" className="rounded-xl bg-sky-50 p-4 text-sm text-sky-900">{message}</p>}
       {admin && data.contract_status === 'terminated' && <p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">Hợp đồng đã thanh lý. Hóa đơn cần quy trình điều chỉnh riêng; không được hủy trực tiếp.</p>}
       {admin && data.contract_closure_note && <p className="whitespace-pre-wrap rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Ghi chú bàn giao hiện tại của hợp đồng: {'\n'}{data.contract_closure_note}</p>}

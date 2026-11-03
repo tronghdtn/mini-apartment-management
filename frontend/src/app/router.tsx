@@ -27,7 +27,9 @@ import {
   AdminResidentsPage,
 } from './adminPages'
 import { RequireAuth } from '@/features/auth/RequireAuth'
+import { Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
+import { AdminContractPrintPage, InvoicePrintPage, ReceiptPrintPage, ResidentContractPrintPage } from './printPages'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
 import { ResidentLayout } from '@/components/layouts/ResidentLayout'
@@ -51,8 +53,29 @@ import { RegisterPage } from '@/pages/public/RegisterPage'
 import { GuestAppointmentsPage } from '@/pages/public/GuestAppointmentsPage'
 import { GuestProfilePage } from '@/pages/public/GuestProfilePage'
 
+// Bản in đứng riêng ngoài layout để giấy chỉ còn nội dung tài liệu.
+const printPage = (page: ReactNode) => <Suspense fallback={<p role="status" className="py-8 text-center text-slate-600">Đang tải bản in…</p>}>{page}</Suspense>
+
 // Guard luôn ở ngoài layout; route chỉ thêm sau khi có trang tương ứng.
 export const router = createBrowserRouter([
+  {
+    element: <RequireAuth roles={['admin']} />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      { path: '/admin/invoices/:invoiceId/print', element: printPage(<InvoicePrintPage admin />) },
+      { path: '/admin/payments/:paymentId/receipt', element: printPage(<ReceiptPrintPage admin />) },
+      { path: '/admin/contracts/:contractId/print', element: printPage(<AdminContractPrintPage />) },
+    ],
+  },
+  {
+    element: <RequireAuth roles={['resident']} />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      { path: '/resident/invoices/:invoiceId/print', element: printPage(<InvoicePrintPage />) },
+      { path: '/resident/payments/:paymentId/receipt', element: printPage(<ReceiptPrintPage />) },
+      { path: '/resident/contracts/:contractId/print', element: printPage(<ResidentContractPrintPage />) },
+    ],
+  },
   {
     path: '/',
     element: <PublicLayout />,

@@ -55,3 +55,18 @@
     background: #94a3b8;
   }
 }
+
+/* Bản in hóa đơn/biên nhận/phiếu hợp đồng: khổ A4, nền trắng, giữ màu nền của bảng. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

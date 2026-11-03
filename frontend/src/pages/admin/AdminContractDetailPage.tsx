@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
-import { AlertTriangle, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Lock, Pencil, Receipt, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Lock, Pencil, Receipt, Trash2, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -137,6 +137,7 @@ export function AdminContractDetailPage() {
         {contract.status === 'draft' && <><Link to={`/admin/contracts/${contract.id}/edit`}><Button variant="outline" icon={<Pencil className="w-4 h-4" />}>Sửa bản nháp</Button></Link><Button variant="danger" disabled={contract.deposit_status !== 'unpaid'} title={contract.deposit_status !== 'unpaid' ? 'Bản nháp đã nhận cọc không thể xóa' : undefined} icon={<Trash2 className="w-4 h-4" />} onClick={() => { setDeleteError(''); setDeleting(true) }}>Xóa bản nháp</Button></>}
         {contract.status === 'active' && <>{!contract.actual_end_date && <Button variant="outline" onClick={() => setTab('services')}>Thay đổi dịch vụ</Button>}<Link to={`/admin/invoices?contract_id=${contract.id}`}><Button variant="outline" icon={<Receipt className="w-4 h-4" />}>Hóa đơn</Button></Link><Link to={handoverLink}><Button variant="outline" className="border-rose-200 text-rose-700 hover:bg-rose-50">Bàn giao và thanh lý</Button></Link></>}
         {contract.status === 'terminated' && <Link to={handoverLink}><Button variant="outline">Xem kết quả thanh lý</Button></Link>}
+        {contract.status !== 'draft' && <Link to={`/admin/contracts/${contract.id}/print`}><Button variant="outline" icon={<Printer className="w-4 h-4" />}>In phiếu hợp đồng</Button></Link>}
       </div>
     </div>
     {contract.status === 'active' && <p className="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-2 text-sm text-slate-600"><Lock className="w-4 h-4 shrink-0 mt-0.5" />Hợp đồng đang hiệu lực: phòng, người thuê, thời hạn, tiền thuê, cọc và điều khoản chỉ đọc; dịch vụ định kỳ chỉ thay đổi từ kỳ tiếp theo.</p>}
