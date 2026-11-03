@@ -616,3 +616,26 @@ Pint380/frontend152/build/lint0lỗi9cảnhbáocũ; codea24ecb5/Plan§12.61. Ch�
 | DB91-SAFE | Exactcleanup/schema/dev/private/RUNfalse |6user21building5room2contract1invoice22payment3maintenance7appointment dọn, M19/18/17down đúngsởhữu; test0/FK1/devdenied1142/privateSHA nguyên/dev7nhómkhớp29bảng30migration |
 
 Code4d5645e/Plan§12.62/học tập§11.69; không fullPHPUnit mới hoặc toànMVP. Lượt final bịngắt mấtlog đã kiểm process/baseline rồi chạy lại, không cộng kếtquảtrùng. Proxykhôngđổi/testpairdừng/viewportreset/tabđóng, khôngpush.
+
+## E2E-ACC — nghiệm thu toàn hệ thống qua giao diện React (04/11/2026, DB test)
+
+Một hành trình liên tục qua UI thật trên cặp 18082 (DB `mini_apartment_test` sau guard, 9 migration pending áp tạm + `SystemCatalogSeeder`, 1 Admin test do fixture tạo; mọi thực thể khác tạo bằng giao diện). Giờ VN 02:05–02:54 ngày 04/11/2026. Đây là bổ sung cho CLOSE-F04/F06: lần đầu chạy toàn bộ wizard bằng React; **không phải** nghiệm thu trên dev hay bằng Admin thật.
+
+| ID | Vai trò | Bước / kết quả quan sát |
+|---|---|---|
+| E2E-01 | Admin | Tạo tòa (5 tầng), phòng E201 (25.50 m², công khai), dịch vụ Internet per_room 100.000 ₫, giá Điện 3.500/Nước 15.000 từ 01/11, 3 khóa ngân hàng + tên hệ thống, cấp Kỹ thuật viên/Bảo vệ: PASS |
+| E2E-02 | Khách → Admin → Bảo vệ | Đặt lịch công khai 10:00 → APT-202611-0001 chờ xác nhận → Admin xác nhận → Bảo vệ thấy trong "hôm nay", check-in 02:33, check-out 02:33: PASS |
+| E2E-03 | Khách | Tự đăng ký (có email) → vào `/account/profile`: PASS |
+| E2E-04 | Admin | Hợp đồng nháp 04/11/2026–03/11/2027, 3.500.000 ₫/tháng, cọc 3.500.000 ₫; đăng ký Internet; điều khoản phí cố định 1.000.000 ₫ + 1 điều kiện miễn (thiếu mã → lỗi đúng ô); ghi nhận cọc; kích hoạt với chỉ số đầu 1200.50/85.20 → HD-2026-0161, user thành Cư dân, nút In phiếu: PASS |
+| E2E-05 | Admin | Hóa đơn tháng 11: tiền phòng 3.500.000×27/30 = 3.150.000 ₫, Internet 100.000×27/30 = 90.000 ₫, không dòng điện nước (hóa đơn đầu), tổng 3.240.000 ₫; nháp không có nút In; phát hành → INV-202611-0093, hạn 09/11 (5 ngày): PASS |
+| E2E-06 | Cư dân → Admin | Tổng quan: phòng/tòa/thời hạn, nợ 3.240.000 ₫, 2 thông báo; hướng dẫn chuyển khoản đúng ngân hàng Admin nhập + nội dung = mã hóa đơn; gửi minh chứng PNG → payment #28 chờ đối soát; Admin xác nhận → RCP-202611-0028, hóa đơn "Đã thanh toán"; in biên nhận đúng trường: PASS |
+| E2E-07 | Cư dân → Admin → Kỹ thuật viên | Gửi MR-202611-0001 (ưu tiên Cao, ảnh private 200 image/png no-store) → Admin phân công → KTV nhận thông báo, bắt đầu, hoàn tất (ghi chú trống bị chặn); cư dân thấy "Đã hoàn tất": PASS |
+| E2E-08 | Cư dân → Admin | Gửi ảnh chỉ số điện 1210.00 → Admin từ chối (lý do trống bị chặn, có lý do → đã từ chối): PASS |
+| E2E-09 | Admin | Dashboard: 1 phòng thuê, thực nhận 3.240.000 ₫, nợ 0, bảng tòa 1/1/0; hồ sơ cư dân: đang thuê, nợ 0, 1 yêu cầu sửa chữa: PASS |
+| E2E-10 | Admin | Thanh lý cùng ngày: kiểm tra tài sản + ảnh; thiếu lý do → chặn; xem trước "Nhận và trả cùng ngày", phí trước hạn 0 ₫ (DB-D66), điện 4.80×3.500 = 16.800 ₫, nước 0.80×15.000 = 12.000 ₫. **Lập tất toán ban đầu 409 "Hợp đồng vừa thay đổi"** (lỗi E2E-BUG-01) → sửa → 201; hóa đơn #94 tổng 0 ₫ (giảm trừ −28.800 ₫, hoàn ngoài hệ thống 3.211.200 ₫ ghi trong ghi chú), phát hành → "Đã tất toán"; đối soát cọc khấu trừ 0/hoàn 3.500.000 ₫; thanh lý 02:53 → phòng Còn trống; ghi nhận hoàn đủ cọc: PASS sau khi sửa |
+| E2E-11 | Cư dân | Sau thanh lý: banner "không còn hợp đồng", ẩn nút gửi sửa chữa, nợ 0; phiếu hợp đồng in "Đã thanh lý · Nhận và trả cùng ngày · Hoàn 3.500.000 ₫": PASS |
+| E2E-BUG-01 | — | `Contract::lifecycleRevision()` băm dòng dịch vụ theo thứ tự nạp; GET sắp theo id còn `ContractFinalInvoiceService::createLocked` nạp lười theo index service_id → khác hash, tất toán luôn 409 khi dịch vụ định kỳ được thêm lúc nháp (trước Điện/Nước). Đã sửa sắp theo id; `ContractRevisionOrderTest` FAIL trước/PASS sau. |
+| E2E-OBS-01 | — | Ca nhận–trả cùng ngày: phiếu in hiệu lực dịch vụ "04/11/2026 – 03/11/2026" (đúng 0 ngày nhưng khó đọc). Chưa sửa, chờ quyết định hiển thị. |
+| E2E-OBS-02 | — | Khi lập tất toán bị 409, UI hiện thông điệp chung "Dữ liệu bị xung đột…" thay vì câu cụ thể của Backend. Chưa sửa. |
+
+Chưa kiểm trong lượt này: email (đã kiểm riêng §12.66), mất mạng/503 trên browser, nút Back/Forward, mobile cho toàn hành trình (các trang đã kiểm mobile riêng ở từng lát), Admin thật trên dev. Cleanup: fixture down so sánh baseline mọi bảng `diff=[]`, 24 bảng/21 migration, FK=1, file private/public mới = 0; cặp 18082 stopped, tab đóng.

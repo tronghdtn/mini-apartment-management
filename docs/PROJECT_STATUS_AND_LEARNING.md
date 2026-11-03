@@ -1574,3 +1574,15 @@ Không phải lỗi nghiệp vụ thanh toán. Nginx chờ PHP-FPM tối đa 60 
 | `frontend/src/features/payments/submissionError.ts` | (PAY-04, đã có) xử lý kết quả chưa rõ khi gặp 504, không cho gửi lặp. |
 
 Câu hỏi bảo vệ: (1) Vì sao GET CSRF cũng chậm cùng lúc với POST thanh toán? Hai request dùng chung worker và cùng chịu chi phí kiểm file. (2) Tăng timeout Nginx có phải cách sửa đúng? Không, chỉ che triệu chứng. (3) revalidate_freq = 2 ảnh hưởng gì khi lập trình? Sửa file PHP có hiệu lực sau tối đa 2 giây. (4) Production nên cấu hình thế nào? Tắt validate_timestamps và chạy `php artisan optimize` khi deploy.
+
+### 11.75. Vì sao bước lập hóa đơn tất toán từng luôn báo "Hợp đồng vừa thay đổi" (E2E-BUG-01, 04/11/2026)
+
+`lifecycle_revision` là mã băm (hash) của toàn bộ dữ liệu hợp đồng + dòng dịch vụ + người ở cùng, gửi kèm mỗi thao tác để chặn ghi đè khi dữ liệu đã đổi. Trang chi tiết đọc dịch vụ theo `id` tăng dần, còn bước lập tất toán nạp lại dịch vụ không sắp xếp; MySQL trả theo chỉ mục `service_id` nên thứ tự khác → hash khác → 409 dù không ai sửa gì. Lỗi chỉ lộ khi dịch vụ định kỳ được thêm lúc nháp (id nhỏ) trước Điện/Nước (thêm lúc kích hoạt) — đúng thứ tự thao tác thật trên giao diện, nên chỉ nghiệm thu bằng UI mới phát hiện.
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `backend/app/Models/Contract.php` — `lifecycleRevision()` | Sửa: `contractServices->sortBy('id')` trước khi băm, giống người ở cùng. |
+| `backend/app/Services/ContractFinalInvoiceService.php` — `createLocked()` | So `expected_revision` với revision tính dưới khóa. |
+| `backend/tests/Feature/Contracts/ContractRevisionOrderTest.php` | Đảo thứ tự quan hệ, revision phải giữ nguyên. |
+
+Câu hỏi bảo vệ: (1) Revision dùng để làm gì? Phát hiện dữ liệu đã đổi giữa lúc đọc và lúc ghi (khóa lạc quan). (2) Vì sao hash phải không phụ thuộc thứ tự? Cùng dữ liệu phải cho cùng mã, nếu không sẽ báo xung đột giả. (3) Vì sao test cũ không bắt được? Dữ liệu test tạo dịch vụ theo thứ tự trùng với chỉ mục; nghiệm thu UI mới tái hiện thứ tự thật.
