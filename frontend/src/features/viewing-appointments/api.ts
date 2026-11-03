@@ -1,12 +1,13 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
 import type { AppointmentBookingInput } from './schemas'
-import { appointmentBookingSchema, appointmentFiltersSchema, vietnamAppointmentTime } from './schemas'
+import { appointmentBookingSchema, appointmentFiltersSchema, appointmentRoomSchema, vietnamAppointmentTime } from './schemas'
 import type { AppointmentPage, ViewingAppointment } from './types'
 
-export async function getAppointments(input: { status: string; page: string; date: string }, signal?: AbortSignal) {
+export async function getAppointments(input: { status: string; page: string; date: string }, signal?: AbortSignal, roomId?: number) {
   const filters = appointmentFiltersSchema.parse(input)
   return (await http.get<AppointmentPage>('/viewing-appointments', { params: {
     ...filters, status: filters.status === 'all' ? undefined : filters.status, date: filters.date || undefined,
+    room_id: roomId === undefined ? undefined : appointmentRoomSchema.parse(roomId),
   }, signal })).data
 }
 export async function bookAppointment(roomId: string, input: AppointmentBookingInput) {

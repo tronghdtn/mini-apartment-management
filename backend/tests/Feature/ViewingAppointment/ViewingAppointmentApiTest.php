@@ -88,6 +88,43 @@ class ViewingAppointmentApiTest extends TestCase
         ], $changes), ['REMOTE_ADDR' => $ip]);
     }
 
+    public function test_admin_room_filter_runs_before_pagination_and_combines_with_status_and_vietnam_date(): void
+    {
+        DB::beginTransaction();
+        $this->login(UserRole::Admin);
+        // Admin history also works for rooms that are no longer public.
+        $this->room->update(['is_public' => false]);
+        $otherRoom = Room::factory()->create(['building_id' => $this->room->building_id]);
+        $ids = [];
+        for ($n = 0; $n < 21; $n++) {
+            $ids[] = ViewingAppointment::forceCreate(['room_id' => $this->room->id, 'code' => 'ROOM-QA-'.$n,
+                'guest_name' => 'Khách kiểm thử', 'guest_phone' => '0901234567',
+                'preferred_at' => '2026-10-29 17:30:00', 'status' => $n === 20 ? 'confirmed' : 'pending'])->id;
+        }
+        ViewingAppointment::forceCreate(['room_id' => $otherRoom->id, 'code' => 'ROOM-QA-OTHER',
+            'guest_name' => 'Phòng khác', 'guest_phone' => '0901234568', 'preferred_at' => '2026-10-29 17:30:00', 'status' => 'confirmed']);
+        $base = '/api/v1/viewing-appointments?room_id='.$this->room->id;
+        $first = $this->spa('GET', $base)->assertOk()->assertJsonCount(20, 'data')->assertJsonPath('meta.total', 21);
+        $second = $this->spa('GET', $base.'&page=2')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.total', 21);
+        $this->assertSame($ids, array_merge(array_column($first->json('data'), 'id'), array_column($second->json('data'), 'id')));
+        $this->spa('GET', $base.'&status=confirmed&date=2026-10-30')->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $ids[20]);
+        $this->spa('GET', $base.'&date=2026-10-29')->assertOk()->assertJsonCount(0, 'data');
+        $this->spa('GET', '/api/v1/viewing-appointments?room_id=9007199254740991')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_room_filter_is_rejected_for_non_admin_and_invalid_values(): void
+    {
+        $this->spa('GET', '/api/v1/viewing-appointments?room_id='.$this->room->id)->assertUnauthorized();
+        foreach ([UserRole::User, UserRole::Resident, UserRole::Technician, UserRole::Guard] as $role) {
+            $this->login($role);
+            $this->spa('GET', '/api/v1/viewing-appointments?room_id='.$this->room->id)->assertUnprocessable()->assertJsonValidationErrors('room_id');
+        }
+        $this->login(UserRole::Admin);
+        foreach (['0', '-1', '1.2', 'invalid', 'true', '9007199254740992'] as $roomId) {
+            $this->spa('GET', '/api/v1/viewing-appointments?room_id='.$roomId)->assertUnprocessable()->assertJsonValidationErrors('room_id');
+        }
+    }
+
     public function test_anonymous_booking_is_private_and_room_phone_duplicate_is_blocked(): void
     {
         $this->spa('GET', '/api/v1/viewing-appointments')->assertUnauthorized();

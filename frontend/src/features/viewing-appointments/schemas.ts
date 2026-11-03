@@ -26,6 +26,7 @@ export const appointmentFiltersSchema = z.object({
   page: z.string().regex(/^[1-9]\d*$/).refine(value => Number(value) <= 2147483647),
   date: z.union([z.literal(''), z.iso.date()]),
 })
+export const appointmentRoomSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
 export function vietnamAppointmentTime(value: string) {
   return `${appointmentTimeSchema.parse(value)}:00+07:00`
 }

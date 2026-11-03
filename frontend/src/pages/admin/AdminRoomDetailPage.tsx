@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Tabs } from '@/components/ui/Tabs'
 import { RoomContractsPanel } from '@/features/contracts/RoomContractsPanel'
 import { RoomMeterReadingsPanel } from '@/features/meter-readings/RoomMeterReadingsPanel'
+import { AppointmentsWorkspace } from '@/features/viewing-appointments/AppointmentsWorkspace'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
 import { getRoom } from '@/features/room-management/api'
@@ -87,7 +88,7 @@ export function AdminRoomDetailPage() {
       {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
       {tab === 'maintenance' && <MaintenanceRequestList audience="admin" roomId={room.id} />}
       {tab === 'utilities' && <RoomMeterReadingsPanel key={room.id} roomId={room.id} />}
-      {tab === 'appointments' && <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-bold text-slate-900">Lịch xem phòng</h2><p className="mt-2 text-sm text-slate-500">Chức năng này chưa được kết nối API. Chưa thể xem hoặc cập nhật dữ liệu tại đây.</p></section>}
+      {tab === 'appointments' && <AppointmentsWorkspace key={room.id} mode="admin" roomId={room.id} />}
       <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
         <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
       </Modal>

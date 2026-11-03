@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ViewingAppointment;
 
 use App\Enums\AppointmentStatus;
+use App\Enums\UserRole;
 use App\Models\ViewingAppointment;
 use App\Rules\NotBoolean;
 use App\Services\ViewingAppointmentService;
@@ -53,6 +54,9 @@ class AppointmentRequest extends FormRequest
             'checkIn', 'checkOut' => ['guard_note' => ['nullable', 'string', 'max:2000']],
             default => [],
         };
+        if ($this->route()->getActionMethod() === 'index' && $this->user()?->role === UserRole::Admin) {
+            $rules['room_id'] = ['sometimes', new NotBoolean, 'integer', 'min:1', 'max:9007199254740991'];
+        }
         foreach (array_diff(array_keys($this->all()), array_keys($rules)) as $field) {
             $rules[$field] = ['missing'];
         }

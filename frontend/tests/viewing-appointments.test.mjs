@@ -1,5 +1,11 @@
 import test from 'node:test'
+import { appointmentRoomSchema } from '../src/features/viewing-appointments/schemas.ts'
 import assert from 'node:assert/strict'
+
+test('room appointment scope requires an exact positive integer ID without coercing client input', () => {
+  for (const id of [1, 42, Number.MAX_SAFE_INTEGER]) assert.equal(appointmentRoomSchema.parse(id), id)
+  for (const id of [0, -1, 1.5, '42', true, null, NaN, Number.MAX_SAFE_INTEGER + 1]) assert.equal(appointmentRoomSchema.safeParse(id).success, false)
+})
 import { appointmentBookingSchema, appointmentFiltersSchema, appointmentTimeSchema, vietnamAppointmentTime } from '../src/features/viewing-appointments/schemas.ts'
 
 test('booking datetime stays Vietnam time regardless of browser timezone and validates calendar/hours', () => {

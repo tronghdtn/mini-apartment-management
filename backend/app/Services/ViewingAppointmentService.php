@@ -32,6 +32,9 @@ class ViewingAppointmentService
         } elseif ($user->role !== UserRole::Admin) {
             $query->where('user_id', $user->id);
         }
+        if ($user->role === UserRole::Admin && isset($filters['room_id'])) {
+            $query->where('room_id', $filters['room_id']);
+        }
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }

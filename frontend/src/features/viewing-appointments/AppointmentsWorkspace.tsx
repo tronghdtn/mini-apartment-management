@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
@@ -16,33 +16,36 @@ import { appointmentLabels } from './types'
 import type { AppointmentPage, ViewingAppointment } from './types'
 
 type Action = { item: ViewingAppointment; action: string; label: string }
-export function AppointmentsWorkspace({ mode }: { mode: 'admin' | 'guard' | 'owner' }) {
+export function AppointmentsWorkspace({ mode, roomId }: { mode: 'admin' | 'guard' | 'owner'; roomId?: number }) {
   const { refresh } = useAuth()
   const [params, setParams] = useSearchParams()
-  const status = params.get('status') ?? 'all', page = params.get('page') ?? '1', date = params.get('date') ?? ''
+  const queryField = (name: string) => roomId === undefined ? name : `appointments_${name}`
+  const status = params.get(queryField('status')) ?? 'all', page = params.get(queryField('page')) ?? '1', date = params.get(queryField('date')) ?? ''
+  const Heading = roomId === undefined ? 'h1' : 'h2'
   const [retry, setRetry] = useState(0), [selected, setSelected] = useState<Action>()
-  const key = `${status}:${page}:${date}:${retry}:${mode}`
+  const key = `${status}:${page}:${date}:${retry}:${mode}:${roomId ?? 'all'}`
   const [result, setResult] = useState<{ key: string; data?: AppointmentPage; error?: string }>()
   const valid = appointmentFiltersSchema.safeParse({ status, page, date }).success
   useEffect(() => {
     if (!valid) return
     const abort = new AbortController()
-    getAppointments({ status, page, date }, abort.signal).then(data => { if (!abort.signal.aborted) setResult({ key, data }) })
+    getAppointments({ status, page, date }, abort.signal, roomId).then(data => { if (!abort.signal.aborted) setResult({ key, data }) })
       .catch(failure => { if (!abort.signal.aborted) { setResult({ key, error: apiErrorMessage(failure) }); if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) void refresh() } })
     return () => abort.abort()
-  }, [key, status, page, date, valid, refresh])
+  }, [key, status, page, date, valid, refresh, roomId])
   const current = result?.key === key ? result : undefined
-  function filter(name: string, value: string) { const next = new URLSearchParams(params); next.set(name, value); if (name !== 'page') next.delete('page'); setParams(next) }
-  return <div className="space-y-6">
-    <header className="border-b border-slate-200 pb-5"><h1 className="flex items-center gap-2 text-2xl font-extrabold text-slate-900"><Calendar className="h-6 w-6 text-sky-600" />{mode === 'guard' ? 'Đón khách xem phòng hôm nay' : mode === 'admin' ? 'Lịch xem phòng' : 'Lịch hẹn của tôi'}</h1><p className="mt-2 text-sm text-slate-500">{mode === 'guard' ? 'Chỉ lịch đã xác nhận trong ngày Việt Nam. Check-in trước check-out; quản trị viên hoàn tất lịch.' : 'Giờ hẹn hiển thị theo Việt Nam. Đổi giờ qua quản trị viên và cần xác nhận lại.'}</p></header>
+  function filter(name: string, value: string) { const next = new URLSearchParams(params); next.set(queryField(name), value); if (name !== 'page') next.delete(queryField('page')); setParams(next) }
+  return <div className="min-w-0 space-y-6">
+    <header className="border-b border-slate-200 pb-5"><Heading className="flex items-center gap-2 text-2xl font-extrabold text-slate-900"><Calendar className="h-6 w-6 text-sky-600" />{mode === 'guard' ? 'Đón khách xem phòng hôm nay' : mode === 'admin' ? 'Lịch xem phòng' : 'Lịch hẹn của tôi'}</Heading><p className="mt-2 text-sm text-slate-500">{mode === 'guard' ? 'Chỉ lịch đã xác nhận trong ngày Việt Nam. Check-in trước check-out; quản trị viên hoàn tất lịch.' : 'Giờ hẹn hiển thị theo Việt Nam. Đổi giờ qua quản trị viên và cần xác nhận lại.'}</p></header>
+    {roomId !== undefined && <Link to="/admin/viewing-appointments" className="inline-block text-sm text-sky-700 hover:underline">Mở trang quản lý lịch xem phòng</Link>}
     <div className="flex flex-wrap gap-3 items-center justify-between">
       {mode !== 'guard' && <nav className="flex gap-3 overflow-x-auto max-w-full border-b border-slate-200" aria-label="Trạng thái lịch">{(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(tab => <button type="button" key={tab} disabled={!!selected} onClick={() => filter('status', tab)} className={`whitespace-nowrap border-b-2 px-2 py-3 text-sm font-bold ${status === tab ? 'border-sky-600 text-sky-700' : 'border-transparent text-slate-500'}`}>{tab === 'all' ? 'Tất cả' : appointmentLabels[tab]}</button>)}</nav>}
       {mode === 'admin' && <label className="text-sm">Ngày hẹn <input type="date" value={date} onChange={event => filter('date', event.target.value)} className="rounded-xl border border-slate-300 p-2" /></label>}
       <Button variant="outline" disabled={!!selected} onClick={() => setRetry(value => value + 1)}>Tải lại</Button>
     </div>
-    {!valid || current?.error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-white p-5"><p>{!valid ? 'Bộ lọc lịch hẹn không hợp lệ.' : current?.error}</p><Button onClick={() => { setParams({}); setRetry(value => value + 1) }}>Thử lại</Button></div> : !current?.data ? <p role="status">Đang tải lịch hẹn…</p> : <>
+    {!valid || current?.error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-white p-5"><p>{!valid ? 'Bộ lọc lịch hẹn không hợp lệ.' : current?.error}</p><Button onClick={() => { const next = new URLSearchParams(params); for (const name of ['status', 'page', 'date']) next.delete(queryField(name)); setParams(next); setRetry(value => value + 1) }}>Thử lại</Button></div> : !current?.data ? <p role="status">Đang tải lịch hẹn…</p> : <>
       <p className="text-sm text-slate-500">{current.data.meta.total} lịch phù hợp</p>
-      {!current.data.data.length ? <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">Chưa có lịch hẹn phù hợp.</p> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{['Khách xem phòng', 'Tòa nhà / Phòng', 'Thời gian (VN)', 'Trạng thái', 'Thao tác'].map(heading => <th key={heading} className="px-5 py-4">{heading}</th>)}</tr></thead><tbody>{current.data.data.map(item => <tr key={item.id} className="border-t border-slate-100"><td className="px-5 py-4"><p className="font-bold">{item.guest_name}</p><p>{item.guest_phone}</p><p className="text-xs text-slate-500">{item.code}</p></td><td className="px-5 py-4">{item.room.building_name}<p className="font-semibold">{item.room.code}</p></td><td className="px-5 py-4 whitespace-nowrap">{formatDateTime(item.preferred_at)}{item.checked_in_at && <p className="text-xs text-teal-700">Đến: {formatDateTime(item.checked_in_at)}</p>}{item.checked_out_at && <p className="text-xs text-slate-500">Rời: {formatDateTime(item.checked_out_at)}</p>}</td><td className="px-5 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ${item.status === 'confirmed' ? 'bg-sky-50 text-sky-700' : item.status === 'cancelled' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-700'}`}>{appointmentLabels[item.status]}</span></td><td className="px-5 py-4"><div className="flex flex-wrap gap-2 min-w-40">{actions(item, mode).map(([action, label]) => <Button key={action} variant="outline" disabled={!!selected} onClick={() => setSelected({ item, action, label })}>{label}</Button>)}</div></td></tr>)}</tbody></table></div>}
+      {!current.data.data.length ? <p className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">Chưa có lịch hẹn phù hợp.</p> : <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr>{['Khách xem phòng', 'Tòa nhà / Phòng', 'Thời gian (VN)', 'Trạng thái', ...(roomId === undefined ? ['Thao tác'] : [])].map(heading => <th key={heading} className="px-5 py-4">{heading}</th>)}</tr></thead><tbody>{current.data.data.map(item => <tr key={item.id} className="border-t border-slate-100"><td className="px-5 py-4"><p className="font-bold">{item.guest_name}</p><p>{item.guest_phone}</p><p className="text-xs text-slate-500">{item.code}</p></td><td className="px-5 py-4">{item.room.building_name}<p className="font-semibold">{item.room.code}</p></td><td className="px-5 py-4 whitespace-nowrap">{formatDateTime(item.preferred_at)}{item.checked_in_at && <p className="text-xs text-teal-700">Đến: {formatDateTime(item.checked_in_at)}</p>}{item.checked_out_at && <p className="text-xs text-slate-500">Rời: {formatDateTime(item.checked_out_at)}</p>}</td><td className="px-5 py-4"><span className={`inline-block whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold ${item.status === 'confirmed' ? 'bg-sky-50 text-sky-700' : item.status === 'cancelled' ? 'bg-rose-50 text-rose-700' : 'bg-slate-100 text-slate-700'}`}>{appointmentLabels[item.status]}</span></td>{roomId === undefined && <td className="px-5 py-4"><div className="flex flex-wrap gap-2 min-w-40">{actions(item, mode).map(([action, label]) => <Button key={action} variant="outline" disabled={!!selected} onClick={() => setSelected({ item, action, label })}>{label}</Button>)}</div></td>}</tr>)}</tbody></table></div>}
       <nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Phân trang lịch hẹn"><p className="text-sm">Trang {current.data.meta.current_page}/{current.data.meta.last_page}</p><div className="flex gap-2"><Button variant="outline" disabled={!!selected || Number(page) <= 1} onClick={() => filter('page', String(Number(page) - 1))}>Trước</Button><Button variant="outline" disabled={!!selected || Number(page) >= current.data.meta.last_page} onClick={() => filter('page', String(Number(page) + 1))}>Sau</Button></div></nav>
     </>}
     {selected && <AppointmentAction key={`${selected.item.id}:${selected.action}`} selected={selected} close={() => setSelected(undefined)} done={() => { setSelected(undefined); setRetry(value => value + 1) }} />}
