@@ -4,6 +4,8 @@
 
 ## 1. Phạm vi
 
+**Bổ sung PROFILE-A (DB-D88, 03/11/2026):** đã duyệt tự sửa họ tên và đổi mật khẩu rồi đăng xuất tất cả phiên trên các trang hồ sơ hiện có. Phạm vi/API/AC tại §10; chỉ thay giới hạn chỉ đọc của AUTH-D03 đối với hai thao tác này. Không mở sửa SĐT/email/pháp lý hoặc khôi phục mật khẩu. Các mô tả Bước 4 bên dưới là phạm vi lịch sử của bước đó.
+
 **Phạm vi cơ bản đã được giao ở bước 1–3.5:** email nullable; lệnh Artisan tạo Admin; đăng ký/đăng nhập/đăng xuất/lấy tài khoản hiện tại bằng Sanctum SPA session cookie; kiểm tra vai trò/trạng thái tại Laravel. Có code và kiểm thử tự động không đồng nghĩa đã tích hợp React hoặc mọi hành vi đã được duyệt.
 
 **Bước 4 đã được giao triển khai:** nối React với 4 API, bootstrap phiên, guard, navbar/logout, tách danh tính thật khỏi demo, giữ giao diện Antigravity. Phạm vi tài khoản tối thiểu và điểm đến theo AUTH-D02/D03 CONFIRMED ở §8.
@@ -148,9 +150,9 @@ Return-to chỉ URL nội bộ được phép theo vai trò, không open redirec
 - [Tài liệu học tập §11](PROJECT_STATUS_AND_LEARNING.md): đường đi dữ liệu, file/hàm, command, kiểm thử và câu hỏi giảng viên; giữ số liệu 137/486, 165/755 và 227/1267 theo từng lần lịch sử.
 - [DB plan §16](DATABASE_IMPLEMENTATION_PLAN.md): nâng cấp email nullable trên dev đã được phê duyệt và xác minh; không cho phép chạy migration dev khác.
 
-## 10. PROFILE-A — đề xuất tự sửa tên và đổi mật khẩu (CHỜ DUYỆT 03/11/2026)
+## 10. PROFILE-A — tự sửa tên và đổi mật khẩu (CONFIRMED 03/11/2026)
 
-Q10 đã CONFIRMED quyền tự sửa tên hiển thị/đổi mật khẩu; không hỏi lại nguyên tắc này. Gói dưới đề xuất hợp đồng API và xử lý phiên để triển khai trên các trang hồ sơ hiện có, chưa phải phê duyệt ngầm:
+Q10 đã CONFIRMED quyền tự sửa tên hiển thị/đổi mật khẩu; không hỏi lại nguyên tắc này. Chủ dự án đã duyệt toàn gói tên + mật khẩu, đăng xuất tất cả phiên. Hợp đồng API và xử lý phiên trên các trang hồ sơ hiện có:
 
 - Mọi tài khoản active trong đúng5role, chỉ tài khoản đang đăng nhập. `PATCH /api/v1/auth/profile`: chỉ full_name (trim, bắt buộc, tối đa120 ký tự); trả200 UserResource6trường như /me. Không nhận user_id/email/phone/role/status hoặc thông tin pháp lý. Sửa tên không đổi mật khẩu/phiên/hợp đồng/hóa đơn.
 - `PUT /api/v1/auth/password`: current_password, password, password_confirmation. Kiểm mật khẩu hiện tại tại Backend dưới khóa user; mật khẩu mới theo PasswordRules::registration, khác mật khẩu cũ. Không trim mật khẩu, không dùng mặc định, không trả/log/hash/payload nhạy cảm. Thành công204, đổi hash+remember_token, đăng xuất mọi phiên kể cả phiên hiện tại, CSRF hiện tại được tạo lại; React về đăng nhập và nhắc dùng mật khẩu mới. Từ chối mật khẩu cũ trên lần login sau.
@@ -158,4 +160,4 @@ Q10 đã CONFIRMED quyền tự sửa tên hiển thị/đổi mật khẩu; kh�
 - Tái dùng AccountProfile cho guest/admin/resident/technician/guard; đổi tối thiểu các khối hiện có, RHF/Zod, loading/lỗi/retry/chặn bấm lặp. Email/SĐT/vai trò/pháp lý vẫn chỉ đọc; đổi email/xác minh/khôi phục không thuộc lát cắt này.
 - Không schema/migration/thư viện mới. Không chạy thao tác thử với tài khoản dev. AC:5role tự sửa đúng mình; anonymous/locked/CSRF/field cấm; sai oldpassword, mismatch/same/bcrypt72byte/NUL; hash/no leak; hai phiên cũ đều401, login cũ thất bại/mới thành công; race khóa/đổi mật khẩu/SQLrollback; frontend test/build/lint, kiểm nhanh đúng phần vừa sửa trên DBtest có guard. Nghiệm thu toàn hệ thống để sau.
 
-Cần chủ dự án duyệt hai endpoint và phương án đăng xuất tất cả phiên. Nếu chỉ duyệt sửa tên, tách đổi mật khẩu thành task chờ riêng; không tự mở quyền thay email/SĐT.
+Đã duyệt cả hai endpoint và đăng xuất tất cả phiên. Email/xác minh/khôi phục vẫn ngoài lát cắt, không tự mở quyền thay email/SĐT.

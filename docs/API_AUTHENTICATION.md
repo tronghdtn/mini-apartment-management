@@ -1,6 +1,6 @@
 # API Authentication — `/api/v1/auth`
 
-Trạng thái: Backend bước 3 và React bước 4 đã tích hợp/kiểm thử trên môi trường test cô lập ngày 22/10/2026. Spec hành vi chính: [AUTHENTICATION.md](AUTHENTICATION.md); Tasks/bằng chứng: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Tài liệu này mô tả hợp đồng HTTP đang có, D01 auto-login đã được chủ dự án phê duyệt, không mở rộng API khác. Không có API nghiệp vụ phòng/hợp đồng/hóa đơn trong phạm vi này. React đã gọi 4 API qua `features/auth/api.ts`, giữ hợp đồng HTTP hiện có. Quy tắc mới nhất: DB-D51..DB-D53 và `AUTHENTICATION.md`.
+Trạng thái: bốn API Auth cơ bản đã tích hợp từ Bước3–4. PROFILE-A (DB-D88,03/11/2026) bổ sung hai API tự sửa họ tên/đổi mật khẩu tại§6, giữ SPA cookie và response tài khoản6trường. Spec chính ở [AUTHENTICATION.md](AUTHENTICATION.md), Tasks/bằng chứng ở [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). D01 tự đăng nhập sau đăng ký đã CONFIRMED. Các mô tả Bước3–4 phía dưới là phạm vi lịch sử; không suy các chức năng đã có UI là đã có API.
 
 ## 1. Giao thức chung
 
@@ -17,6 +17,8 @@ Trạng thái: Backend bước 3 và React bước 4 đã tích hợp/kiểm th�
 | POST | `/api/v1/auth/login` | `api.v1.auth.login` | Công khai, phiên SPA hợp lệ | 200 + tài khoản |
 | POST | `/api/v1/auth/logout` | `api.v1.auth.logout` | Đã đăng nhập, active, phiên SPA hợp lệ | 204 |
 | GET | `/api/v1/auth/me` | `api.v1.auth.me` | Đã đăng nhập, active; đủ 5 vai trò | 200 + tài khoản hiện tại |
+| PATCH | `/api/v1/auth/profile` | `api.v1.auth.profile.update` | Đã đăng nhập, active, SPA/CSRF; tự sửa tên | 200 + UserResource; DB-D88/§6 |
+| PUT | `/api/v1/auth/password` | `api.v1.auth.password.update` | Đã đăng nhập, active, SPA/CSRF; đúng mật khẩu hiện tại | 204, mọi phiên cũ bị thu hồi; DB-D88/§6 |
 
 ### Đăng ký
 
@@ -74,9 +76,9 @@ Backend 227 test / 1267 assertion chạy lại PASS; client 8 test; 17 ca Chrome
 
 Chưa làm quên/đổi mật khẩu, xác minh/thay email, sửa hồ sơ, cấp nhân viên; API nghiệp vụ CAT/ROOM cơ bản đã bổ sung sau đó ở Sprint 23/10 (Plan §12). Admin qua Artisan vẫn bắt buộc email. Bước 4 không ghi dev; sau đó AUTH-13 đã kiểm thử 7 ca trên bộ Docker dev 8080 PASS, không migration, giữ 1 tài khoản khách qua đăng ký UI. Xem Plan §10; không coi kết quả cũ 227/1267 là vừa chạy lại.
 
-## 6. PROFILE-A — hợp đồng API đề xuất (CHỜ DUYỆT)
+## 6. PROFILE-A — hợp đồng API CONFIRMED 03/11/2026
 
-Nguồn nghiệp vụ/AC: AUTHENTICATION.md §10; Q10 đã chốt nguyên tắc, endpoint/chính sách phiên dưới đây chưa được duyệt.
+Nguồn nghiệp vụ/AC: AUTHENTICATION.md §10; Q10 đã chốt nguyên tắc, chủ dự án đã duyệt cả hai endpoint và chính sách đăng xuất tất cả phiên.
 
 | Method/URL | Body duy nhất | Thành công |
 |---|---|---|

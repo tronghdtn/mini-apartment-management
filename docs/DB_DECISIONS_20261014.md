@@ -275,3 +275,6 @@ Chủ dự án duyệt: cửa sổ sắp hết hạn inclusive `0 <= end_date - 
 
 ### DB-D87 / CLOSE-SVC — CONFIRMED 02/11/2026
 Chủ dự án trả lời “Duyệt bỏ dòng tương lai chưa phát sinh”: khi thanh lý trước hiệu lực dịch vụ kỳ sau, chỉ bỏ dòng chưa sử dụng và không invoice nào tham chiếu; có tham chiếu thì409, không tự xóa. Giữ mọi lịch sử đã phát sinh, không schema hoặc ghi dev. Chi tiết ranh giới DB-D32/giữ dòng gốc và Điện-Nước, kiểm meta mọi trạng thái hóa đơn, transaction/replay/revision và AC tại brief§47. Đây không phải quyền xóa lịch sử hoặc chạy thao tác dọn dữ liệu dev. Chính sách chặn đổi dịch vụ khi đã có hóa đơn kỳ áp dụng vẫn chờ quyết định riêng; DB-D86 không đổi.
+
+### DB-D88 / PROFILE-A — CONFIRMED 03/11/2026
+Chủ dự án duyệt tên + mật khẩu và đăng xuất tất cả phiên. Mọi role active tự sửa duy nhất full_name qua PATCH /api/v1/auth/profile; PUT /api/v1/auth/password cần mật khẩu hiện tại, mật khẩu mới khác cũ theo quy tắc sẵn có và xác nhận. Đổi thành công thu hồi mọi phiên kể cả hiện tại, đăng nhập lại; không thay email/SĐT/role/status/pháp lý hoặc dữ liệu nghiệp vụ. Không schema/migration hay thao tác thử tài khoản dev. API/AC/rate limits tại AUTHENTICATION§10 và API_AUTHENTICATION§6; thay giới hạn chỉ đọc AUTH-D03 riêng cho hai thao tác này, không mở thay email/khôi phục.
