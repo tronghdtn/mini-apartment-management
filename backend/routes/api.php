@@ -48,6 +48,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('rooms/{room}/photos')->na
         });
     });
 Route::get('/dashboard', [DashboardController::class, 'show'])->middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.dashboard.show');
+Route::get('/dashboard/buildings', [DashboardController::class, 'buildings'])->middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.dashboard.buildings');
 
 Route::middleware(['auth:sanctum', 'active'])->prefix('maintenance-requests')->name('api.v1.maintenance-requests.')->group(function () {
     Route::get('/context', [MaintenanceRequestController::class, 'context'])->name('context');

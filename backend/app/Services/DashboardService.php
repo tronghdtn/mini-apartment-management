@@ -6,18 +6,34 @@ use App\Enums\ContractStatus;
 use App\Enums\MaintenanceRequestStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\RoomStatus;
+use App\Models\Building;
 use App\Models\Contract;
 use App\Models\Invoice;
 use App\Models\MaintenanceRequest;
 use App\Models\Payment;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class DashboardService
 {
     public function __construct(private readonly DebtService $debts) {}
+
+    public function buildings(): LengthAwarePaginator
+    {
+        foreach (['buildings', 'rooms', 'contracts'] as $table) {
+            abort_unless(Schema::hasTable($table), 503, 'Dữ liệu tổng quan tòa nhà chưa sẵn sàng trên môi trường này.');
+        }
+
+        return Building::query()->withCount([
+            'rooms',
+            'rooms as rented_rooms_count' => fn ($rooms) => $rooms->whereHas('contracts', fn ($contracts) => $contracts->where('status', ContractStatus::Active)),
+            'rooms as available_rooms_count' => fn ($rooms) => $rooms->where('status', RoomStatus::Available),
+        ])->orderBy('id')->paginate(20)->withQueryString();
+    }
 
     public function summary(): array
     {

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\DashboardBuildingsRequest;
 use App\Http\Requests\Dashboard\DashboardRequest;
+use App\Http\Resources\DashboardBuildingResource;
 use App\Http\Resources\DashboardResource;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
@@ -11,6 +13,14 @@ use Illuminate\Http\JsonResponse;
 class DashboardController extends Controller
 {
     public function __construct(private readonly DashboardService $dashboard) {}
+
+    public function buildings(DashboardBuildingsRequest $request): JsonResponse
+    {
+        $request->validated();
+
+        return DashboardBuildingResource::collection($this->dashboard->buildings())->response()
+            ->header('Cache-Control', 'no-store, private');
+    }
 
     public function show(DashboardRequest $request): JsonResponse
     {
