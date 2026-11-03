@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,7 @@ class AuthController extends Controller
     {
         $user = $this->auth->register($request->validated());
         $request->session()->regenerate();
+        $this->stampPassword($request, $user);
 
         return (new UserResource($user))->response()->setStatusCode(201);
     }
@@ -28,6 +30,7 @@ class AuthController extends Controller
     {
         $user = $this->auth->login($request->validated());
         $request->session()->regenerate();
+        $this->stampPassword($request, $user);
 
         return new UserResource($user);
     }
@@ -44,5 +47,11 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    private function stampPassword(Request $request, User $user): void
+    {
+        // Pin even a brand-new login to its checked password: an in-flight old login cannot revive a revoked session.
+        $request->session()->put('password_hash_web', Auth::guard('web')->hashPasswordForCookie($user->getAuthPassword()));
     }
 }

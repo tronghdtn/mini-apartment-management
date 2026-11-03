@@ -13,6 +13,8 @@ export function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  // Context survives RequireAuth's redirect, so a successful logout cannot lose its confirmation message.
+  const accountNotice = auth.accountNotice
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema), defaultValues: { identifier: '', password: '' },
   })
@@ -33,6 +35,9 @@ export function LoginPage() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-400 flex items-center justify-center text-white"><Building2 className="w-5 h-5" /></div>
               <div><span className="font-extrabold text-xl text-slate-900 block leading-tight">Mini<span className="text-sky-600">Apart</span></span><h1 className="text-xs text-slate-400">Đăng nhập tài khoản</h1></div>
             </div>
+            {accountNotice === 'password-updated' && <p role="status" className="mb-4 rounded-xl bg-teal-50 p-3 text-sm text-teal-800">Đã đổi mật khẩu. Vui lòng đăng nhập lại bằng mật khẩu mới.</p>}
+            {accountNotice === 'profile-session-ended' && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Phiên tài khoản đã thay đổi hoặc không còn hợp lệ. Vui lòng đăng nhập lại để kiểm tra.</p>}
+            {accountNotice === 'password-unknown' && <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Chưa xác định được kết quả đổi mật khẩu. Vui lòng đăng nhập lại để kiểm tra; nếu đã đổi thành công, hãy dùng mật khẩu mới.</p>}
             <form onSubmit={submit} noValidate className="space-y-4" aria-busy={isSubmitting}>
               <div>
                 <label htmlFor="identifier" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email hoặc Số điện thoại</label>

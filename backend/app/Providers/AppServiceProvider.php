@@ -52,6 +52,11 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
         RateLimiter::for('auth-register', fn (Request $request) => Limit::perMinute(5)->by('register-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
+        RateLimiter::for('profile-name', fn (Request $request) => Limit::perMinute(30)->by('profile-name:'.$request->user()->id)->response($tooMany));
+        RateLimiter::for('profile-password', fn (Request $request) => [
+            Limit::perMinute(5)->by('profile-password:'.$request->user()->id)->response($tooMany),
+            Limit::perMinute(30)->by('profile-password-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany),
+        ]);
         RateLimiter::for('viewing-booking', fn (Request $request) => Limit::perHour(5)->by('viewing-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
 
         // Cột *_type của quan hệ đa hình (attachments, notifications) lưu alias cố định thay vì tên class.

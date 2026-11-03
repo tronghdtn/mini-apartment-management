@@ -3,26 +3,29 @@ import type { ReactNode } from 'react'
 import { isAxiosError } from 'axios'
 import * as api from './api'
 import { AuthContext } from './authContext'
-import type { AuthContextValue } from './authContext'
+import type { AuthContextValue, AccountNotice } from './authContext'
 import type { AuthUser } from './types'
 import type { LoginInput, RegisterInput } from './schemas'
+import type { ProfileNameInput, ChangePasswordInput } from './profileSchemas'
 import { authErrorMessage } from './errors'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [status, setStatus] = useState<AuthContextValue['status']>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [accountNotice, setAccountNotice] = useState<AccountNotice | null>(null)
   const currentUser = useRef<AuthUser | null>(null)
   // Epoch thay đổi khi có thao tác Auth; request /me cũ không được xóa phiên mới.
   const revision = useRef(0)
   const refreshSequence = useRef(0)
   const pendingMutation = useRef<number | null>(null)
-  const clear = useCallback(() => {
+  const clear = useCallback((notice?: AccountNotice) => {
     revision.current++
     currentUser.current = null
     setUser(null)
     setStatus('anonymous')
     setError(null)
+    if (notice !== undefined) setAccountNotice(notice)
   }, [])
   const invalidatePending = useCallback(() => { revision.current++ }, [])
   const refresh = useCallback(async () => {
@@ -60,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh, invalidatePending])
 
   const authenticate = async <T,>(input: T, action: (value: T) => Promise<AuthUser>) => {
+    setAccountNotice(null)
     const epoch = ++revision.current
     pendingMutation.current = epoch
     try {
@@ -81,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (input: LoginInput) => authenticate(input, api.login)
   const register = (input: RegisterInput) => authenticate(input, api.register)
   const logout = async () => {
+    setAccountNotice(null)
     const epoch = ++revision.current
     pendingMutation.current = epoch
     try { await api.logout(); clear() }
@@ -91,5 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (pendingMutation.current === epoch) pendingMutation.current = null
     }
   }
-  return <AuthContext.Provider value={{ user, status, error, refresh, login, register, logout }}>{children}</AuthContext.Provider>
+  const updateProfile = (input: ProfileNameInput) => {
+    if (pendingMutation.current !== null) throw new Error('Một thao tác tài khoản đang được xử lý.')
+    return authenticate(input, api.updateProfile)
+  }
+  const changePassword = async (input: ChangePasswordInput) => {
+    if (pendingMutation.current !== null) return false
+    const epoch = ++revision.current
+    pendingMutation.current = epoch
+    try {
+      await api.changePassword(input)
+      if (epoch !== revision.current) return false
+      clear('password-updated')
+      return true
+    }
+    catch (failure) {
+      if (epoch !== revision.current) return false
+      // A lost response may follow a committed change. Re-authenticate rather than resend credentials automatically.
+      const statusCode = isAxiosError(failure) ? failure.response?.status : undefined
+      if (![422, 429, 419].includes(statusCode ?? 0)) clear([401, 403, 409].includes(statusCode ?? 0) ? 'profile-session-ended' : 'password-unknown')
+      throw failure
+    } finally { if (pendingMutation.current === epoch) pendingMutation.current = null }
+  }
+  return <AuthContext.Provider value={{ user, status, error, accountNotice, refresh, login, register, logout, updateProfile, changePassword }}>{children}</AuthContext.Provider>
 }

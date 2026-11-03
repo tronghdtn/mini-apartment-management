@@ -2,6 +2,7 @@ import { http, fetchCsrfCookie } from '@/lib/http'
 import type { ApiResource } from '@/types/api'
 import type { AuthUser } from './types'
 import type { LoginInput, RegisterInput } from './schemas'
+import { profileNameSchema, changePasswordSchema, type ProfileNameInput, type ChangePasswordInput } from './profileSchemas'
 
 export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser> {
   const response = await http.get<ApiResource<AuthUser>>('/auth/me', { signal })
@@ -28,4 +29,16 @@ export async function register(input: RegisterInput): Promise<AuthUser> {
 export async function logout(): Promise<void> {
   await fetchCsrfCookie()
   await http.post('/auth/logout')
+}
+
+export async function updateProfile(input: ProfileNameInput): Promise<AuthUser> {
+  const body = profileNameSchema.parse(input)
+  await fetchCsrfCookie()
+  return (await http.patch<ApiResource<AuthUser>>('/auth/profile', body)).data.data
+}
+
+export async function changePassword(input: ChangePasswordInput): Promise<void> {
+  const body = changePasswordSchema.parse(input)
+  await fetchCsrfCookie()
+  await http.put('/auth/password', body)
 }

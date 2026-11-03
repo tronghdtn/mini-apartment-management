@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountProfileController;
 use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AmenityAssignmentController;
 use App\Http\Controllers\Api\V1\AmenityController;
@@ -101,6 +102,8 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('spa')->name('logout');
+        Route::patch('/profile', [AccountProfileController::class, 'update'])->middleware(['spa', 'throttle:profile-name'])->name('profile.update');
+        Route::put('/password', [AccountProfileController::class, 'password'])->middleware(['spa', 'throttle:profile-password'])->name('password.update');
     });
 });
 
