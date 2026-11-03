@@ -4,15 +4,13 @@ import { Building2, Calendar, CreditCard, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/useAuth'
 import { DaySettingForm } from '@/features/settings/DaySettingForm'
+import { SystemSettingForm } from '@/features/settings/SystemSettingForm'
 import { getSettings } from '@/features/settings/api'
-import { daySettingLabels } from '@/features/settings/types'
-import type { DaySettingKey, Setting, SettingsResult } from '@/features/settings/types'
+import { daySettingLabels, systemSettingLabels } from '@/features/settings/types'
+import type { DaySettingKey, SystemSettingKey, Setting, SettingsResult } from '@/features/settings/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
 
 const readOnlySections = [
-  { title: 'Thông tin hệ thống và liên hệ', icon: Building2, fields: [
-    ['system.name', 'Tên hệ thống'], ['system.contact_phone', 'Số điện thoại liên hệ'], ['system.contact_email', 'Email liên hệ'],
-  ] },
   { title: 'Tài khoản ngân hàng', icon: CreditCard, fields: [
     ['bank.name', 'Ngân hàng'], ['bank.account_number', 'Số tài khoản'], ['bank.account_holder', 'Chủ tài khoản'],
   ] },
@@ -45,7 +43,7 @@ export function AdminSettingsPage() {
       data: [...current.data.filter(item => item.key !== setting.key), setting],
       missing_keys: current.missing_keys.filter(key => key !== setting.key),
     }))
-    setSuccess(`Đã lưu ${daySettingLabels[setting.key as DaySettingKey].toLowerCase()}: ${setting.value} ngày.`)
+    setSuccess(`Đã lưu ${({ ...daySettingLabels, ...systemSettingLabels } as Record<string, string>)[setting.key].toLowerCase()}.`)
   }
 
   return (
@@ -53,7 +51,7 @@ export function AdminSettingsPage() {
       <header>
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cấu hình / Cài đặt hệ thống</p>
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2.5"><Settings aria-hidden="true" className="w-6 h-6 text-sky-600" />Cài đặt hệ thống</h1>
-        <p className="text-sm text-slate-500 mt-2">Xem cấu hình hiện có và lưu riêng từng tham số thời hạn.</p>
+        <p className="text-sm text-slate-500 mt-2">Lưu riêng thông tin hệ thống và từng tham số thời hạn. Thông tin ngân hàng hiện chỉ đọc.</p>
       </header>
       {success && <p role="status" className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-800">{success}</p>}
       {loading ? <p role="status" className="text-sm text-slate-500 py-6">Đang tải cấu hình…</p> : error ? (
@@ -63,9 +61,13 @@ export function AdminSettingsPage() {
         </div>
       ) : result && <>
         {result.missing_keys.length > 0 && <p role="note" className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">Còn {result.missing_keys.length} khóa chưa cấu hình. Các giá trị chưa có được để trống, không dùng dữ liệu mẫu.</p>}
+        <section className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
+          <h2 className="font-bold text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm text-sky-700">1</span><Building2 aria-hidden="true" className="w-4 h-4 text-sky-600" />Thông tin hệ thống và liên hệ</h2>
+          {(Object.keys(systemSettingLabels) as SystemSettingKey[]).map(key => <SystemSettingForm key={key} settingKey={key} setting={result.data.find(setting => setting.key === key)} onSaved={saved} onAuthFailure={() => void refresh()} />)}
+        </section>
         {readOnlySections.map(({ title, icon: Icon, fields }, index) => (
           <section key={title} className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-4">
-            <h2 className="font-bold text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm text-sky-700">{index + 1}</span><Icon aria-hidden="true" className="w-4 h-4 text-sky-600" />{title}</h2>
+            <h2 className="font-bold text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4"><span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sm text-sky-700">{index + 2}</span><Icon aria-hidden="true" className="w-4 h-4 text-sky-600" />{title}</h2>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {fields.map(([key, label]) => <div key={key}><dt className="text-xs font-semibold text-slate-600">{label}</dt><dd className="text-sm text-slate-700 mt-1.5 break-words rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">{result.data.find(setting => setting.key === key)?.value || 'Chưa cấu hình'}</dd></div>)}
             </dl>

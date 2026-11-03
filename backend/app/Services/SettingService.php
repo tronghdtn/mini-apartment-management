@@ -9,6 +9,30 @@ use Illuminate\Support\Facades\DB;
 
 class SettingService
 {
+    public const WRITABLE_SYSTEM_KEYS = ['system.name', 'system.contact_phone', 'system.contact_email'];
+
+    public function updateSystem(string $key, ?string $value, ?string $expectedValue): Setting
+    {
+        abort_unless(in_array($key, self::WRITABLE_SYSTEM_KEYS, true), 404);
+
+        try {
+            return DB::transaction(function () use ($key, $value, $expectedValue): Setting {
+                $setting = Setting::where('key', $key)->lockForUpdate()->first();
+                abort_unless($setting?->value === $expectedValue, 409, 'Cấu hình đã thay đổi. Vui lòng tải lại trước khi lưu.');
+                if ($setting) {
+                    abort_unless($setting->type->value === 'string' && $setting->group === 'system', 409, 'Kiểu cấu hình không phù hợp. Vui lòng kiểm tra lại cấu hình hệ thống.');
+                }
+                $setting ??= new Setting(['key' => $key, 'type' => 'string', 'group' => 'system']);
+                $setting->value = $value;
+                $setting->save();
+
+                return $setting->refresh();
+            }, 3);
+        } catch (UniqueConstraintViolationException) {
+            abort(409, 'Cấu hình vừa được tạo bởi thao tác khác. Vui lòng tải lại trước khi lưu.');
+        }
+    }
+
     public const WRITABLE_DAY_KEYS = ['invoice.due_days', 'contract.expiring_warning_days'];
 
     public const DEFAULT_SETTINGS = [

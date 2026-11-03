@@ -76,7 +76,7 @@ class SettingsDaysTest extends TestCase
         foreach (['key', 'type', 'group', 'id'] as $field) {
             $this->spa('PUT', '/api/v1/settings/invoice.due_days', ['value' => 5, $field => null])->assertUnprocessable()->assertJsonValidationErrors($field);
         }
-        foreach (['bank.name', 'system.name', 'invoice.unknown'] as $key) {
+        foreach (['bank.name', 'invoice.unknown'] as $key) {
             $this->spa('PUT', '/api/v1/settings/'.$key, ['value' => 5])->assertNotFound();
         }
         $this->spa('PUT', '/api/v1/settings/invoice.due_days', [])->assertUnprocessable()->assertJsonValidationErrors('value');
