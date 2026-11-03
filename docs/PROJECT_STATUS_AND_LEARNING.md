@@ -1468,3 +1468,21 @@ Câu hỏi bảo vệ: (1) Vì sao expected_value? Phát hiện một Admin đã
 - Muốn sửa: bộ lọc Backend ở Request/Service; cột/nút/URL trong AppointmentsWorkspace; không tự lọc một trang tại React. DevTools Network lọc viewing-appointments, kiểm room_id/page/status/date và meta.total. Những biểu diễn số lượng/khách đều từ response, không mock.
 
 Câu hỏi bảo vệ: (1) Vì sao WHERE trước paginate? Để total và các trang chỉ tính lịch đúng phòng, không bỏ sót. (2) Phòng đã cho thuê/ẩn public còn xem lịch không? Admin xem lịch sử được, không áp quy tắc phòng công khai lên API quản trị. (3) Frontend sửa room_id có xem mọi phòng được không? Admin vốn được phép xem lịch quản trị; các role khác vẫn bị Request/Policy giới hạn, không tin React. (4) Vì sao prefix appointments_? Tránh lọc của lịch làm mất tab hoặc đụng bộ lọc điện nước trên cùng trang. Kiểm thử và giới hạn ghi tại Plan§12.61.
+
+
+### 11.69. DASH-B — bảng tòa nhà và hoạt động Admin (DB-D91, 03/11/2026)
+
+| File / hàm cần mở | Vai trò / API / bảng |
+|---|---|
+| `frontend/src/pages/admin/AdminDashboardPage.tsx` | Ghép4thẻ cũ + DashboardWorkQueue/BuildingsPanel/AppointmentsPanel, bỏ UnavailableWorkspace; không biểuđồ hoặc dữ liệu mẫu. |
+| `features/dashboard/DashboardBuildingsPanel.tsx` — `changePage`; `api.ts:11` — `getDashboardBuildings` | NútTrước/Sau cập nhật buildings_page trên URL → GET `/api/v1/dashboard/buildings?page=2`; lỗiURL/empty/loading/retry riêng. |
+| `backend/routes/api.php`; `DashboardBuildingsRequest::rules/after`; `DashboardController.php:17` — `buildings()` | Sanctum/active/roleAdmin; chỉnhậnpage, không chọnscope/quyền từ request; trả Resource phântrang/no-store. |
+| `backend/app/Services/DashboardService.php:25` — `buildings()`; `DashboardBuildingResource::toArray` | SQL trên buildings; withCount rooms theo building_id; whereHas contracts.status=active để đếmphòng đangthuê; rooms.status=available cho phòngtrống. Soft-delete theo Model hiệnhành. Hai query buildings cho20dòng (count+data), không query từngrow. |
+| `features/dashboard/DashboardWorkQueue.tsx` — `QueueCard`; `activity.ts`; `api.ts:14` — `getDashboardQueue` | GET payments/maintenance-requests với statuspending, contracts với dueexpiring/overdue; hiển thịmeta.total server, không đếm data20dòng. Mỗi nguồn lỗi riêng, không thay lỗi bằng0. |
+| `features/dashboard/DashboardAppointmentsPanel.tsx`; `api.ts:17` — `getDashboardAppointments` | businessToday() ngàyVN → GET viewing-appointments?date=YYYY-MM-DD&page=1, hiểnthị5lịchđầu/totalserver, giữ thứtựserver. `formatDateTime` đổi timestampUTC sang giờVN. Schema chỉgiữname/code/time/status/room, không SĐT/ghi chú. |
+
+Luồng bảng: React → http (cookie session, GET không cần CSRF) → route/Request xác nhận Admin → Controller → Service query MySQL → DashboardBuildingResource/data/links/meta → bảng/linkchi tiết. Ví dụ minh họa `/api/v1/dashboard/buildings?page=2`; DevTools Network lọc dashboard/buildings, xem page và meta.total. Muốn thay sốdòng/điềukiệnđếm sửa Service, không cộng hoặc suy trạng thái ở React.
+
+Giữ nguyên4thẻ và quy tắc tiềnDB-D82. Các khối tảiđộc lập, không bảođảm cùngmột thờiđiểm snapshot trên cả7request. Link thanh toán/hợpđồng có bộlọc URL đãhỗtrợ; link sửa chữa mở trang quảnlý chung vì trang đích chưa đọc status từURL (người dùng chọn dropdown). `Awaited<ReturnType<...>>` trong panel chỉ lấy kiểu dữ liệu trả về sau await của hàmAPI để tránh chép lại interface.
+
+Câu hỏi bảo vệ: (1) Vì sao21payment nhưng chỉ20dòng mà thẻ hiện21? Lấymeta.total, không data.length. (2) Vì sao không cộng rented+available thành total? Còn bảotrì/inactive; haiđiềukiệnđếm độc lập, không dùng để tự sửa trạngthái. (3) Quá end_date có tự giảm đangthuê không? Không, hợpđồng vẫnactive đến khi bàn giao/thanh lý. (4) Vì sao không trả Model nguyên? Resource chỉ trả5trườngđãduyệt, không lộ tenant/hồsơ. (5) Một API lỗi có làm toàn Dashboard về0không? Không, state/error từngkhối táchriêng và có nút tải lại. Bằng chứng và giới hạn tại Plan§12.62/MatrixDASH-B.

@@ -603,3 +603,16 @@ Codecd397cf/4c73544; Plan§12.60/học tập§11.67. Chưa chạy lại full PHP
 | RVSAFE | exactcleanup/M18test/restored/devnguyên |3user22appointment2room1building dọn, M18down đúngsởhữu; test0/FK1/devdenied1142/privateSHA nguyên/dev7nhómkhớp29bảng30migration/RUNfalse/cặptestdừng |
 
 Pint380/frontend152/build/lint0lỗi9cảnhbáocũ; codea24ecb5/Plan§12.61. Chưa503browser/OSoffline/BackForward/chuyểnroomgiữrequest/Adminthậtdev hoặc toànMVP; chưa full PHPUnit mới. Datefill côngcụ chưa phátchange, đã dùngUp/DownxácminhURL; không tuyên bố lỗi sản phẩm.
+
+
+## DASH-B (DB-D91,03/11/2026)
+
+| Ca | Yêu cầu | Bằng chứng mới |
+|---|---|---|
+| DB91-01 | Adminonly/locked/querystrict/no-store | Hồi quy17/252PASS, HTTP5role401/403/422; Pint383 |
+| DB91-02 | Countsallroomstatus/activeoverdue/softdelete/20+1/empty0/N+1 | Feature2querybuildings; HTTP21tòa main5/2/1, tòa0thật; sourcechecksum8bảngnguyên |
+| DB91-03 | Giữ4thẻ/queue servermeta/lịch5/N/khôngPII | Frontend156/build/lint0lỗi9cảnhbáocũ; HTTP2/100/900/2, queue21/2/1/1, lịch6; schema bỏphone/note |
+| DB91-04 | URL/F5/errorriêng/mobile | BrowserAdminpage20→1/F5/URLbad→firstpage; mobiledoc367/table440trongwrapper294, ảnhđãxem; chưa503/OSoffline/BackForward/clickmọilink |
+| DB91-SAFE | Exactcleanup/schema/dev/private/RUNfalse |6user21building5room2contract1invoice22payment3maintenance7appointment dọn, M19/18/17down đúngsởhữu; test0/FK1/devdenied1142/privateSHA nguyên/dev7nhómkhớp29bảng30migration |
+
+Code4d5645e/Plan§12.62/học tập§11.69; không fullPHPUnit mới hoặc toànMVP. Lượt final bịngắt mấtlog đã kiểm process/baseline rồi chạy lại, không cộng kếtquảtrùng. Proxykhôngđổi/testpairdừng/viewportreset/tabđóng, khôngpush.

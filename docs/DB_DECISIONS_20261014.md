@@ -288,3 +288,8 @@ Chủ dự án chọn “Duyệt 3 khóa thông tin hệ thống”: mở ghi sy
 ## DB-D90 — Lịch xem theo phòng cho Admin (CONFIRMED 03/11/2026)
 
 Chủ dự án duyệt thêm query room_id chỉ Admin vào GET viewing-appointments và nối tab appointments hiện có trong chi tiết phòng. Lọc trước phân trang, giữ giới hạn5vai trò/owner/Guard và các thao tác ghi. Không schema/devwrite; API/AC tại brief§51. Đây là bổ sung sau giới hạn ROOM-MTR§48, không còn blocker queryroom_id cho tab này.
+
+
+## DB-D91 — Bảng tổng quan tòa nhà trên Dashboard (CONFIRMED 03/11/2026)
+
+Chủ dự án duyệt GET dashboard/buildings chỉAdminactive, phântrang20/id/name/tổngphòng/phòngcócontractactive/phòngstatusavailable. Không schema/tiền/devwrite, không thay4thẻDB-D82. Nguồncounts/API/AC tại brief§52; không diễn giải rented+available bằng total hoặc suy trạng thái hợp đồng từ end_date.
