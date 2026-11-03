@@ -301,3 +301,7 @@ Chủ dự án duyệt GET `/api/v1/users/{user}/debt-summary` chỉ Admin activ
 ## DB-D93 — In/xuất tài liệu bằng trình duyệt (CONFIRMED 03/11/2026)
 
 Chủ dự án chọn in bằng trình duyệt (In / Lưu PDF) cho hóa đơn, biên nhận và phiếu thông tin hợp đồng, dành cho Admin và cư dân chủ sở hữu. Không thêm thư viện PDF, không route/JSON/quyền Backend mới, không schema/devwrite; số tiền lấy nguyên từ API. Hóa đơn nháp và payment chưa xác nhận không in; phiếu hợp đồng chỉ tóm tắt dữ liệu đã lưu, không soạn điều khoản pháp lý. Thay cho dòng "In/xuất PDF hóa đơn — không dựng" ở brief §12; xuất Excel vẫn chưa làm. Chi tiết brief §54.
+
+## DB-D94 — Admin cấu hình ngân hàng nhận chuyển khoản và hướng dẫn trên hóa đơn (CONFIRMED 03/11/2026)
+
+Chủ dự án duyệt mở ghi `bank.name`, `bank.account_number`, `bank.account_holder` theo cùng cơ chế DB-D89 (Admin active, `{value, expected_value}`, trim, rỗng→NULL, lệch→409, dòng cũ phải type string/group bank). Tên ngân hàng và chủ tài khoản tối đa 100 ký tự; **số tài khoản chỉ chữ số 6–20 ký tự**. Đồng thời duyệt GET `/api/v1/invoices/{invoice}/payment-instructions` chỉ đọc theo Policy xem hóa đơn hiện có để RES-05 hiện ngân hàng/số tiền gợi ý (= còn lại, pending không giảm)/nội dung = mã hóa đơn. Thay phần "bank.* chỉ đọc" của DB-D54/DB-D89. Không cổng thanh toán, không tạo ảnh VietQR, không schema/devwrite; đổi cấu hình không làm thay đổi hóa đơn/thanh toán đã có. API/AC tại brief §55.

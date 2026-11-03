@@ -1522,3 +1522,22 @@ Chức năng: mở trang in riêng, bấm **In / Lưu PDF** để in giấy ho�
 Ví dụ minh họa: mở `/resident/invoices/68/print` (thay 68 bằng ID thật) → DevTools Network thấy GET `/api/v1/invoices/68`; Ctrl+P → chọn "Lưu dưới dạng PDF", tên tệp gợi ý là mã hóa đơn.
 
 Câu hỏi bảo vệ: (1) Vì sao không cần API mới? Trang in dùng lại API chi tiết đã kiểm quyền. (2) Cư dân sửa ID trên URL có in được hóa đơn người khác? Không, API trả 403 và trang không hiện dữ liệu. (3) Vì sao không in hóa đơn nháp? Nháp chưa phát hành, số tiền còn thay đổi. (4) Vì sao biên nhận chỉ cho payment đã xác nhận? Số RCP chỉ sinh khi Admin xác nhận tiền thực nhận. (5) Ẩn nút khi in bằng cách nào? Class Tailwind `print:hidden` trong `@media print`.
+
+### 11.72. Tài khoản ngân hàng nhận chuyển khoản (DB-D94, 03/11/2026)
+
+Chức năng: Admin nhập ngân hàng/số tài khoản/chủ tài khoản ở `/admin/settings`; cư dân mở hóa đơn còn nợ thấy hướng dẫn chuyển khoản với số tiền gợi ý và nội dung = mã hóa đơn. Bảng: `settings` (ghi), `invoices` (đọc).
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `frontend/src/pages/admin/AdminSettingsPage.tsx:64` → `features/settings/SystemSettingForm.tsx` | Mỗi khóa một form, gửi `{value, expected_value}`; 409 thì tải lại. |
+| `frontend/src/features/settings/schemas.ts` | Zod: số tài khoản `^[0-9]{6,20}$`, tên/chủ TK ≤ 100 ký tự. |
+| `backend/routes/api.php:199` → `SettingController::update` | Allowlist khóa trong route; ngoài danh sách 404. |
+| `backend/app/Http/Requests/Setting/UpdateSettingRequest.php:36` / `:45` | Giới hạn theo khóa và regex số tài khoản. |
+| `backend/app/Services/SettingService.php:20` — `updateText()` | Khóa dòng `lockForUpdate`, so giá trị đã đọc (CAS), giữ đúng group. |
+| `frontend/src/features/payments/PaymentInstructionsCard.tsx:10` → `api.ts` | GET `/invoices/{id}/payment-instructions`; nút sao chép dùng `navigator.clipboard`. |
+| `backend/routes/api.php:139` → `InvoiceController.php:27` → `InvoiceService.php:68` | Policy xem hóa đơn; tính `payable`, `configured`, `amount = Money::remaining`. |
+| `backend/app/Services/SettingService.php:57` — `bankDetails()` | Đọc 3 khóa, chuỗi rỗng coi như chưa cấu hình. |
+
+Ví dụ minh họa: DevTools Network lọc `payment-instructions` → `amount` là phần còn lại theo payment đã xác nhận; PUT `/settings/bank.account_number` với `"0071 000"` nhận 422.
+
+Câu hỏi bảo vệ: (1) Vì sao gửi kèm `expected_value`? Chống ghi đè khi hai Admin sửa cùng lúc (409). (2) Vì sao số tiền gợi ý không trừ khoản pending? Pending chưa được xác nhận nên chưa giảm nợ. (3) Vì sao không tạo mã VietQR? Cần dịch vụ ngoài/ngân hàng, ngoài phạm vi đã duyệt. (4) Cư dân A xem hướng dẫn của hóa đơn B được không? Không, Policy xem hóa đơn trả 403. (5) Đổi số tài khoản có làm đổi hóa đơn cũ không? Không, hóa đơn chỉ lưu số tiền; hướng dẫn đọc cấu hình tại thời điểm xem.
