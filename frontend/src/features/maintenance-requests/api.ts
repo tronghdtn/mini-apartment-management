@@ -6,6 +6,9 @@ import type { MaintenanceAssignmentInput, MaintenanceCreateInput, MaintenanceNot
 export interface MaintenanceFilters {
   status?: MaintenanceStatus | ''
   room_id?: number
+  /** Chỉ Admin: lọc theo người gửi / người được giao. */
+  user_id?: number
+  assigned_to?: number
   page?: number
 }
 

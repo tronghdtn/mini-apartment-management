@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\InvoiceStatus;
 use App\Models\Contract;
+use App\Models\Invoice;
+use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,6 +59,27 @@ class DebtService
             'overdue_outstanding' => (string) $row->overdue_outstanding,
             'invoice_count' => (int) $row->invoice_count,
             'debtor_count' => (int) $row->debtor_count,
+        ];
+    }
+
+    /**
+     * Công nợ của một tài khoản trên mọi hợp đồng (kể cả đã thanh lý/soft-delete).
+     * paid_amount chỉ gồm payment confirmed nên payment pending không làm giảm nợ; quá hạn khi due_date < hôm nay (giờ VN).
+     */
+    public function userSummary(int $userId, string $today): array
+    {
+        $invoices = $this->outstanding(Invoice::query())
+            ->whereHas('contract', fn ($query) => $query->withTrashed()->where('user_id', $userId))
+            ->get(['total_amount', 'paid_amount', 'due_date']);
+        $overdue = $invoices->filter(fn (Invoice $invoice) => $invoice->due_date !== null
+            && $invoice->due_date->format('Y-m-d') < $today);
+        $remaining = fn (Invoice $invoice) => Money::remaining($invoice->total_amount, $invoice->paid_amount);
+
+        return [
+            'outstanding_amount' => Money::aggregate($invoices->map($remaining)->all()),
+            'outstanding_invoice_count' => $invoices->count(),
+            'overdue_amount' => Money::aggregate($overdue->map($remaining)->values()->all()),
+            'overdue_invoice_count' => $overdue->count(),
         ];
     }
 

@@ -156,6 +156,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
     Route::get('contracts/{contract}', [ContractController::class, 'show'])->whereNumber('contract')->name('contracts.show');
     Route::get('users', [AdminUserController::class, 'index'])->name('users.index');
     Route::get('users/{user}', [AdminUserController::class, 'show'])->whereNumber('user')->name('users.show');
+    Route::get('users/{user}/debt-summary', [AdminUserController::class, 'debtSummary'])->whereNumber('user')->name('users.debt-summary');
     Route::get('buildings/{building}/amenities', [AmenityAssignmentController::class, 'buildingIndex'])->whereNumber('building')->name('buildings.amenities.index');
     Route::get('rooms/{room}/amenities', [AmenityAssignmentController::class, 'roomIndex'])->whereNumber('room')->name('rooms.amenities.index');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');

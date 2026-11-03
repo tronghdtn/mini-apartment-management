@@ -47,7 +47,7 @@ class MaintenanceRequestService
     {
         $this->ensureReady();
         $query = $this->scope($actor)->with(self::RELATIONS);
-        foreach (['status', 'priority', 'room_id'] as $field) {
+        foreach (['status', 'priority', 'room_id', 'user_id', 'assigned_to'] as $field) {
             if (isset($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }

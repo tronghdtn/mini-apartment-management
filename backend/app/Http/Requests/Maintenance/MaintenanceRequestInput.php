@@ -4,6 +4,7 @@ namespace App\Http\Requests\Maintenance;
 
 use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceRequestStatus;
+use App\Enums\UserRole;
 use App\Models\MaintenanceRequest;
 use App\Rules\MaxTextBytes;
 use App\Rules\NotBoolean;
@@ -37,9 +38,13 @@ class MaintenanceRequestInput extends FormRequest
     {
         $priority = Rule::enum(MaintenancePriority::class);
         $action = $this->route()->getActionMethod();
+        // Lọc theo người gửi/người được giao chỉ dành cho Admin; vai trò khác gửi các trường này bị 422.
+        $adminFilter = $this->user()?->hasRole(UserRole::Admin)
+            ? ['sometimes', new NotBoolean, 'integer', 'min:1', 'max:2147483647'] : ['missing'];
         $rules = match ($action) {
             'index' => ['status' => ['sometimes', Rule::enum(MaintenanceRequestStatus::class)], 'priority' => ['sometimes', $priority],
-                'room_id' => ['sometimes', 'integer', 'min:1'], 'page' => ['sometimes', new NotBoolean, 'integer', 'min:1', 'max:2147483647']],
+                'room_id' => ['sometimes', 'integer', 'min:1'], 'user_id' => $adminFilter, 'assigned_to' => $adminFilter,
+                'page' => ['sometimes', new NotBoolean, 'integer', 'min:1', 'max:2147483647']],
             'store' => ['title' => ['required', 'string', 'max:150'], 'description' => ['required', 'string', new MaxTextBytes],
                 'priority' => ['required', $priority], 'photos' => ['sometimes', 'array', 'max:5'],
                 'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:5120']],
@@ -81,6 +86,6 @@ class MaintenanceRequestInput extends FormRequest
     {
         return ['title' => 'tiêu đề', 'description' => 'mô tả', 'priority' => 'mức ưu tiên', 'photos' => 'ảnh',
             'assigned_to' => 'nhân viên được phân công', 'admin_note' => 'ghi chú quản lý', 'handler_note' => 'ghi chú xử lý',
-            'room_id' => 'phòng', 'page' => 'trang'];
+            'room_id' => 'phòng', 'user_id' => 'người gửi', 'page' => 'trang'];
     }
 }

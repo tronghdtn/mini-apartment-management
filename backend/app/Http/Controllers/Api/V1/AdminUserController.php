@@ -8,10 +8,12 @@ use App\Http\Requests\User\IndexUserRequest;
 use App\Http\Requests\User\StoreStaffUserRequest;
 use App\Http\Requests\User\UpdateUserNameRequest;
 use App\Http\Requests\User\UpdateUserStatusRequest;
+use App\Http\Requests\User\UserDebtSummaryRequest;
 use App\Http\Resources\AdminUserDetailResource;
 use App\Http\Resources\AdminUserResource;
 use App\Models\User;
 use App\Services\AdminUserService;
+use App\Services\DebtService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +36,16 @@ class AdminUserController extends Controller
         Gate::authorize('view', $target);
 
         return new AdminUserDetailResource($target);
+    }
+
+    public function debtSummary(UserDebtSummaryRequest $request, string $user, DebtService $debts): JsonResponse
+    {
+        $target = $this->users->find($user);
+        Gate::authorize('view', $target);
+        $debts->ensureReady();
+
+        return response()->json(['data' => $debts->userSummary($target->id, $debts->today())])
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function store(StoreStaffUserRequest $request): JsonResponse

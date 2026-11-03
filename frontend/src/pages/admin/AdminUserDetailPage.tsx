@@ -11,6 +11,8 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import { getUser } from '@/features/user-management/api'
 import { ActiveContractInfo } from '@/features/user-management/ActiveContractInfo'
 import { UserContractsPanel } from '@/features/user-management/UserContractsPanel'
+import { UserDebtSummaryCard } from '@/features/user-management/UserDebtSummaryCard'
+import { PersonMaintenancePanel } from '@/features/maintenance-requests/PersonMaintenancePanel'
 import { UserStatusAction } from '@/features/user-management/UserStatusAction'
 import { UserNameForm } from '@/features/user-management/UserNameForm'
 import { managedUserGenderLabel, managedUserRoleLabels } from '@/features/user-management/types'
@@ -92,9 +94,14 @@ export function AdminUserDetailPage() {
         </section>
       </div>
       <UserContractsPanel key={user.id} userId={user.id} />
+      {user.role === 'resident' && <>
+        <UserDebtSummaryCard key={`debt-${user.id}`} userId={user.id} />
+        <PersonMaintenancePanel key={`requests-${user.id}`} filter="user_id" personId={user.id} title="Yêu cầu sửa chữa đã gửi" pageParam="requests_page" />
+      </>}
+      {user.role === 'technician' && <PersonMaintenancePanel key={`tasks-${user.id}`} filter="assigned_to" personId={user.id} title="Việc sửa chữa được giao" pageParam="tasks_page" />}
       <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
         <p>Chỉ cho cập nhật họ tên. SĐT, email, mật khẩu, vai trò và dữ liệu pháp lý chưa mở chỉnh sửa tại đây.</p>
-        <p>Hóa đơn xem trong chi tiết từng hợp đồng. Tổng hợp công nợ và lịch sử sửa chữa ngay tại hồ sơ tài khoản chưa được tích hợp.</p>
+        <p>Hóa đơn xem trong chi tiết từng hợp đồng.</p>
       </section>
       <Modal isOpen={editingName} onClose={closeName} title="Sửa họ tên">
         <UserNameForm user={user} onCancel={closeName} onBusyChange={busy => { savingName.current = busy }} onSaved={updated => {
