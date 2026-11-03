@@ -1204,3 +1204,12 @@ Chủ dự án duyệt riêng 3 khóa thông tin hệ thống: Admin active PUT 
 AC SET-SYS:3key tạo/sửa/xóaNULL, trim/Unicode/độ dài/email; stale409/transaction/unique race; anonymous/nonAdmin/locked/CSRF; cấm key/type/group/id/fieldlạ; bank/ngoài allowlist404; GET/F5 thật, không ghi invoice/contract/user. Kiểm thử ghi chỉ DBtest có guard; không schema mới.
 
 USR-HISTORY độc lập theo ADM-10: nối lịch sử hợp đồng vào trang hồ sơ Admin hiện có bằng GET `/api/v1/contracts?user_id={id}&page={page}` đã duyệt. Chỉ hiển thị dữ liệu API/phân trang server, link chi tiết; không tổng hợp tiền từ một trang, không lọc client theo tên. Giữ phạm vi danh sách hợp đồng hiện hành (không tự mở soft-delete); lịch sử hóa đơn/công nợ/sửa chữa vẫn tách riêng, không báo đã tích hợp nếu chưa nối. URL `contracts_page` giữ trang khi F5; đổi tài khoản không hiện response cũ. Không đổi Backend/route/quyền cho lát cắt này.
+
+
+## 51. ROOM-VIEW — lịch xem tại chi tiết phòng (CONFIRMED 03/11/2026)
+
+Chủ dự án duyệt bộ lọc và tab lịch xem phòng: GET `/api/v1/viewing-appointments` thêm query room_id tùy chọn chỉ Admin active; số nguyên dương (không boolean), kết hợp AND với status/date/page hiện có. Lọc tại SQL trước paginate20, meta.total chỉ phòng mục tiêu. Phòng không có lịch/ID không khớp trả danh sách rỗng theo contract lọc hiện hành; không yêu cầu available/is_public vì Admin cần lịch sử. Vai trò khác gửi room_id bị422 như field ngoài contract; không nới quyền hiện có của Guard/owner/Technician/Resident. Response/route và mọi thao tác ghi lịch cũ giữ nguyên; chưa schema/devwrite.
+
+React: thay đúng placeholder tab appointments của ADM-05, tái dùng AppointmentsWorkspace ở chế độ chỉ đọc theo roomId. Ngày/trạng thái/phân trang trên URL có prefix appointments_ để không đụng tab/điện nước; đổi lọc về trang1, giữ tab khi retry/reset; chỉ gửi room_id từ phòng thật đang mở, không dùng queryURL để nới phạm vi. Link mở trang quản lý lịch hiện có; không thêm nút confirm/cancel/checkin trực tiếp ở tab này. Key/AbortController chặn response phòng cũ, mọi lỗi/rỗng hiển thị thật.
+
+AC: Admin roomfilter20+1/datetime biênVN/status+date AND/empty/notpublic-history;401/locked/nonAdmin422/malformedroom422; không sửa GET/data và giữ owner/Guard hiện tại. Frontend API/schemas test và hồi quy workspace3vai trò; browser tab/F5/lọc/pagination/mobile/tablewrapper/retry/reset giữ tab nếu môi trường cho phép; chưa OSoffline không được ghiPASS. Test ghi chỉ DBtestguard, pendingM18 chỉ dựng/dọn test có kiểm tra, không migrate dev.

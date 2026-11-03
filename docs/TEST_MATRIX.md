@@ -591,3 +591,15 @@ Chỉ nghiệm thu phần profile mới; không tự mở email/SĐT/pháp lý h
 | SYS-UH-SAFE | cleanup/testguard/dev nguyên/private/RUNfalse | Exactrun4user22contract dọn; test0/FK1/devdenied1142/privateSHA nguyên; dev7nhómkhớp29bảng30migration; testpairdừng |
 
 Codecd397cf/4c73544; Plan§12.60/học tập§11.67. Chưa chạy lại full PHPUnit, không dùng PASS scoped để gọi toàn hệ thống hoàn thành.
+
+
+## ROOM-VIEW (DB-D90, 03/11/2026)
+
+| Ca | Yêu cầu | Bằng chứng mới |
+|---|---|---|
+| RV01 | room_id chỉAdmin, lọc trướcpaginate, private-history, dateVN+status | Backend33/449PASS (gồm hồi quy2module trước); HTTP16checkgồmsetup,21lịch20+1/1confirmed/empty0 |
+| RV02 | nonAdmin không nới quyền; owner/Guard vẫn scope cũ | Feature4role422/anon401/invalid422; HTTPowner22/Guard2confirmedhômnay và room_id422 |
+| RV03 | readonly/tabURL/filter/page/F5/retry/mobile | BrowserAdmin:0nútghi/F5page2/confirmed1/completed0/datekey/URLbadretrygiữtab; doc367/table555trongwrapper334, ảnhđãxem |
+| RVSAFE | exactcleanup/M18test/restored/devnguyên |3user22appointment2room1building dọn, M18down đúngsởhữu; test0/FK1/devdenied1142/privateSHA nguyên/dev7nhómkhớp29bảng30migration/RUNfalse/cặptestdừng |
+
+Pint380/frontend152/build/lint0lỗi9cảnhbáocũ; codea24ecb5/Plan§12.61. Chưa503browser/OSoffline/BackForward/chuyểnroomgiữrequest/Adminthậtdev hoặc toànMVP; chưa full PHPUnit mới. Datefill côngcụ chưa phátchange, đã dùngUp/DownxácminhURL; không tuyên bố lỗi sản phẩm.

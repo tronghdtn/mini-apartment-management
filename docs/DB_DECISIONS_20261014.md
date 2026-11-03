@@ -283,3 +283,8 @@ Chủ dự án duyệt tên + mật khẩu và đăng xuất tất cả phiên. 
 ## AY. DB-D89 — Admin cập nhật thông tin hệ thống (CONFIRMED 03/11/2026)
 
 Chủ dự án chọn “Duyệt 3 khóa thông tin hệ thống”: mở ghi system.name/system.contact_phone/system.contact_email theo brief§50. Lưu riêng, NULL khi xóa, trim/giới hạn191 (phone30)/email đúng định dạng; kiểm giá trị cũ chống ghi đè409. Giữ bank.* chỉ đọc và hai khóa số ngày theo DB-D54. Đây là bổ sung phạm vi sau§27/DB-D54, không cho ghi settings tùy ý, đổi schema hoặc ghi dữ liệu dev. Chi tiết hợp đồng API và AC quản lý tại brief§50.
+
+
+## DB-D90 — Lịch xem theo phòng cho Admin (CONFIRMED 03/11/2026)
+
+Chủ dự án duyệt thêm query room_id chỉ Admin vào GET viewing-appointments và nối tab appointments hiện có trong chi tiết phòng. Lọc trước phân trang, giữ giới hạn5vai trò/owner/Guard và các thao tác ghi. Không schema/devwrite; API/AC tại brief§51. Đây là bổ sung sau giới hạn ROOM-MTR§48, không còn blocker queryroom_id cho tab này.
