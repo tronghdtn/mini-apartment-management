@@ -147,3 +147,15 @@ Return-to chỉ URL nội bộ được phép theo vai trò, không open redirec
 - [API Authentication](API_AUTHENTICATION.md): hợp đồng kỹ thuật, ghi rõ hành vi auto-login đã được duyệt D01.
 - [Tài liệu học tập §11](PROJECT_STATUS_AND_LEARNING.md): đường đi dữ liệu, file/hàm, command, kiểm thử và câu hỏi giảng viên; giữ số liệu 137/486, 165/755 và 227/1267 theo từng lần lịch sử.
 - [DB plan §16](DATABASE_IMPLEMENTATION_PLAN.md): nâng cấp email nullable trên dev đã được phê duyệt và xác minh; không cho phép chạy migration dev khác.
+
+## 10. PROFILE-A — đề xuất tự sửa tên và đổi mật khẩu (CHỜ DUYỆT 03/11/2026)
+
+Q10 đã CONFIRMED quyền tự sửa tên hiển thị/đổi mật khẩu; không hỏi lại nguyên tắc này. Gói dưới đề xuất hợp đồng API và xử lý phiên để triển khai trên các trang hồ sơ hiện có, chưa phải phê duyệt ngầm:
+
+- Mọi tài khoản active trong đúng5role, chỉ tài khoản đang đăng nhập. `PATCH /api/v1/auth/profile`: chỉ full_name (trim, bắt buộc, tối đa120 ký tự); trả200 UserResource6trường như /me. Không nhận user_id/email/phone/role/status hoặc thông tin pháp lý. Sửa tên không đổi mật khẩu/phiên/hợp đồng/hóa đơn.
+- `PUT /api/v1/auth/password`: current_password, password, password_confirmation. Kiểm mật khẩu hiện tại tại Backend dưới khóa user; mật khẩu mới theo PasswordRules::registration, khác mật khẩu cũ. Không trim mật khẩu, không dùng mặc định, không trả/log/hash/payload nhạy cảm. Thành công204, đổi hash+remember_token, đăng xuất mọi phiên kể cả phiên hiện tại, CSRF hiện tại được tạo lại; React về đăng nhập và nhắc dùng mật khẩu mới. Từ chối mật khẩu cũ trên lần login sau.
+- Cả hai cần Sanctum SPA cookie/CSRF + active, không chọn user từ request; thiếu login401, locked403, CSRF419, dữ liệu/trường cấm/mật khẩu hiện tại sai422, xung đột trạng thái409, throttle429. Mật khẩu giới hạn5request/phút/account và30/phút/IP; tên30/phút/account. User trong transaction phải còn active; rollback lỗiDB, thông báo an toàn. Không lưu mật khẩu trong storage/URL/toast hoặc response; xoá form sau thành công/hủy/unmount.
+- Tái dùng AccountProfile cho guest/admin/resident/technician/guard; đổi tối thiểu các khối hiện có, RHF/Zod, loading/lỗi/retry/chặn bấm lặp. Email/SĐT/vai trò/pháp lý vẫn chỉ đọc; đổi email/xác minh/khôi phục không thuộc lát cắt này.
+- Không schema/migration/thư viện mới. Không chạy thao tác thử với tài khoản dev. AC:5role tự sửa đúng mình; anonymous/locked/CSRF/field cấm; sai oldpassword, mismatch/same/bcrypt72byte/NUL; hash/no leak; hai phiên cũ đều401, login cũ thất bại/mới thành công; race khóa/đổi mật khẩu/SQLrollback; frontend test/build/lint, kiểm nhanh đúng phần vừa sửa trên DBtest có guard. Nghiệm thu toàn hệ thống để sau.
+
+Cần chủ dự án duyệt hai endpoint và phương án đăng xuất tất cả phiên. Nếu chỉ duyệt sửa tên, tách đổi mật khẩu thành task chờ riêng; không tự mở quyền thay email/SĐT.

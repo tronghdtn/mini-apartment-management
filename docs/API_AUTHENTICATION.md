@@ -73,3 +73,14 @@ React Bước 4 đã nối 4 API; AuthProvider bootstrap/focus-refresh me; Requi
 Backend 227 test / 1267 assertion chạy lại PASS; client 8 test; 17 ca Chrome → Nginx 8081 → PHP-FPM → MySQL test PASS, gồm auto-login, F5/cookie, logout, 403/419/422/429/mạng. Laravel 13 kiểm tra `Sec-Fetch-Site` same-origin hoặc CSRF token; không suy luận thiếu token trên request same-origin luôn phải lỗi 419. Ca 419 browser chuyển nguyên phản hồi thật của request bị làm hỏng header có kiểm soát, không tắt middleware. Xem tài liệu học tập §11.11.
 
 Chưa làm quên/đổi mật khẩu, xác minh/thay email, sửa hồ sơ, cấp nhân viên; API nghiệp vụ CAT/ROOM cơ bản đã bổ sung sau đó ở Sprint 23/10 (Plan §12). Admin qua Artisan vẫn bắt buộc email. Bước 4 không ghi dev; sau đó AUTH-13 đã kiểm thử 7 ca trên bộ Docker dev 8080 PASS, không migration, giữ 1 tài khoản khách qua đăng ký UI. Xem Plan §10; không coi kết quả cũ 227/1267 là vừa chạy lại.
+
+## 6. PROFILE-A — hợp đồng API đề xuất (CHỜ DUYỆT)
+
+Nguồn nghiệp vụ/AC: AUTHENTICATION.md §10; Q10 đã chốt nguyên tắc, endpoint/chính sách phiên dưới đây chưa được duyệt.
+
+| Method/URL | Body duy nhất | Thành công |
+|---|---|---|
+| PATCH `/api/v1/auth/profile` | `{full_name}` (trim,1–120 ký tự) |200 `{data:{id,full_name,email,phone,role,status}}` như /me |
+| PUT `/api/v1/auth/password` | `{current_password,password,password_confirmation}` |204, mọi phiên cũ bị thu hồi; React về login |
+
+Mọi role active tự thao tác tài khoản từ session, không nhận user_id hoặc field điều khiển khác. SPA cookie/CSRF giữ nguyên; current_password sai/new same/validation422, unauthorized401/locked403/CSRF419/race409/rate429/DBfailure500 an toàn. Giữ nguyên4API Auth đang có. Không schema/dev migration hoặc tự đổi mật khẩu dev trong triển khai/test.
