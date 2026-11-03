@@ -130,10 +130,10 @@ Theo nhãn: [MVP] có giao diện **25/48**; [ĐỀ XUẤT UI] có giao diện *
 | PUB-02 | `/rooms` | Có giao diện | Tìm kiếm, lọc |
 | PUB-03 | `/rooms/:roomId` | Có giao diện | Gallery + lightbox, form đặt lịch (chỉ báo thành công giả) |
 | PUB-04 | `/contact` | Có giao diện | |
-| PUB-05 | `/login` | Đã tích hợp Auth trên DB test | Email/SĐT, lỗi thật; đã bỏ nút vào nhanh/demo |
+| PUB-05 | `/login` | Đã tích hợp Auth trên DB test | Email/SĐT, lỗi thật; đã bỏ nút vào nhanh/demo; link Quên mật khẩu + 4 trang email DB-D95 (Plan§12.66) |
 | PUB-06 | `/register` | Đã tích hợp Auth trên DB test | Email tùy chọn, user/active, auto-login được duyệt |
 | ACC-01 | `/account/appointments` | Trang thông báo chưa triển khai | Có guard; không lịch cá nhân mock hoặc thao tác lưu giả; API lịch hẹn chưa làm |
-| ACC-02 | `/account/profile` | Đã tích hợp đọc me trên DB test | Cả 5 vai trò, chỉ đọc; Resident/Staff có thông báo khu chưa hoàn thiện; không tự sửa SĐT |
+| ACC-02 | `/account/profile` | Đã tích hợp đọc me trên DB test | Cả 5 vai trò; tự sửa tên/mật khẩu (PROFILE-A), xác minh/đổi email (DB-D95, khối dùng chung cho mọi hồ sơ); không tự sửa SĐT |
 | RES-01, RES-04..RES-10 | — | Chưa tích hợp đầy đủ | Các màn còn lại chưa triển khai API nghiệp vụ hoặc chỉ có panel/thông báo một phần; xem bảng Antigravity dưới đây |
 | RES-02 | `/resident/contracts` | Đã nối API thật, test DB cô lập | Danh sách chỉ hợp đồng active/terminated/expired của chính người thuê; không hiện draft, có lọc/phân trang; UI vẫn thiếu một phần so với màn nguồn |
 | RES-03 | `/resident/contracts/:contractId` | Đã nối API thật, test DB cô lập | Tab tổng quan/điều khoản/dịch vụ; snapshot hợp đồng và cọc; hiện kết quả/ghi chú/ảnh kiểm tra và hóa đơn final nếu Backend đã lưu; không lộ liên hệ riêng |

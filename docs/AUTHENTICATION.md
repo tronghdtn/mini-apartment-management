@@ -161,3 +161,15 @@ Q10 đã CONFIRMED quyền tự sửa tên hiển thị/đổi mật khẩu; kh�
 - Không schema/migration/thư viện mới. Không chạy thao tác thử với tài khoản dev. AC:5role tự sửa đúng mình; anonymous/locked/CSRF/field cấm; sai oldpassword, mismatch/same/bcrypt72byte/NUL; hash/no leak; hai phiên cũ đều401, login cũ thất bại/mới thành công; race khóa/đổi mật khẩu/SQLrollback; frontend test/build/lint, kiểm nhanh đúng phần vừa sửa trên DBtest có guard. Nghiệm thu toàn hệ thống để sau.
 
 Đã duyệt cả hai endpoint và đăng xuất tất cả phiên. Email/xác minh/khôi phục vẫn ngoài lát cắt, không tự mở quyền thay email/SĐT.
+
+## 11. EMAIL-A — khôi phục mật khẩu, xác minh và đổi email (CONFIRMED 03/11/2026, DB-D95)
+
+Thực hiện Q4/Q10 đã chốt; chủ dự án duyệt đủ ba luồng và Mailpit cho dev/demo. Mục này thay câu "email/xác minh/khôi phục ngoài lát cắt" ở §1 và §10.
+
+- **Quên mật khẩu (Q4):** người dùng nhập email; Backend luôn trả cùng một thông điệp 202 (không lộ email có tồn tại). Chỉ gửi liên kết khi tài khoản active và email đã xác minh; tài khoản chưa có email đã xác minh được hướng dẫn liên hệ ban quản lý. Liên kết `/reset-password?token=&email=` hiệu lực 60 phút, dùng một lần (Laravel Password broker, token băm trong `password_reset_tokens`). Đặt lại theo `PasswordRules::registration`, đổi remember_token và xóa mọi phiên DB của user; tài khoản vừa bị khóa/đổi email sau khi gửi liên kết bị từ chối.
+- **Xác minh email:** người đang đăng nhập có email chưa xác minh bấm gửi liên kết `/verify-email?id&hash&expires&signature`; chữ ký HMAC theo APP_KEY và `hash = sha1(email hiện tại)`, 60 phút. Trang React chỉ gửi khi người dùng bấm nút (không tự gửi lúc tải trang). Đã xác minh hoặc không có email → 409.
+- **Đổi/thêm email (Q10):** nhập email mới + mật khẩu hiện tại; Backend kiểm định dạng/trùng/khác email cũ rồi gửi liên kết `/confirm-email-change?token=` tới **email mới** (payload mã hóa APP_KEY, không có email thô trên URL). Email cũ dùng tới khi bấm xác nhận; xác nhận ghi email + `email_verified_at`, xóa token đặt lại mật khẩu của email cũ. Dùng một lần (liên kết chứa dấu email hiện tại); email mới bị chiếm trước khi xác nhận → 409. Không đổi SĐT/role/pháp lý.
+- **Gửi thư:** Laravel Notification kênh mail, đồng bộ (DB-D23), nội dung tiếng Việt; Docker dev dùng Mailpit. Lỗi máy chủ thư khi gửi xác minh/đổi email → 503 "Chưa gửi được email"; quên mật khẩu vẫn trả 202 và ghi log lỗi để không lộ tài khoản.
+- **Giới hạn tần suất:** quên mật khẩu 5/phút theo email + 20/phút theo IP; đặt lại 10/phút/IP; mở liên kết 10/phút/IP; gửi thư khi đã đăng nhập 6/phút và 20/giờ mỗi tài khoản.
+
+AC: thông điệp quên mật khẩu giống nhau cho email đã xác minh/chưa xác minh/khóa/không tồn tại và chỉ một thư cho tài khoản hợp lệ; token sai/hết hạn/đã dùng/tài khoản khóa → 422; đặt lại xóa mọi phiên và đăng nhập được bằng mật khẩu mới; chữ ký/ID/hết hạn/email đã đổi → 422, gửi lại khi đã xác minh/không email → 409; đổi email sai mật khẩu/trùng/giống cũ/field lạ → 422, email giữ nguyên tới khi xác nhận, xác nhận lần hai/email bị chiếm → 409, hết hạn → 422; `/me` có `email_verified`. Không ghi/thử trên tài khoản dev.

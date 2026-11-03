@@ -86,3 +86,18 @@ Nguồn nghiệp vụ/AC: AUTHENTICATION.md §10; Q10 đã chốt nguyên tắc,
 | PUT `/api/v1/auth/password` | `{current_password,password,password_confirmation}` |204, mọi phiên cũ bị thu hồi; React về login |
 
 Mọi role active tự thao tác tài khoản từ session, không nhận user_id hoặc field điều khiển khác. SPA cookie/CSRF giữ nguyên; current_password sai/new same/validation422, unauthorized401/locked403/CSRF419/race409/rate429/DBfailure500 an toàn. Giữ nguyên4API Auth đang có. Không schema/dev migration hoặc tự đổi mật khẩu dev trong triển khai/test.
+
+## 7. EMAIL-A — hợp đồng API CONFIRMED 03/11/2026 (DB-D95)
+
+Tất cả là JSON, Sanctum SPA cookie + CSRF như các route Auth khác. Mọi trường ngoài danh sách → 422 `missing`. Email trim + chữ thường như DB-D53.
+
+| Method/URL | Đăng nhập | Body | Thành công | Lỗi chính |
+|---|---|---|---|---|
+| POST `/api/v1/auth/forgot-password` | Không | `{email}` | 202 `{message}` (luôn giống nhau) | 422 định dạng, 429 |
+| POST `/api/v1/auth/reset-password` | Không | `{email, token, password, password_confirmation}` | 204, mọi phiên bị thu hồi | 422 `token`/`password`, 429 |
+| POST `/api/v1/auth/email/verification-notification` | Có (active) | — | 202 `{message}` | 401, 403, 409 đã xác minh/không email, 503, 429 |
+| POST `/api/v1/auth/email/verify` | Không | `{id, hash, expires, signature}` | 200 `{message}` (gọi lại vẫn 200) | 422 `link`, 429 |
+| POST `/api/v1/auth/email/change` | Có (active) | `{email, current_password}` | 202 `{message}`, email chưa đổi | 422 `email`/`current_password`, 503, 429 |
+| POST `/api/v1/auth/email/change/confirm` | Không | `{token}` | 200 `{message}` (không trả hồ sơ) | 422 `link`, 409 đã dùng/email bị chiếm, 429 |
+
+`/me`, đăng nhập, đăng ký và PATCH profile trả UserResource 7 trường: thêm `email_verified` (true khi có email và `email_verified_at`). Liên kết trong thư trỏ về React cùng origin `APP_URL`: `/reset-password`, `/verify-email`, `/confirm-email-change`.

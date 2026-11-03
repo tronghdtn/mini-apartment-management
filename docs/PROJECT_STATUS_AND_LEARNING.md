@@ -1541,3 +1541,24 @@ Chức năng: Admin nhập ngân hàng/số tài khoản/chủ tài khoản ở 
 Ví dụ minh họa: DevTools Network lọc `payment-instructions` → `amount` là phần còn lại theo payment đã xác nhận; PUT `/settings/bank.account_number` với `"0071 000"` nhận 422.
 
 Câu hỏi bảo vệ: (1) Vì sao gửi kèm `expected_value`? Chống ghi đè khi hai Admin sửa cùng lúc (409). (2) Vì sao số tiền gợi ý không trừ khoản pending? Pending chưa được xác nhận nên chưa giảm nợ. (3) Vì sao không tạo mã VietQR? Cần dịch vụ ngoài/ngân hàng, ngoài phạm vi đã duyệt. (4) Cư dân A xem hướng dẫn của hóa đơn B được không? Không, Policy xem hóa đơn trả 403. (5) Đổi số tài khoản có làm đổi hóa đơn cũ không? Không, hóa đơn chỉ lưu số tiền; hướng dẫn đọc cấu hình tại thời điểm xem.
+
+### 11.73. Quên mật khẩu, xác minh và đổi email (DB-D95, 03–04/11/2026)
+
+Chức năng: người dùng tự khôi phục mật khẩu qua email đã xác minh, xác minh email hiện tại và đổi email bằng liên kết gửi tới địa chỉ mới. Bảng: `users` (`email`, `email_verified_at`, `password`, `remember_token`), `password_reset_tokens`, `sessions`. Thư đi qua Laravel Notification kênh mail; dev dùng Mailpit (xem tại http://localhost:8025).
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `frontend/src/pages/public/LoginPage.tsx` → `/forgot-password` | Link "Quên mật khẩu?"; `PasswordRecoveryForms.tsx:14` gửi POST `/auth/forgot-password`. |
+| `frontend/src/features/auth/PasswordRecoveryForms.tsx:36` | Trang `/reset-password?token&email` gửi POST `/auth/reset-password`, lỗi token hiện link gửi lại. |
+| `frontend/src/features/auth/ProfileEmailPanel.tsx:15` | Hồ sơ: trạng thái xác minh, POST `/auth/email/verification-notification`, form đổi email POST `/auth/email/change`. |
+| `frontend/src/features/auth/EmailLinkAction.tsx:10` | Trang mở từ thư; chỉ gửi API khi người dùng bấm nút (không tự gửi lúc tải trang). |
+| `backend/routes/api.php:103`–`:115` → `AccountEmailController` | 4 route công khai (có throttle) + 2 route cần đăng nhập; CSRF như các route Auth khác. |
+| `backend/app/Services/AccountEmailService.php:29` / `:43` | Chỉ gửi đặt lại khi active + đã xác minh; `Password::broker()->reset` đổi mật khẩu, xóa mọi session của user. |
+| `backend/app/Services/AccountEmailService.php:64` / `:75` | Liên kết xác minh ký HMAC (APP_KEY) + `sha1(email)`; email đổi thì liên kết cũ vô hiệu. |
+| `backend/app/Services/AccountEmailService.php:92` / `:111` | Đổi email: kiểm mật khẩu, mã hóa payload bằng `Crypt`, xác nhận dưới `lockForUpdate`, dùng một lần. |
+| `backend/app/Models/User.php:61`, `app/Notifications/*` | Thư tiếng Việt trỏ về trang React; `lang/vi.json` dịch khung thư mặc định. |
+| `backend/app/Providers/AppServiceProvider.php:60` | Giới hạn tần suất quên mật khẩu/đặt lại/mở liên kết/gửi thư. |
+
+Ví dụ minh họa: mở http://localhost:8025 sau khi bấm "Gửi email xác minh" sẽ thấy thư; DevTools Network khi bấm "Quên mật khẩu" luôn thấy 202 cùng một thông điệp dù email có hay không.
+
+Câu hỏi bảo vệ: (1) Vì sao quên mật khẩu luôn trả cùng một câu? Không để kẻ xấu dò email nào có tài khoản. (2) Vì sao chỉ gửi cho email đã xác minh? Theo Q4, chỉ địa chỉ đã chứng minh sở hữu mới được dùng khôi phục. (3) Đổi email có đổi ngay không? Không, chỉ đổi khi người nhận ở email mới bấm xác nhận. (4) Liên kết dùng lại được không? Đặt lại mật khẩu xóa token; đổi email kiểm dấu email hiện tại nên lần hai 409. (5) Vì sao trang liên kết bắt bấm nút? Tránh trình quét thư hoặc F5 tiêu mất liên kết dùng một lần.
