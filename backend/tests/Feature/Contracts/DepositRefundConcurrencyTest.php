@@ -99,7 +99,7 @@ class DepositRefundConcurrencyTest extends TestCase
                 DB::table('notifications')->where('notifiable_type', 'user')->where('notifiable_id', $user->id)->delete();
                 $user->delete();
             }
-            Service::whereNotIn('id',$beforeServices)->delete();
+            Service::whereNotIn('id', $beforeServices)->delete();
             $migration->down();
             $this->restoreSettlementSchema();
             CarbonImmutable::setTestNow();

@@ -79,6 +79,6 @@ class DepositRefundSchemaTest extends TestCase
             }
         }
         $this->assertFalse(Schema::hasColumn('contracts', 'deposit_refunded_at'));
-        $this->assertSame(0,User::count());
+        $this->assertSame(0, User::count());
     }
 }
