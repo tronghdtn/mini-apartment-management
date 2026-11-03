@@ -91,7 +91,8 @@ class Contract extends Model
     {
         $attributes = $this->getRawOriginal();
         ksort($attributes);
-        $lines = $this->contractServices->map(function ($line) {
+        // Sort like occupants: a lazy-loaded relation has no ORDER BY, so MySQL index order must not change the hash.
+        $lines = $this->contractServices->sortBy('id')->values()->map(function ($line) {
             $values = $line->getRawOriginal();
             ksort($values);
 
