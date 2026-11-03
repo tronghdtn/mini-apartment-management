@@ -57,6 +57,16 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by('profile-password:'.$request->user()->id)->response($tooMany),
             Limit::perMinute(30)->by('profile-password-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany),
         ]);
+        RateLimiter::for('auth-forgot', fn (Request $request) => [
+            Limit::perMinute(5)->by('forgot-email:'.hash('sha256', (string) AuthIdentity::email($request->input('email'))))->response($tooMany),
+            Limit::perMinute(20)->by('forgot-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany),
+        ]);
+        RateLimiter::for('auth-reset', fn (Request $request) => Limit::perMinute(10)->by('reset-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
+        RateLimiter::for('email-link', fn (Request $request) => Limit::perMinute(10)->by('email-link-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
+        RateLimiter::for('email-send', fn (Request $request) => [
+            Limit::perMinute(6)->by('email-send:'.$request->user()->id)->response($tooMany),
+            Limit::perHour(20)->by('email-send-hour:'.$request->user()->id)->response($tooMany),
+        ]);
         RateLimiter::for('viewing-booking', fn (Request $request) => Limit::perHour(5)->by('viewing-ip:'.$request->server('REMOTE_ADDR', 'unknown'))->response($tooMany));
 
         // Cột *_type của quan hệ đa hình (attachments, notifications) lưu alias cố định thay vì tên class.

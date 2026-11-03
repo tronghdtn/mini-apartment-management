@@ -49,6 +49,7 @@ export function LoginPage() {
                 <input id="password" type="password" autoComplete="current-password" {...register('password')} className={inputClass} aria-invalid={!!errors.password} aria-describedby="password-error" />
                 <p id="password-error" className="text-xs text-rose-600 mt-1">{errors.password?.message}</p>
               </div>
+              <p className="text-right text-xs"><Link to="/forgot-password" className="font-semibold text-sky-600 hover:underline">Quên mật khẩu?</Link></p>
               {errors.root && <p role="alert" className="text-sm text-rose-600">{errors.root.message}</p>}
               <Button type="submit" isLoading={isSubmitting} disabled={auth.status === 'loading'} className="w-full mt-2 font-bold">Đăng nhập hệ thống</Button>
               {auth.status === 'loading' && <p role="status" className="text-xs text-slate-500">Đang kiểm tra phiên đăng nhập…</p>}
@@ -60,7 +61,7 @@ export function LoginPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold mb-4"><Sparkles className="w-3.5 h-3.5" />MiniApart</div>
           <h2 className="text-xl font-bold mb-3">Chào mừng bạn trở lại</h2>
           <p className="text-sm text-slate-300 leading-relaxed">Sử dụng email hoặc số điện thoại đã đăng ký để truy cập khu vực phù hợp với tài khoản của bạn.</p>
-          <p className="mt-6 text-xs text-slate-400 leading-relaxed">Cần hỗ trợ tài khoản hoặc khôi phục mật khẩu? Vui lòng liên hệ ban quản lý. Chức năng khôi phục trực tuyến chưa được triển khai.</p>
+          <p className="mt-6 text-xs text-slate-400 leading-relaxed">Quên mật khẩu? Dùng liên kết gửi tới email đã xác minh. Tài khoản chưa có email đã xác minh vui lòng liên hệ ban quản lý.</p>
           <Link to="/" className="inline-block mt-8 text-sm text-sky-300 hover:underline">Về trang chủ</Link>
         </div>
       </div>

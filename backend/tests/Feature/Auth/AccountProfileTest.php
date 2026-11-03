@@ -58,7 +58,7 @@ class AccountProfileTest extends TestCase
         $sid = $this->sessionId();
         $this->spa('PATCH', '/api/v1/auth/profile', ['full_name' => '  Nguyễn An mới  '])->assertOk()
             ->assertExactJson(['data' => ['id' => $user->id, 'full_name' => 'Nguyễn An mới', 'email' => $user->email,
-                'phone' => $user->phone, 'role' => $role->value, 'status' => 'active']]);
+                'phone' => $user->phone, 'role' => $role->value, 'status' => 'active', 'email_verified' => true]]);
         $this->assertSame($sid, $this->sessionId());
         $this->assertSame($before['password'], $user->fresh()->getAuthPassword());
         $this->spa('GET', '/api/v1/auth/me')->assertOk()->assertJsonPath('data.full_name', 'Nguyễn An mới');

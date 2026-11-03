@@ -8,6 +8,8 @@ export interface AuthUser {
   phone: string
   role: UserRole
   status: 'active' | 'locked'
+  /** DB-D95: email hiện tại đã xác minh qua liên kết. */
+  email_verified: boolean
 }
 
 export const roleLabels: Record<UserRole, string> = {

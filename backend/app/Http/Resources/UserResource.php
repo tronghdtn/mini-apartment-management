@@ -16,6 +16,8 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'role' => $this->role->value,
             'status' => $this->status->value,
+            // DB-D95: email hiện tại đã được chứng minh sở hữu qua liên kết.
+            'email_verified' => $this->email !== null && $this->email_verified_at !== null,
         ];
     }
 }

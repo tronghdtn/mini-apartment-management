@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ProfileNameForm } from './ProfileNameForm'
 import { ProfilePasswordForm } from './ProfilePasswordForm'
+import { ProfileEmailPanel } from './ProfileEmailPanel'
 import { Building2, KeyRound, Mail, Phone, ShieldCheck, UserRound } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { useAuth } from './useAuth'
@@ -24,6 +25,7 @@ export function AccountProfile() {
         <ProfileNameForm key={user.id} user={user} busy={busy} onBusyChange={setBusy} />
       </section>
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-2xs"><h2 className="flex items-center gap-2 border-b border-slate-100 pb-3 text-sm font-bold text-slate-900"><KeyRound aria-hidden="true" className="h-4 w-4 text-amber-600" />Bảo mật tài khoản</h2><ProfilePasswordForm key={user.id} busy={busy} onBusyChange={setBusy} /><p className="flex gap-2 text-xs text-slate-500"><ShieldCheck aria-hidden="true" className="h-4 w-4 shrink-0 text-sky-600" />Mật khẩu và thông tin giấy tờ không được hiển thị tại trang này.</p></section>
+      <ProfileEmailPanel key={`email-${user.id}`} user={user} busy={busy} onBusyChange={setBusy} />
     </div>
     {user.role !== 'user' && <p role="note" className="flex gap-2 rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800"><Building2 aria-hidden="true" className="h-4 w-4 shrink-0 mt-0.5" />Thông tin phòng, tòa nhà phân công và lịch sử nghiệp vụ chỉ hiển thị khi được kết nối dữ liệu theo quyền của tài khoản.</p>}
   </div>

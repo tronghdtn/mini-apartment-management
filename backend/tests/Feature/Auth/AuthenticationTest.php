@@ -335,6 +335,6 @@ class AuthenticationTest extends TestCase
         $this->assertSame(['data'], array_keys($json));
         $keys = array_keys($json['data']);
         sort($keys);
-        $this->assertSame(['email', 'full_name', 'id', 'phone', 'role', 'status'], $keys);
+        $this->assertSame(['email', 'email_verified', 'full_name', 'id', 'phone', 'role', 'status'], $keys);
     }
 }

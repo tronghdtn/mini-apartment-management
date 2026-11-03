@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Enums\ContractStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Notifications\ResetPasswordNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -54,6 +55,12 @@ class User extends Authenticatable
     public function hasRole(UserRole $role): bool
     {
         return $this->role === $role;
+    }
+
+    /** Liên kết đặt lại mật khẩu tiếng Việt trỏ về trang React (DB-D95), thay thông báo mặc định của Laravel. */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     public function isActive(): bool

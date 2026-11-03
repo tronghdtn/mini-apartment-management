@@ -49,6 +49,10 @@ import { ContactPage } from '@/pages/public/ContactPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 import { LoginPage } from '@/pages/public/LoginPage'
+import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/public/ResetPasswordPage'
+import { VerifyEmailPage } from '@/pages/public/VerifyEmailPage'
+import { ConfirmEmailChangePage } from '@/pages/public/ConfirmEmailChangePage'
 import { RegisterPage } from '@/pages/public/RegisterPage'
 import { GuestAppointmentsPage } from '@/pages/public/GuestAppointmentsPage'
 import { GuestProfilePage } from '@/pages/public/GuestProfilePage'
@@ -88,6 +92,10 @@ export const router = createBrowserRouter([
       { path: 'book', element: <BookingPage /> },
       { path: 'contact', element: <ContactPage /> },
       { path: 'login', element: <LoginPage /> },
+      { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
+      { path: 'verify-email', element: <VerifyEmailPage /> },
+      { path: 'confirm-email-change', element: <ConfirmEmailChangePage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forbidden', element: <ForbiddenPage /> },
       { element: <RequireAuth />, children: [

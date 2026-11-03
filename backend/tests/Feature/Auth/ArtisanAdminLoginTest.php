@@ -53,7 +53,7 @@ class ArtisanAdminLoginTest extends TestCase
             $sessionBefore = $this->sessionId();
             $response = $this->spa('POST', '/api/v1/auth/login', compact('identifier', 'password'))
                 ->assertOk()->assertJsonPath('data.id', $user->id)->assertJsonPath('data.role', 'admin')->assertJsonPath('data.status', 'active');
-            $this->assertSame(['id', 'full_name', 'email', 'phone', 'role', 'status'], array_keys($response->json('data')));
+            $this->assertSame(['id', 'full_name', 'email', 'phone', 'role', 'status', 'email_verified'], array_keys($response->json('data')));
             $this->assertStringNotContainsString($hash, $response->getContent());
             $this->assertNotSame($sessionBefore, $this->sessionId());
             $this->spa('GET', '/api/v1/auth/me')->assertOk()->assertJsonPath('data.id', $user->id);

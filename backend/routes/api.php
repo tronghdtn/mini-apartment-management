@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountEmailController;
 use App\Http\Controllers\Api\V1\AccountProfileController;
 use App\Http\Controllers\Api\V1\AdminUserController;
 use App\Http\Controllers\Api\V1\AmenityAssignmentController;
@@ -98,6 +99,11 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
     Route::middleware('spa')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-register')->name('register');
         Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login')->name('login');
+        // DB-D95: các thao tác mở bằng liên kết trong email, không cần đăng nhập.
+        Route::post('/forgot-password', [AccountEmailController::class, 'forgotPassword'])->middleware('throttle:auth-forgot')->name('password.forgot');
+        Route::post('/reset-password', [AccountEmailController::class, 'resetPassword'])->middleware('throttle:auth-reset')->name('password.reset');
+        Route::post('/email/verify', [AccountEmailController::class, 'verify'])->middleware('throttle:email-link')->name('email.verify');
+        Route::post('/email/change/confirm', [AccountEmailController::class, 'confirmChange'])->middleware('throttle:email-link')->name('email.change.confirm');
     });
 
     Route::middleware(['auth:sanctum', 'active'])->group(function () {
@@ -105,6 +111,8 @@ Route::prefix('auth')->name('api.v1.auth.')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('spa')->name('logout');
         Route::patch('/profile', [AccountProfileController::class, 'update'])->middleware(['spa', 'throttle:profile-name'])->name('profile.update');
         Route::put('/password', [AccountProfileController::class, 'password'])->middleware(['spa', 'throttle:profile-password'])->name('password.update');
+        Route::post('/email/verification-notification', [AccountEmailController::class, 'sendVerification'])->middleware(['spa', 'throttle:email-send'])->name('email.verification-notification');
+        Route::post('/email/change', [AccountEmailController::class, 'requestChange'])->middleware(['spa', 'throttle:email-send'])->name('email.change');
     });
 });
 

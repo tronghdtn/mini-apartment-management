@@ -30,9 +30,17 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Chưa đặt DB_PASSWORD trong .env}
       DB_TEST_PASSWORD: ${DB_TEST_PASSWORD:?Chưa đặt DB_TEST_PASSWORD trong .env — chạy scripts/setup.sh}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-false}
+      # DB-D95: thư tài khoản (quên mật khẩu, xác minh/đổi email) đi vào hộp thư Mailpit nội bộ, không ra Internet.
+      MAIL_MAILER: ${MAIL_MAILER:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-no-reply@miniapart.test}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-MiniApart}
     depends_on:
       mysql:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     networks:
       - app-network
     restart: unless-stopped
@@ -62,6 +70,15 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  mailpit:
+    # Hộp thư giả lập cho dev/demo: xem thư tại http://localhost:8025 (chỉ mở trên localhost).
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
     networks:
       - app-network
     restart: unless-stopped
