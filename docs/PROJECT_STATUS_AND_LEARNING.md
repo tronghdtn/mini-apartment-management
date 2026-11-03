@@ -1562,3 +1562,15 @@ Chức năng: người dùng tự khôi phục mật khẩu qua email đã xác 
 Ví dụ minh họa: mở http://localhost:8025 sau khi bấm "Gửi email xác minh" sẽ thấy thư; DevTools Network khi bấm "Quên mật khẩu" luôn thấy 202 cùng một thông điệp dù email có hay không.
 
 Câu hỏi bảo vệ: (1) Vì sao quên mật khẩu luôn trả cùng một câu? Không để kẻ xấu dò email nào có tài khoản. (2) Vì sao chỉ gửi cho email đã xác minh? Theo Q4, chỉ địa chỉ đã chứng minh sở hữu mới được dùng khôi phục. (3) Đổi email có đổi ngay không? Không, chỉ đổi khi người nhận ở email mới bấm xác nhận. (4) Liên kết dùng lại được không? Đặt lại mật khẩu xóa token; đổi email kiểm dấu email hiện tại nên lần hai 409. (5) Vì sao trang liên kết bắt bấm nút? Tránh trình quét thư hoặc F5 tiêu mất liên kết dùng một lần.
+
+### 11.74. Vì sao từng có lỗi 504 khi gửi thanh toán (PAY504, 04/11/2026)
+
+Không phải lỗi nghiệp vụ thanh toán. Nginx chờ PHP-FPM tối đa 60 giây; PHP chậm vì mỗi request phải nạp ~543 file PHP và OPcache (bộ nhớ đệm mã PHP đã biên dịch) được cấu hình `revalidate_freq = 0` nên kiểm lại thời gian sửa của từng file ở mọi request. Code nằm trên ổ Windows được mount vào container; mỗi lần kiểm file qua lớp mount này chậm hơn hàng trăm lần so với ổ trong container. Khi nhiều request tới cùng lúc, 5 worker FPM bận và request sau phải xếp hàng → có lúc vượt 60 giây → 504.
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `docker/php/php.ini` — `opcache.revalidate_freq` | Đổi 0 → 2: chỉ kiểm file tối đa 2 giây/lần. |
+| `docker-compose.yml` service `app` | Mount `./backend` và `php.ini` từ Windows vào container. |
+| `frontend/src/features/payments/submissionError.ts` | (PAY-04, đã có) xử lý kết quả chưa rõ khi gặp 504, không cho gửi lặp. |
+
+Câu hỏi bảo vệ: (1) Vì sao GET CSRF cũng chậm cùng lúc với POST thanh toán? Hai request dùng chung worker và cùng chịu chi phí kiểm file. (2) Tăng timeout Nginx có phải cách sửa đúng? Không, chỉ che triệu chứng. (3) revalidate_freq = 2 ảnh hưởng gì khi lập trình? Sửa file PHP có hiệu lực sau tối đa 2 giây. (4) Production nên cấu hình thế nào? Tắt validate_timestamps và chạy `php artisan optimize` khi deploy.
