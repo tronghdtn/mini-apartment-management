@@ -1504,3 +1504,21 @@ Chức năng: Admin mở `/admin/users/:id` thấy tổng công nợ và yêu c�
 Ví dụ minh họa: DevTools Network lọc `debt-summary` → 200 với `outstanding_amount` dạng chuỗi; đăng nhập Cư dân rồi gọi `/maintenance-requests?user_id=1` sẽ nhận 422.
 
 Câu hỏi bảo vệ: (1) Vì sao tách `userSummary()` thay vì viết lại? Để Admin và Cư dân luôn thấy cùng một con số. (2) Vì sao Cư dân không được gửi `user_id`? Tránh dò dữ liệu người khác; phạm vi của họ đã cố định theo session. (3) Pending có giảm công nợ không? Không. (4) Vì sao không cộng tiền từ danh sách hóa đơn? Danh sách phân trang, cộng một trang sẽ thiếu. (5) F5 giữ trang sửa chữa nhờ đâu? Query `requests_page`/`tasks_page` trên URL.
+
+### 11.71. In / Lưu PDF hóa đơn, biên nhận, phiếu hợp đồng (DB-D93, 03/11/2026)
+
+Chức năng: mở trang in riêng, bấm **In / Lưu PDF** để in giấy hoặc lưu PDF bằng trình duyệt. Không có API mới: trang gọi lại API chi tiết hiện có nên quyền sở hữu vẫn do Laravel kiểm.
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `frontend/src/app/router.tsx:57` / `:65` | `printPage()` bọc Suspense; 6 route in nằm ngoài layout nhưng trong `RequireAuth` theo vai trò. |
+| `frontend/src/components/ui/PrintSheet.tsx:18` | Khung A4, nút `window.print()`, đổi `document.title` làm tên PDF; `print:hidden` ẩn thanh công cụ. |
+| `frontend/src/hooks/useApiResource.ts:9` | Tải theo khóa, hủy request cũ, chỉ hiện kết quả đúng khóa; 401/403 gọi `refresh()`. |
+| `frontend/src/features/invoices/InvoicePrint.tsx:13` | GET `/invoices/{id}`; chặn nháp, đánh dấu ĐÃ HỦY; tiền chỉ `formatVND`. |
+| `frontend/src/features/payments/ReceiptPrint.tsx:10` → `api.ts:8` | GET `/payments/{id}`; chỉ in khi `confirmed` + `receipt_number`. |
+| `frontend/src/features/contracts/ContractPrint.tsx:20`, `resident-contracts/ResidentContractPrint.tsx:21` | Phiếu tóm tắt hợp đồng cho Admin / cư dân từ hai API khác nhau. |
+| `frontend/src/index.css:60` | `@media print`: `@page` A4 lề 12mm, nền trắng, giữ màu nền bảng. |
+
+Ví dụ minh họa: mở `/resident/invoices/68/print` (thay 68 bằng ID thật) → DevTools Network thấy GET `/api/v1/invoices/68`; Ctrl+P → chọn "Lưu dưới dạng PDF", tên tệp gợi ý là mã hóa đơn.
+
+Câu hỏi bảo vệ: (1) Vì sao không cần API mới? Trang in dùng lại API chi tiết đã kiểm quyền. (2) Cư dân sửa ID trên URL có in được hóa đơn người khác? Không, API trả 403 và trang không hiện dữ liệu. (3) Vì sao không in hóa đơn nháp? Nháp chưa phát hành, số tiền còn thay đổi. (4) Vì sao biên nhận chỉ cho payment đã xác nhận? Số RCP chỉ sinh khi Admin xác nhận tiền thực nhận. (5) Ẩn nút khi in bằng cách nào? Class Tailwind `print:hidden` trong `@media print`.

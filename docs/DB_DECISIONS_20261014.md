@@ -297,3 +297,7 @@ Chủ dự án duyệt GET dashboard/buildings chỉAdminactive, phântrang20/id
 ## DB-D92 — Công nợ và sửa chữa theo tài khoản tại ADM-10 (CONFIRMED 03/11/2026)
 
 Chủ dự án duyệt GET `/api/v1/users/{user}/debt-summary` chỉ Admin active và hai query `user_id`/`assigned_to` chỉ Admin cho GET maintenance-requests. Công nợ tính đúng quy tắc RES-01/brief§49 qua một hàm dùng chung `DebtService::userSummary()`; payment pending không giảm nợ. Không schema/tiền mới/devwrite; vai trò khác gửi hai query bị422, phạm vi owner/technician cũ giữ nguyên. API/AC tại brief§53.
+
+## DB-D93 — In/xuất tài liệu bằng trình duyệt (CONFIRMED 03/11/2026)
+
+Chủ dự án chọn in bằng trình duyệt (In / Lưu PDF) cho hóa đơn, biên nhận và phiếu thông tin hợp đồng, dành cho Admin và cư dân chủ sở hữu. Không thêm thư viện PDF, không route/JSON/quyền Backend mới, không schema/devwrite; số tiền lấy nguyên từ API. Hóa đơn nháp và payment chưa xác nhận không in; phiếu hợp đồng chỉ tóm tắt dữ liệu đã lưu, không soạn điều khoản pháp lý. Thay cho dòng "In/xuất PDF hóa đơn — không dựng" ở brief §12; xuất Excel vẫn chưa làm. Chi tiết brief §54.

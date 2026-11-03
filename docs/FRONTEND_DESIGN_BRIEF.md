@@ -710,7 +710,7 @@ Trường `is_system`, `is_used`, `has_active_contract`, `proof_url`, `photos`, 
 | Tự động lập hóa đơn theo lịch | [FUTURE] | |
 | Giá điện bậc thang, IoT đồng hồ | [FUTURE] | |
 | Credit note / hoàn tiền tự động | [FUTURE] | Hoàn tiền ghi chú ngoài hệ thống |
-| In/xuất PDF hóa đơn, xuất Excel | Chưa có trong tài liệu | Không dựng; hỏi lại nếu cần |
+| In/xuất PDF hóa đơn, xuất Excel | In bằng trình duyệt đã duyệt DB-D93/§54; xuất Excel chưa có | Xuất Excel không dựng; hỏi lại nếu cần |
 
 ---
 
@@ -1230,3 +1230,15 @@ AC: quyền5role/locked/querybad/empty/21tòa20+1/counts activeoverdue/roomallst
 **GET `/api/v1/maintenance-requests`** thêm `user_id` (người gửi) và `assigned_to` (người được giao) tùy chọn, chỉ Admin active: số nguyên dương ≤ 2147483647, không boolean, AND với status/priority/room_id, lọc SQL trước paginate20. Vai trò khác gửi hai trường này → 422; phạm vi Resident (chính mình)/Technician (việc của mình) không đổi. Route/response/quyền ghi giữ nguyên.
 
 **ADM-10:** giữ khung trang hiện có. Tài khoản Cư dân: thẻ Công nợ (4 số từ API, không cộng ở React) và bảng "Yêu cầu sửa chữa đã gửi" (`user_id`, URL `requests_page`). Tài khoản Kỹ thuật viên: bảng "Việc sửa chữa được giao" (`assigned_to`, URL `tasks_page`). Link sang chi tiết sửa chữa Admin; trang URL sai báo lỗi + "Về trang đầu"; bảng nằm trong `overflow-x-auto`. Danh sách hóa đơn theo tài khoản vẫn xem qua chi tiết từng hợp đồng.
+
+## 54. PRINT — In / Lưu PDF hóa đơn, biên nhận, phiếu hợp đồng (CONFIRMED 03/11/2026, DB-D93)
+
+Trang in đứng riêng ngoài layout, có Auth guard theo vai trò như khu hiện tại; khung A4 (`@page` A4, lề 12mm), thanh công cụ (Quay lại, **In / Lưu PDF** = `window.print()`) bị ẩn khi in; tiêu đề trang đổi thành "<Loại tài liệu> <mã>" để làm tên tệp PDF gợi ý. Không thư viện mới, không đổi API/quyền: dữ liệu và quyền sở hữu do API hiện có kiểm (cư dân mở tài liệu người khác nhận 403/404 và trang không hiện dữ liệu).
+
+| Tài liệu | Route Admin / Cư dân | API | Điều kiện in |
+| --- | --- | --- | --- |
+| Hóa đơn | `/admin/invoices/:id/print` · `/resident/invoices/:id/print` | GET `/invoices/{id}` | Không in nháp; hóa đơn đã hủy in kèm dấu "ĐÃ HỦY" + lý do/hóa đơn thay thế |
+| Biên nhận | `/admin/payments/:id/receipt` · `/resident/payments/:id/receipt` | GET `/payments/{id}` | Chỉ `confirmed` có `receipt_number`; pending/rejected không in |
+| Phiếu thông tin hợp đồng | `/admin/contracts/:id/print` · `/resident/contracts/:id/print` | GET `/contracts/{id}` · `/resident/contracts/{id}` | Không in nháp; ghi rõ "không thay thế văn bản hợp đồng đã ký" |
+
+Nội dung hóa đơn: người thuê, phòng, hợp đồng, loại, kỳ, phát hành, hạn, trạng thái; bảng dòng (mô tả, số ngày tính, căn cứ, số lượng, đơn giá, thành tiền) và chỉ số điện nước; tổng/đã xác nhận/còn phải trả từ API, ghi chú khoản chờ xác nhận chưa trừ nợ. Biên nhận: số RCP, thời điểm xác nhận, người nộp, phòng, hóa đơn, hình thức (khấu trừ cọc ghi chú riêng), số tiền, ô ký trống. Phiếu hợp đồng: các trường đã lưu (thời hạn, bàn giao, tiền thuê, cọc, số người, chỉ số đầu, dịch vụ, điều khoản trước hạn/miễn phí, kiểm tra/thanh lý); bản cư dân không có CCCD, liên hệ người ở cùng. Nút "In hóa đơn" ở chi tiết hóa đơn (Admin/cư dân), "In biên nhận" ở lịch sử thanh toán, "In phiếu hợp đồng" ở chi tiết hợp đồng. Header dùng thương hiệu giao diện + dữ liệu tòa vì cư dân không đọc settings hệ thống.
