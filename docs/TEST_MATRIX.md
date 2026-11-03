@@ -562,3 +562,19 @@ Không ghi DB dev; testpair18082 dùng account riêng. PAY504 và chính sách h
 **Kết quả CS/RM mới:** CS01–03 có full1469test/14836assertion/Pint365; hai regression đầu đỏ rồi nhóm13/159 xanh, có rollback và race process. HTTP25check/26response +10authsetup đạt; reference409 không đổi revision, hai Admin200/200 chỉ1payment. Browser blocker/nút khóa, confirm/doubleclick1POST200/F5closed đạt. RM01–02: frontend141/build/lint0lỗi9cảnh báo cũ; phân trang20+3/23ID và các lọc/401/403/422/empty đạt. Browser lọc/resetpage/F5/URLsai/xóalọc/empty/503retry/MTRcũ/mobile375 đã kiểm; panel335=scroll335/table808 nằm trong khung334, ảnh đã xem. Chưa browser BackForward/datepicker/chuyển phòng giữa request/OSoffline/TCPdrop/Adminthậtdev; không đánh dấu các ca đó PASS.
 
 SAFE87 đạt: exact fixture/session cleanup,6schema test khôi phục, test nguồn0/FK1/refundcolumns0/devdenied1142/privatefilepath+SHA nguyên; dev toàn bộ7nhóm snapshot khớp29bảng/30migration/RUNfalse. Proxybytes gốc/cặp18082stopped/tabđóng/viewportreset. Code e3c3030/25ae0db; Plan§12.56–57/học tập§11.63–64. Lượt HTTP đầu bị sandbox EACCES trước request, chạy lại với quyền localhost đạt; selector/getByLabel và select báo lỗi được xác minh DOM/URL, không tính là lỗi nghiệp vụ. PAY504 vẫn mở, không dùng503 chủ động ởGET làm bằng chứng đã tái hiện504 gốc.
+
+## PROFILE-A — ma trận kiểm thử phạm vi mới (DB-D88, 03/11/2026)
+
+| Ca | Yêu cầu | Bằng chứng cần có |
+|---|---|---|
+| PR-01 | 5role active tự sửa tên, giữ định danh/quyền/hash/phiên, response6trường | Feature từngrole + thử nhanh giao diện |
+| PR-02 | Đổi mật khẩu hiện tại đúng, mới khác/confirmation/8ký tự/72byte/NUL/whitespace | Feature + Node; không log/response password/hash |
+| PR-03 | Thu hồi mọi phiên cũ, kể cả login mới chưa/me và legacy; không ảnh hưởng user khác | Cookie/database assertions; pin hash ngay login/register |
+| PR-04 | Anonymous/locked/CSRF/field cấm/rate429 | Feature, không bỏ middleware |
+| PR-05 | Stale request, race2process, SQLrollback | Feature và process trênDBtest; không ghi dở dang |
+| PR-06 | RHF/Zod, cancel, khóa gửi lặp, đồng bộAuth/name, login notice sau đổi/responsekhôngrõ | Frontend test/build/lint và kiểm nhanh riêng profile |
+| PR-SAFE | DB testguard, baseline/cleanup, devsnapshot nguyên, không migrationdev | Hậu kiểm; browser test-only fixtures, không dùng Admin thậtdev |
+
+Chỉ nghiệm thu phần profile mới; không tự mở email/SĐT/pháp lý hay kiểm toàn hệ thống trong lượt này.
+
+**Kết quả PR mới (03/11):** PR01–05 có full1507/15313 trước regression literal-key cuối; nhóm Auth cuối131/2054 và Pint377 PASS. HTTP40check đạt cả5role/field cấm/401/419/422/204, hai phiên bị thu hồi/người khác còn phiên, login cũ bị từ chối/mới được chấp nhận và race204-409; process race cũng đạt. PR06: frontend146/build/lint0lỗi9cảnh báo cũ, browser lưu tên/F5/cancel/rỗng/doubleclick1PATCH/mobile375 đạt; đổi mật khẩu và login notice trực tiếp browser **chưa kiểm**, không gộp vào PASS. PR-SAFE: exactrun5user/session/cache đã dọn, test0/FK1/devdenied1142/privatefile nguyên, không schema mới; dev7nhóm snapshot khớp29bảng/30migration/RUNfalse, proxy nguyên/cặp test stopped/tab đóng/viewport reset. Lượt HTTP đầu client20s timeout499 ở PATCH đã xác minh SQL trước chạy lại; helper70s không phải bản vá PAY504. Code91a2ae8/Plan§12.59.

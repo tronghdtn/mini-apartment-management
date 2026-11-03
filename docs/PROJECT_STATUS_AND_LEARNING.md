@@ -1416,3 +1416,27 @@ Ví dụ minh họa: DevTools Network lọc `resident/overview` → status 200, 
 Câu hỏi bảo vệ: (1) Vì sao không cộng tiền ở React từ `/invoices`? Danh sách phân trang 20, cộng một trang sẽ thiếu; tiền do Backend tính. (2) Payment pending có giảm nợ không? Không, `paid_amount` chỉ cộng payment confirmed. (3) Cư dân đã thanh lý còn thấy nợ không? Có, truy vấn lấy mọi hợp đồng của user kể cả terminated/soft-delete. (4) Cư dân A xem được nợ của B không? Không; user lấy từ session, query lạ bị 422, role khác 403. (5) Ẩn nút gửi sửa chữa ở React có đủ an toàn không? Không, Backend `store` vẫn chặn khi không có hợp đồng active; nút chỉ là trải nghiệm.
 
 **Tiếp nhận Codex 03/11:** đã rà commit4c1939e/ba765e6 và tự chạy lại22backendtest/351assertion, frontend143test/buildPASS/lint0lỗi9cảnh báo cũ. Pint7file liên quan đạt; lần đầu Pint toàn370file phát hiện hai khoảng trắng thiếu ở test hoàn cọc cũ, đã sửa đúng dấu cách và chạy lại toàn370file đạt. Không sửa assertion hoặc nghiệp vụ. Hậu kiểm test trước/sau trùng nhau, devsnapshot7nhóm đều khớp/privatefile cũ nguyên, không DB devwrite; browser Claude ở Plan§12.58 là bằng chứng riêng, Codex chưa chạy lại browser/full PHPUnit. Screen Inventory đã đồng bộ. Artifacts riêng ignored `backups/resident-overview-review-20261103/`, không Git log/secrets. PROFILE-A mới có đề xuất API/chính sách phiên chờ duyệt tại SpecAuth§10, chưa code.
+
+### 11.66. PROFILE-A — tự sửa tên và đổi mật khẩu (DB-D88, 03/11/2026)
+
+Phạm vi: trang hồ sơ hiện có của cả5role active; chỉ sửa full_name hoặc đổi mật khẩu bằng mật khẩu hiện tại. Email/SĐT/quyền/pháp lý giữ nguyên. Đổi mật khẩu thành công đăng xuất mọi phiên và yêu cầu đăng nhập lại; không thực hiện thử với tài khoản dev.
+
+| File/hàm chính | Trách nhiệm |
+|---|---|
+| `frontend/src/features/auth/AccountProfile.tsx` | Ghép hai form trong đúng khối Antigravity đang có; khóa cả hai khi một thao tác đang lưu. |
+| `ProfileNameForm.tsx` — `submit()`; `ProfilePasswordForm.tsx` — `submit()` (cùng thư mục) | RHF/Zod kiểm input, gọi useAuth, hiển thị lỗi422 đúng ô, chặn gửi lặp; hủy/xóa nội dung mật khẩu trong bộ nhớ form. |
+| `frontend/src/features/auth/api.ts:34` / `:40` | Lấy CSRF rồi PATCH `/api/v1/auth/profile` hoặc PUT `/api/v1/auth/password`; client http gửi cookie Sanctum. |
+| `frontend/src/features/auth/AuthProvider.tsx:99` / `:103` | Cập nhật tên thật vào Context hoặc xóa danh tính sau đổi mật khẩu; bỏ qua response/me cũ bằng revision hiện có. |
+| `backend/app/Http/Controllers/Api/V1/AccountProfileController.php:17` / `:22` | Nhận validated từ hai FormRequest; gọi Service; trả UserResource6trường hoặc204 và hủy phiên hiện tại/tạo lại CSRF. |
+| `backend/app/Services/AccountProfileService.php:15` / `:30` / `:54` | Transaction (giao dịch nguyên tử), khóa users, tái kiểm active/hash, chỉ sửa đúng trường; đổi mật khẩu xóa sessions của chính user. Lỗi SQL rollback và log thông báo đã lược dữ liệu nhạy cảm. |
+| `backend/app/Http/Controllers/Api/V1/AuthController.php:52` — `stampPassword()` | Ghim dấu kiểm tra mật khẩu tại login/register, kể cả phiên chưa gọi/me; request cũ không được khôi phục quyền sau đổi mật khẩu. Không lưu mật khẩu dạng rõ. |
+
+Luồng sửa tên: form → Zod → AuthProvider → Axios + CSRF/cookie → route auth:sanctum/active/spa/throttle → FormRequest (cấm mọi field ngoài full_name) → Service khóa users.id từ session → MySQL → UserResource → Context/header/form đọc tên thật. Không lấy user_id từ frontend.
+
+Luồng đổi mật khẩu: kiểm kiểu/độ dài trước, kiểm Hash::check mật khẩu hiện tại dưới khóa user; User cast hashed tạo hash mới, đổi remember_token và bỏ các session của chính user trong cùng transaction. Controller hủy phiên hiện tại; React về Login với thông báo cố định, không đưa mật khẩu vào URL/storage. Nếu response không rõ, không tự gửi lại mật khẩu: xóa danh tính/form và yêu cầu đăng nhập để kiểm tra. Hóa đơn/hợp đồng/phòng không tham gia thao tác.
+
+Câu hỏi bảo vệ: (1) Vì sao cần mật khẩu hiện tại? Hạn chế người đang cầm một phiên mở tự đổi mật khẩu mà không biết mật khẩu cũ. (2) Vì sao kiểm lại sau khi khóa users? Tài khoản/mật khẩu có thể đổi sau bước xác thực request. (3) Vì sao xóa session và ghim dấu mật khẩu ngay login? Bảo vệ cả phiên mới, phiên cũ và request đang chạy đồng thời. (4) Vì sao không trim mật khẩu? Khoảng trắng là một phần của mật khẩu đã nhập; chỉ trim tên. (5) Frontend ẩn field có đủ không? Không; FormRequest cấm field điều khiển và Backend chỉ chọn user từ session.
+
+Bằng chứng kiểm thử/trạng thái thực tế quản lý tại Plan§12.59/MatrixPR, không suy full MVP hoàn tất từ hai form này.
+
+**Kiểm chứng PROFILE-A:** code91a2ae8; full1507/15313 trước hồi quy whitelist cuối, Auth cuối131/2054 và Pint377 PASS; frontend146/build/lint0lỗi9cảnh báo cũ. HTTP40check gồm thu hồi hai phiên/giữ phiên người khác/login mật khẩu mới/race204-409; browser tên thật/F5/1PATCH khi bấm hai lần/hủy/lỗi rỗng/mobile375 đạt. Chưa đổi mật khẩu trực tiếp qua browser hoặc Admin thậtdev; không coi thông báo sau đổi đã được browser nghiệm thu. Dọn fixture đúngrun, test0/FK1/devdenied1142/privatefile nguyên, dev7nhóm snapshot khớp29bảng/30migration/RUNfalse. Chi tiết và giới hạn Plan§12.59.
