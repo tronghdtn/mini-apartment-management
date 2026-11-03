@@ -293,3 +293,7 @@ Chủ dự án duyệt thêm query room_id chỉ Admin vào GET viewing-appointm
 ## DB-D91 — Bảng tổng quan tòa nhà trên Dashboard (CONFIRMED 03/11/2026)
 
 Chủ dự án duyệt GET dashboard/buildings chỉAdminactive, phântrang20/id/name/tổngphòng/phòngcócontractactive/phòngstatusavailable. Không schema/tiền/devwrite, không thay4thẻDB-D82. Nguồncounts/API/AC tại brief§52; không diễn giải rented+available bằng total hoặc suy trạng thái hợp đồng từ end_date.
+
+## DB-D92 — Công nợ và sửa chữa theo tài khoản tại ADM-10 (CONFIRMED 03/11/2026)
+
+Chủ dự án duyệt GET `/api/v1/users/{user}/debt-summary` chỉ Admin active và hai query `user_id`/`assigned_to` chỉ Admin cho GET maintenance-requests. Công nợ tính đúng quy tắc RES-01/brief§49 qua một hàm dùng chung `DebtService::userSummary()`; payment pending không giảm nợ. Không schema/tiền mới/devwrite; vai trò khác gửi hai query bị422, phạm vi owner/technician cũ giữ nguyên. API/AC tại brief§53.

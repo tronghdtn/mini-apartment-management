@@ -1486,3 +1486,21 @@ Luồng bảng: React → http (cookie session, GET không cần CSRF) → route
 Giữ nguyên4thẻ và quy tắc tiềnDB-D82. Các khối tảiđộc lập, không bảođảm cùngmột thờiđiểm snapshot trên cả7request. Link thanh toán/hợpđồng có bộlọc URL đãhỗtrợ; link sửa chữa mở trang quảnlý chung vì trang đích chưa đọc status từURL (người dùng chọn dropdown). `Awaited<ReturnType<...>>` trong panel chỉ lấy kiểu dữ liệu trả về sau await của hàmAPI để tránh chép lại interface.
 
 Câu hỏi bảo vệ: (1) Vì sao21payment nhưng chỉ20dòng mà thẻ hiện21? Lấymeta.total, không data.length. (2) Vì sao không cộng rented+available thành total? Còn bảotrì/inactive; haiđiềukiệnđếm độc lập, không dùng để tự sửa trạngthái. (3) Quá end_date có tự giảm đangthuê không? Không, hợpđồng vẫnactive đến khi bàn giao/thanh lý. (4) Vì sao không trả Model nguyên? Resource chỉ trả5trườngđãduyệt, không lộ tenant/hồsơ. (5) Một API lỗi có làm toàn Dashboard về0không? Không, state/error từngkhối táchriêng và có nút tải lại. Bằng chứng và giới hạn tại Plan§12.62/MatrixDASH-B.
+
+### 11.70. Công nợ và sửa chữa trong chi tiết tài khoản (ADM-10, DB-D92, 03/11/2026)
+
+Chức năng: Admin mở `/admin/users/:id` thấy tổng công nợ và yêu cầu sửa chữa của cư dân, hoặc việc được giao của kỹ thuật viên. Bảng đọc: `invoices`, `contracts` (kể cả soft-delete), `maintenance_requests`, `rooms`, `buildings`, `users`.
+
+| Vị trí | Vai trò |
+| --- | --- |
+| `frontend/src/pages/admin/AdminUserDetailPage.tsx:98` / `:101` | Gắn thẻ theo `user.role`: resident → công nợ + yêu cầu đã gửi; technician → việc được giao. |
+| `frontend/src/features/user-management/UserDebtSummaryCard.tsx:10` → `api.ts:24` | GET `/api/v1/users/{id}/debt-summary`, parse Zod `debtSummary.ts`; hiển thị `formatVND(BigInt(...))`, không cộng tiền. |
+| `frontend/src/features/maintenance-requests/PersonMaintenancePanel.tsx:20` | GET `/maintenance-requests?user_id=…` hoặc `?assigned_to=…&page=…`; trang lưu trên URL (`requests_page`/`tasks_page`). |
+| `backend/routes/api.php:159` → `AdminUserController.php:41` | Route trong nhóm `role:admin`; tìm user (404), Policy `view`, trả JSON `no-store`. |
+| `backend/app/Services/DebtService.php:69` — `userSummary()` | Hàm tính công nợ dùng chung với Tổng quan Cư dân: lọc hóa đơn còn nợ, `Money::remaining`/`Money::aggregate`, quá hạn theo ngày VN. |
+| `backend/app/Http/Requests/Maintenance/MaintenanceRequestInput.php:42` | `user_id`/`assigned_to` chỉ hợp lệ khi người gọi là Admin, vai trò khác nhận 422. |
+| `backend/app/Services/MaintenanceRequestService.php:50` | Thêm hai cột vào vòng lọc `where` trước `paginate(20)`. |
+
+Ví dụ minh họa: DevTools Network lọc `debt-summary` → 200 với `outstanding_amount` dạng chuỗi; đăng nhập Cư dân rồi gọi `/maintenance-requests?user_id=1` sẽ nhận 422.
+
+Câu hỏi bảo vệ: (1) Vì sao tách `userSummary()` thay vì viết lại? Để Admin và Cư dân luôn thấy cùng một con số. (2) Vì sao Cư dân không được gửi `user_id`? Tránh dò dữ liệu người khác; phạm vi của họ đã cố định theo session. (3) Pending có giảm công nợ không? Không. (4) Vì sao không cộng tiền từ danh sách hóa đơn? Danh sách phân trang, cộng một trang sẽ thiếu. (5) F5 giữ trang sửa chữa nhờ đâu? Query `requests_page`/`tasks_page` trên URL.
