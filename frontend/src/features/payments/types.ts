@@ -8,3 +8,5 @@ export interface Payment {
 export interface PaymentPage { data: Payment[]; meta: {current_page: number; last_page: number; total: number} }
 export const paymentStatusLabels: Record<PaymentStatus, string> = { pending: 'Chờ đối soát', confirmed: 'Đã xác nhận', rejected: 'Đã từ chối' }
 export const paymentMethodLabels = { cash: 'Tiền mặt', bank_transfer: 'Chuyển khoản', deposit: 'Khấu trừ cọc' }
+/** DB-D94: ngân hàng/số tiền là null khi hóa đơn không còn nợ hoặc chưa cấu hình tài khoản nhận. */
+export interface PaymentInstructions { payable: boolean; configured: boolean; bank_name: string | null; account_number: string | null; account_holder: string | null; amount: number | null; transfer_content: string | null }

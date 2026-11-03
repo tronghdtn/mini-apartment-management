@@ -9,7 +9,7 @@ class UpdateSettingRequest extends UpdateDaysSettingRequest
 {
     protected function prepareForValidation(): void
     {
-        if (! $this->isSystemKey()) {
+        if (! $this->isTextKey()) {
             return;
         }
         // expected_value must keep the exact GET value, including legacy spaces/empty strings.
@@ -26,12 +26,23 @@ class UpdateSettingRequest extends UpdateDaysSettingRequest
 
     public function rules(): array
     {
-        if (! $this->isSystemKey()) {
+        if (! $this->isTextKey()) {
             return parent::rules();
         }
-        $value = ['present', 'nullable', 'string', 'max:'.($this->route('key') === 'system.contact_phone' ? 30 : 191)];
-        if ($this->route('key') === 'system.contact_email') {
+        $key = $this->route('key');
+        $max = match ($key) {
+            'system.contact_phone' => 30,
+            'bank.name', 'bank.account_holder' => 100,
+            'bank.account_number' => 20,
+            default => 191,
+        };
+        $value = ['present', 'nullable', 'string', 'max:'.$max];
+        if ($key === 'system.contact_email') {
             $value[] = 'email:rfc';
+        }
+        if ($key === 'bank.account_number') {
+            // DB-D94: chỉ chữ số, 6–20 ký tự, không khoảng trắng/dấu.
+            $value[] = 'regex:/^[0-9]{6,20}$/D';
         }
 
         return ['value' => $value, 'expected_value' => ['present', 'nullable', 'string']];
@@ -39,7 +50,7 @@ class UpdateSettingRequest extends UpdateDaysSettingRequest
 
     public function after(): array
     {
-        if (! $this->isSystemKey()) {
+        if (! $this->isTextKey()) {
             return [];
         }
 
@@ -53,11 +64,12 @@ class UpdateSettingRequest extends UpdateDaysSettingRequest
     public function messages(): array
     {
         return parent::messages() + ['present' => 'Thiếu trường :attribute.', 'string' => ':attribute phải là chuỗi ký tự.',
-            'max' => ':attribute tối đa :max ký tự.', 'email' => 'Email liên hệ không đúng định dạng.'];
+            'max' => ':attribute tối đa :max ký tự.', 'email' => 'Email liên hệ không đúng định dạng.',
+            'regex' => 'Số tài khoản chỉ gồm chữ số, từ 6 đến 20 ký tự.'];
     }
 
-    private function isSystemKey(): bool
+    private function isTextKey(): bool
     {
-        return in_array($this->route('key'), SettingService::WRITABLE_SYSTEM_KEYS, true);
+        return in_array($this->route('key'), SettingService::WRITABLE_TEXT_KEYS, true);
     }
 }

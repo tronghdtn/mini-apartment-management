@@ -24,6 +24,14 @@ class InvoiceController extends Controller
         return new InvoiceResource($request->invoice());
     }
 
+    public function paymentInstructions(InvoiceRequest $request, int $invoice): JsonResponse
+    {
+        $request->validated();
+
+        return response()->json(['data' => $this->invoices->paymentInstructions($request->invoice())])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
     public function store(InvoiceRequest $request): JsonResponse
     {
         return (new InvoiceResource($this->invoices->createMonthly($request->validated())))->response()->setStatusCode(201);

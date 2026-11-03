@@ -1,9 +1,12 @@
 import { http } from '@/lib/http'
 import { paymentFiltersSchema, paymentProofSchema, directPaymentSchema, type PaymentFilters, type PaymentProofInput, type DirectPaymentInput } from './schemas'
-import type { Payment, PaymentPage } from './types'
+import type { Payment, PaymentInstructions, PaymentPage } from './types'
 export async function getPayments(filters: PaymentFilters, signal?: AbortSignal): Promise<PaymentPage> {
   const input = paymentFiltersSchema.parse(filters)
   return (await http.get<PaymentPage>('/payments',{params:{status:input.status||undefined,method:input.method||undefined,invoice_id:input.invoice_id||undefined,page:input.page},signal})).data
+}
+export async function getPaymentInstructions(invoiceId: number, signal?: AbortSignal): Promise<PaymentInstructions> {
+  return (await http.get<{ data: PaymentInstructions }>(`/invoices/${invoiceId}/payment-instructions`, { signal })).data.data
 }
 export async function getPayment(id: string, signal?: AbortSignal): Promise<Payment> {
   return (await http.get<{ data: Payment }>(`/payments/${encodeURIComponent(id)}`, { signal })).data.data

@@ -136,6 +136,7 @@ Route::post('notifications/{notification}/read', [NotificationController::class,
 Route::middleware(['auth:sanctum', 'active'])->prefix('invoices')->name('api.v1.invoices.')->group(function () {
     Route::get('/', [InvoiceController::class, 'index'])->name('index');
     Route::get('/{invoice}', [InvoiceController::class, 'show'])->whereNumber('invoice')->name('show');
+    Route::get('/{invoice}/payment-instructions', [InvoiceController::class, 'paymentInstructions'])->whereNumber('invoice')->name('payment-instructions');
     Route::middleware('spa')->group(function () {
         Route::post('/', [InvoiceController::class, 'store'])->name('store');
         Route::post('/{invoice}/refresh', [InvoiceController::class, 'refresh'])->whereNumber('invoice')->name('refresh');
@@ -194,7 +195,8 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->name('api.v1.')->gr
         Route::put('buildings/{building}/amenities', [AmenityAssignmentController::class, 'buildingUpdate'])->whereNumber('building')->name('buildings.amenities.update');
         Route::put('rooms/{room}/amenities', [AmenityAssignmentController::class, 'roomUpdate'])->whereNumber('room')->name('rooms.amenities.update');
         Route::put('settings/{key}', [SettingController::class, 'update'])
-            ->whereIn('key', ['invoice.due_days', 'contract.expiring_warning_days', 'system.name', 'system.contact_phone', 'system.contact_email'])->name('settings.update');
+            ->whereIn('key', ['invoice.due_days', 'contract.expiring_warning_days', 'system.name', 'system.contact_phone', 'system.contact_email',
+                'bank.name', 'bank.account_number', 'bank.account_holder'])->name('settings.update');
         Route::post('services', [ServiceController::class, 'store'])->name('services.store');
         Route::match(['patch', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');
         Route::post('utility-prices', [UtilityPriceController::class, 'store'])->name('utility-prices.store');

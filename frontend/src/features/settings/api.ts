@@ -1,7 +1,7 @@
 import { fetchCsrfCookie, http } from '@/lib/http'
 import type { ApiResource } from '@/types/api'
 import type { DaySettingInput } from './schemas'
-import type { DaySettingKey, SystemSettingKey, Setting, SettingsResult } from './types'
+import type { DaySettingKey, TextSettingKey, Setting, SettingsResult } from './types'
 import { systemSettingSchema, type SystemSettingInput } from './schemas'
 
 export async function getSettings(signal?: AbortSignal): Promise<SettingsResult> {
@@ -13,7 +13,7 @@ export async function saveDaySetting(key: DaySettingKey, input: DaySettingInput)
   return (await http.put<ApiResource<Setting>>(`/settings/${encodeURIComponent(key)}`, { value: Number(input.value) })).data.data
 }
 
-export async function saveSystemSetting(key: SystemSettingKey, input: SystemSettingInput, expectedValue: string | null): Promise<Setting> {
+export async function saveSystemSetting(key: TextSettingKey, input: SystemSettingInput, expectedValue: string | null): Promise<Setting> {
   const body = systemSettingSchema(key).parse(input)
   await fetchCsrfCookie()
   return (await http.put<ApiResource<Setting>>(`/settings/${encodeURIComponent(key)}`, {

@@ -11,18 +11,25 @@ class SettingService
 {
     public const WRITABLE_SYSTEM_KEYS = ['system.name', 'system.contact_phone', 'system.contact_email'];
 
-    public function updateSystem(string $key, ?string $value, ?string $expectedValue): Setting
+    /** DB-D94: thông tin nhận chuyển khoản; chỉ hướng dẫn, không kết nối ngân hàng/cổng thanh toán. */
+    public const WRITABLE_BANK_KEYS = ['bank.name', 'bank.account_number', 'bank.account_holder'];
+
+    /** Khóa văn bản ghi theo giá trị đã đọc (CAS): thông tin hệ thống (DB-D89) và ngân hàng (DB-D94). */
+    public const WRITABLE_TEXT_KEYS = [...self::WRITABLE_SYSTEM_KEYS, ...self::WRITABLE_BANK_KEYS];
+
+    public function updateText(string $key, ?string $value, ?string $expectedValue): Setting
     {
-        abort_unless(in_array($key, self::WRITABLE_SYSTEM_KEYS, true), 404);
+        abort_unless(in_array($key, self::WRITABLE_TEXT_KEYS, true), 404);
+        $group = self::DEFAULT_SETTINGS[$key]['group'];
 
         try {
-            return DB::transaction(function () use ($key, $value, $expectedValue): Setting {
+            return DB::transaction(function () use ($key, $value, $expectedValue, $group): Setting {
                 $setting = Setting::where('key', $key)->lockForUpdate()->first();
                 abort_unless($setting?->value === $expectedValue, 409, 'Cấu hình đã thay đổi. Vui lòng tải lại trước khi lưu.');
                 if ($setting) {
-                    abort_unless($setting->type->value === 'string' && $setting->group === 'system', 409, 'Kiểu cấu hình không phù hợp. Vui lòng kiểm tra lại cấu hình hệ thống.');
+                    abort_unless($setting->type->value === 'string' && $setting->group === $group, 409, 'Kiểu cấu hình không phù hợp. Vui lòng kiểm tra lại cấu hình hệ thống.');
                 }
-                $setting ??= new Setting(['key' => $key, 'type' => 'string', 'group' => 'system']);
+                $setting ??= new Setting(['key' => $key, 'type' => 'string', 'group' => $group]);
                 $setting->value = $value;
                 $setting->save();
 
@@ -45,6 +52,15 @@ class SettingService
         'invoice.due_days' => ['value' => '5', 'type' => 'integer', 'group' => 'invoice'],
         'contract.expiring_warning_days' => ['value' => '30', 'type' => 'integer', 'group' => 'contract'],
     ];
+
+    /** @return array{name: ?string, account_number: ?string, account_holder: ?string} Chuỗi rỗng cũ được coi như chưa cấu hình. */
+    public function bankDetails(): array
+    {
+        $stored = Setting::query()->whereIn('key', self::WRITABLE_BANK_KEYS)->pluck('value', 'key');
+        $read = fn (string $key) => is_string($stored[$key] ?? null) && trim($stored[$key]) !== '' ? $stored[$key] : null;
+
+        return ['name' => $read('bank.name'), 'account_number' => $read('bank.account_number'), 'account_holder' => $read('bank.account_holder')];
+    }
 
     /** @return Collection<int, Setting> */
     public function all(): Collection

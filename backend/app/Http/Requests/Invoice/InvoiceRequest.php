@@ -23,14 +23,15 @@ class InvoiceRequest extends FormRequest
     public function authorize(): bool
     {
         $action = $this->route()->getActionMethod();
-        if (! Gate::allows(in_array($action, ['index', 'show'], true) ? 'viewAny' : 'create', Invoice::class)) {
+        $read = in_array($action, ['index', 'show', 'paymentInstructions'], true);
+        if (! Gate::allows($read ? 'viewAny' : 'create', Invoice::class)) {
             return false;
         }
         app(InvoiceService::class)->ensureReady();
         if ($this->route('invoice') !== null) {
             $this->currentInvoice = app(InvoiceService::class)->find((int) $this->route('invoice'));
 
-            return Gate::allows($action === 'show' ? 'view' : 'update', $this->currentInvoice);
+            return Gate::allows($read ? 'view' : 'update', $this->currentInvoice);
         }
 
         return true;

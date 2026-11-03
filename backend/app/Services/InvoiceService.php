@@ -38,6 +38,7 @@ class InvoiceService
         private readonly InvoiceCalculationService $calculator,
         private readonly FinalInvoiceCalculationService $finalCalculator,
         private readonly ContractTerminationFeeCalculator $terminationFees,
+        private readonly SettingService $settings,
     ) {}
 
     public function ensureReady(): void
@@ -58,6 +59,29 @@ class InvoiceService
 
         return $this->query()->with(['items' => fn ($q) => $q->orderBy('id'), 'meterReadings.service:id,name,unit',
             'replacements:id,related_invoice_id'])->findOrFail($id);
+    }
+
+    /**
+     * DB-D94: hướng dẫn chuyển khoản cho hóa đơn còn nợ. Chỉ để cư dân tự chuyển; không tạo payment hay kết nối ngân hàng.
+     * Số tiền gợi ý = còn lại theo payment confirmed, nên payment pending không làm giảm.
+     */
+    public function paymentInstructions(Invoice $invoice): array
+    {
+        $payable = in_array($invoice->status, [InvoiceStatus::Issued, InvoiceStatus::PartiallyPaid], true)
+            && $invoice->paid_amount < $invoice->total_amount;
+        $bank = $this->settings->bankDetails();
+        $configured = ! in_array(null, $bank, true);
+        $show = $payable && $configured;
+
+        return [
+            'payable' => $payable,
+            'configured' => $configured,
+            'bank_name' => $show ? $bank['name'] : null,
+            'account_number' => $show ? $bank['account_number'] : null,
+            'account_holder' => $show ? $bank['account_holder'] : null,
+            'amount' => $payable ? Money::remaining($invoice->total_amount, $invoice->paid_amount) : null,
+            'transfer_content' => $payable ? $invoice->invoice_number : null,
+        ];
     }
 
     public function paginate(User $actor, array $filters): LengthAwarePaginator

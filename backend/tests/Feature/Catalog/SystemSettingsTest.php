@@ -98,13 +98,13 @@ class SystemSettingsTest extends TestCase
         $this->assertDatabaseCount('settings', 0);
     }
 
-    public function test_control_fields_and_bank_or_unknown_keys_cannot_be_written(): void
+    public function test_control_fields_and_unknown_keys_cannot_be_written(): void
     {
         $this->login();
         foreach (['key', 'id', 'type', 'group', 'role.admin', 'user_id.*', '*'] as $field) {
             $this->spa('PUT', '/api/v1/settings/system.name', ['value' => 'Name', 'expected_value' => null, $field => 'forbidden'])->assertUnprocessable();
         }
-        foreach (['bank.name', 'bank.account_number', 'bank.account_holder', 'system.unknown'] as $key) {
+        foreach (['bank.unknown', 'bank.swift_code', 'system.unknown'] as $key) {
             $this->spa('PUT', '/api/v1/settings/'.$key, ['value' => 'Name', 'expected_value' => null])->assertNotFound();
         }
         $this->assertDatabaseCount('settings', 0);
@@ -148,7 +148,7 @@ class SystemSettingsTest extends TestCase
         $this->login();
         Setting::create(['key' => 'system.name', 'value' => 'Old', 'type' => 'string', 'group' => 'system']);
         DB::beginTransaction();
-        app(SettingService::class)->updateSystem('system.name', 'New', 'Old');
+        app(SettingService::class)->updateText('system.name', 'New', 'Old');
         DB::rollBack();
         $this->assertDatabaseHas('settings', ['key' => 'system.name', 'value' => 'Old']);
     }

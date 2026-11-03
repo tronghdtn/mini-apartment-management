@@ -28,8 +28,8 @@ class SettingController extends Controller
     {
         Gate::authorize('update', Setting::class);
 
-        $setting = in_array($key, SettingService::WRITABLE_SYSTEM_KEYS, true)
-            ? $this->settings->updateSystem($key, $request->validated('value'), $request->validated('expected_value'))
+        $setting = in_array($key, SettingService::WRITABLE_TEXT_KEYS, true)
+            ? $this->settings->updateText($key, $request->validated('value'), $request->validated('expected_value'))
             : $this->settings->updateDays($key, (int) $request->validated('value'));
 
         return (new SettingResource($setting))
