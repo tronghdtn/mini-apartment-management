@@ -10,6 +10,7 @@ import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatDate, formatDateTime } from '@/lib/format'
 import { getUser } from '@/features/user-management/api'
 import { ActiveContractInfo } from '@/features/user-management/ActiveContractInfo'
+import { UserContractsPanel } from '@/features/user-management/UserContractsPanel'
 import { UserStatusAction } from '@/features/user-management/UserStatusAction'
 import { UserNameForm } from '@/features/user-management/UserNameForm'
 import { managedUserGenderLabel, managedUserRoleLabels } from '@/features/user-management/types'
@@ -90,9 +91,10 @@ export function AdminUserDetailPage() {
           <p className="text-xs text-slate-500">Vai trò cư dân được giữ để xem lịch sử sau thanh lý. Đang thuê được xác định từ hợp đồng đang hiệu lực.</p>
         </section>
       </div>
+      <UserContractsPanel key={user.id} userId={user.id} />
       <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
         <p>Chỉ cho cập nhật họ tên. SĐT, email, mật khẩu, vai trò và dữ liệu pháp lý chưa mở chỉnh sửa tại đây.</p>
-        <p>Lịch sử hợp đồng, hóa đơn, công nợ và sửa chữa của tài khoản chưa được tích hợp.</p>
+        <p>Hóa đơn xem trong chi tiết từng hợp đồng. Tổng hợp công nợ và lịch sử sửa chữa ngay tại hồ sơ tài khoản chưa được tích hợp.</p>
       </section>
       <Modal isOpen={editingName} onClose={closeName} title="Sửa họ tên">
         <UserNameForm user={user} onCancel={closeName} onBusyChange={busy => { savingName.current = busy }} onSaved={updated => {

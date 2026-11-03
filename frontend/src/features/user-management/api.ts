@@ -3,6 +3,7 @@ import type { ApiResource } from '@/types/api'
 import type { ManagedUserStatus, UserDetail, UserPage, UserSummary } from './types'
 import type { StaffUserInput, UserFilters, UserNameInput } from './schemas'
 import { userNameSchema, userStatusSchema } from './schemas'
+import { userContractsQuerySchema, userContractsPageSchema } from './contractHistory'
 
 export async function getUsers(page: number, filters: UserFilters, signal?: AbortSignal): Promise<UserPage> {
   const params = { page, role: filters.role || undefined, status: filters.status || undefined,
@@ -12,6 +13,11 @@ export async function getUsers(page: number, filters: UserFilters, signal?: Abor
 
 export async function getUser(id: string, signal?: AbortSignal): Promise<UserDetail> {
   return (await http.get<ApiResource<UserDetail>>(`/users/${encodeURIComponent(id)}`, { signal })).data.data
+}
+
+export async function getUserContracts(userId: number, page: string, signal?: AbortSignal) {
+  const params = userContractsQuerySchema.parse({ user_id: userId, page })
+  return userContractsPageSchema.parse((await http.get('/contracts', { params, signal })).data)
 }
 
 export async function createStaffUser(input: StaffUserInput): Promise<UserSummary> {
