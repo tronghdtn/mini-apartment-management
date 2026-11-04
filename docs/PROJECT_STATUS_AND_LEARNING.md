@@ -1595,3 +1595,9 @@ Bổ sung cùng ngày (E2E-OBS-01/02): `frontend/src/lib/format.ts` — `formatS
 - `docker-compose.yml` — dịch vụ `app` nhận `MAIL_MAILER=smtp` và gửi tới `mailpit:1025` trong mạng Docker. Mở hộp thư nội bộ qua `localhost:8025`. Khi biến môi trường của Compose thay đổi, tạo lại container app để container mới nhận giá trị.
 
 Câu hỏi bảo vệ: (1) Vì sao bảng cuộn riêng? Để người dùng đọc được từng cột mà phần còn lại của trang vẫn vừa màn hình. (2) React lấy số tiền ở đâu? API chi tiết hóa đơn của Laravel. (3) Thư thử trong Mailpit chứng minh gì? App dev kết nối và gửi được qua SMTP nội bộ, còn luồng xác minh tài khoản cần kiểm riêng.
+
+### 11.77. Vì sao Dashboard dev gửi yêu cầu hai lần
+
+`frontend/src/hooks/useApiResource.ts` chờ đến microtask (việc chạy ngay sau đoạn JavaScript hiện tại) rồi kiểm tra tín hiệu hủy trước khi gửi GET. Khi React StrictMode gắn thử và dọn effect, lượt thử dừng trước khi gọi API. Bốn khối Dashboard dùng chung hook này để tải dữ liệu hoặc tải lại riêng. `frontend/src/features/auth/AuthProvider.tsx` áp dụng cùng cách kiểm tra khi khởi tạo phiên.
+
+Khi demo, mở Network rồi F5 ở `/admin` để đếm một GET xác thực và bảy GET dữ liệu. Bấm Tải lại chỉ số để xem riêng một GET `/api/v1/dashboard`. Mã 499 trong log Nginx nghĩa là phía trình duyệt đã đóng yêu cầu trước khi máy chủ trả xong.

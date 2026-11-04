@@ -13,8 +13,13 @@ export function useApiResource<T>(key: string | null, load: (signal: AbortSignal
   useEffect(() => {
     if (fullKey === null) return
     const abort = new AbortController()
-    load(abort.signal)
-      .then(data => { if (!abort.signal.aborted) setResult({ key: fullKey, data }) })
+    // StrictMode dọn lượt effect thử trước khi microtask này gửi request.
+    void Promise.resolve()
+      .then(async () => {
+        if (abort.signal.aborted) return
+        const data = await load(abort.signal)
+        if (!abort.signal.aborted) setResult({ key: fullKey, data })
+      })
       .catch(failure => {
         if (abort.signal.aborted) return
         setResult({ key: fullKey, error: apiErrorMessage(failure) })

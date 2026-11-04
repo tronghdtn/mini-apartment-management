@@ -53,10 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear])
 
   useEffect(() => {
-    void Promise.resolve().then(refresh)
+    let active = true
+    void Promise.resolve().then(() => { if (active) return refresh() })
     const onFocus = () => { void refresh() }
     window.addEventListener('focus', onFocus)
     return () => {
+      active = false
       invalidatePending()
       window.removeEventListener('focus', onFocus)
     }

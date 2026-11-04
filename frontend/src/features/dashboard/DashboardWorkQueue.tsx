@@ -1,24 +1,15 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Button } from '@/components/ui/Button'
-import { apiErrorMessage } from '@/lib/apiErrors'
+import { useApiResource } from '@/hooks/useApiResource'
 import { dashboardQueues, type DashboardQueue } from './activity'
 import { getDashboardQueue } from './api'
 
 function QueueCard({ queue }: { queue: DashboardQueue }) {
-  const [attempt, setAttempt] = useState(0)
-  const [result, setResult] = useState<{ attempt: number; count?: number; error?: string }>()
-  useEffect(() => {
-    const abort = new AbortController()
-    getDashboardQueue(queue, abort.signal).then(count => { if (!abort.signal.aborted) setResult({ attempt, count }) })
-      .catch(failure => { if (!abort.signal.aborted) setResult({ attempt, error: apiErrorMessage(failure) }) })
-    return () => abort.abort()
-  }, [queue, attempt])
-  const current = result?.attempt === attempt ? result : undefined
+  const { data: count, error, reload } = useApiResource(queue.key, signal => getDashboardQueue(queue, signal))
   return <div className="min-w-0 rounded-xl border border-amber-100 bg-white p-4 space-y-2">
     <h3 className="text-sm font-semibold text-slate-800">{queue.label}</h3>
-    {current?.error ? <div role="alert" className="space-y-2"><p className="text-sm text-rose-700">{current.error}</p><Button size="sm" variant="outline" onClick={() => setAttempt(value => value + 1)}>Thử lại {queue.label.toLowerCase()}</Button></div>
-      : current?.count === undefined ? <p role="status" className="text-sm text-slate-500">Đang tải…</p> : <p className="text-2xl font-bold text-slate-900 tabular-nums">{current.count}</p>}
+    {error ? <div role="alert" className="space-y-2"><p className="text-sm text-rose-700">{error}</p><Button size="sm" variant="outline" onClick={reload}>Thử lại {queue.label.toLowerCase()}</Button></div>
+      : count === undefined ? <p role="status" className="text-sm text-slate-500">Đang tải…</p> : <p className="text-2xl font-bold text-slate-900 tabular-nums">{count}</p>}
     <Link to={queue.href} className="inline-block text-sm font-semibold text-sky-700 hover:underline">Mở danh sách</Link>
   </div>
 }

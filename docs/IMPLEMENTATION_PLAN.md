@@ -1413,5 +1413,11 @@ Hậu kiểm runDASHB-de87686235: checksum8bảng nguồn buildings/rooms/contra
 - [x] Hóa đơn/biên nhận trên màn 375 px — tái hiện bảng hóa đơn làm trang tràn ngang, sửa vùng cuộn trong `InvoicePrint.tsx` (`f13156e`). Trình duyệt kiểm lại trên DB test bằng dữ liệu từ API, bảng giữ đủ ba dòng và tổng tiền; biên nhận vừa màn hình. Đã dọn fixture và bảng tạm, kiểm FK=1, tài khoản test bị từ chối đọc dev (1142), tệp private có sẵn giữ nguyên và cặp 18082 đã dừng.
 - [ ] Lưu PDF bằng hộp thoại in — trình duyệt kiểm thử chưa mở được hộp thoại in hệ thống để lưu và đối chiếu tệp.
 - [ ] Lỗi mạng toàn hành trình 5 vai trò — ca ngắt kết nối đơn lẻ ở danh sách phòng chưa bao phủ mất mạng hệ điều hành, các màn cần đăng nhập và thao tác ghi.
-- [ ] Admin thật trên dev — trình duyệt mở `/admin` chuyển đúng sang `/login` khi chưa có phiên. Chưa kiểm các trang sau đăng nhập vì tab chưa có phiên Admin.
+- [x] Kiểm nhanh bằng phiên Admin thật trên dev — Dashboard hiện các chỉ số, bảng tòa nhà và lịch hẹn; liên kết mở được danh sách thanh toán đang chờ và chi tiết tòa nhà. Lượt kiểm chỉ đọc, chưa bao phủ thao tác ghi.
 - Frontend chạy lại `npm test`: 166/166 đạt; build đạt, lint 0 lỗi và 9 cảnh báo cũ. Kết quả full PHPUnit ở §12.68 thuộc lượt trước. Bản đồ học tập §11.76.
+
+### 12.70. Giảm request lặp khi tải Dashboard dev (04/11/2026)
+
+React StrictMode chạy thử effect khi gắn component. Log Nginx ở một lượt F5 trước sửa ghi 2 request `/auth/me` và 14 request dữ liệu Dashboard, trong đó 7 request đã gửi bị trình duyệt hủy (499). Các panel Dashboard dùng chung `useApiResource` và kiểm tra tín hiệu hủy trước khi gửi GET. `AuthProvider` cũng bỏ lượt khởi tạo đã bị dọn.
+
+Hai lượt F5 sau sửa ghi đúng 1 request `/auth/me` và 7 request dữ liệu mỗi lượt, tất cả 200. Nút Tải lại chỉ số gửi một GET và hiện lại dữ liệu. Hai lượt đo trước sửa là 2,7/4,2 giây, sau sửa là 5,0/1,3 giây. Thời gian còn dao động, chưa kết luận cải thiện ổn định. Frontend 166 test, build và lint đạt (9 cảnh báo cũ). Chỉ sửa frontend.
