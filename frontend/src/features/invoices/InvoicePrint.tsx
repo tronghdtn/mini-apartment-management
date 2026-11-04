@@ -33,7 +33,7 @@ export function InvoicePrint({ admin = false }: { admin?: boolean }) {
           <PrintField label="Ngày phát hành">{data.issued_at ? formatDateTime(data.issued_at) : '—'}</PrintField>
           <PrintField label="Hạn thanh toán">{data.due_date ? formatDate(data.due_date) : '—'}</PrintField>
         </dl>
-        <table className="w-full border-collapse text-left text-sm">
+        <div className="overflow-x-auto print:overflow-visible"><table className="w-full border-collapse text-left text-sm">
           <thead><tr className="border-y border-slate-400 bg-slate-100 text-xs">{['#', 'Khoản thu', 'Số lượng', 'Đơn giá', 'Thành tiền'].map(label => <th key={label} className={`px-2 py-2 ${['Số lượng', 'Đơn giá', 'Thành tiền'].includes(label) ? 'text-right' : ''}`}>{label}</th>)}</tr></thead>
           <tbody>{data.items?.map((item, index) => <tr key={item.id} className="break-inside-avoid border-b border-slate-200 align-top">
             <td className="px-2 py-2">{index + 1}</td>
@@ -44,7 +44,7 @@ export function InvoicePrint({ admin = false }: { admin?: boolean }) {
             <td className="whitespace-nowrap px-2 py-2 text-right">{formatVND(item.unit_price)}</td>
             <td className="whitespace-nowrap px-2 py-2 text-right font-semibold">{formatVND(item.amount)}</td>
           </tr>)}</tbody>
-        </table>
+        </table></div>
         {!!data.meter_readings?.length && <section className="space-y-1"><h2 className="font-bold">{data.type === 'final' ? 'Mốc điện nước đưa vào tất toán' : 'Chỉ số điện nước kỳ tiêu thụ trước'}</h2>
           {data.meter_readings.map(reading => <p key={reading.id} className="text-xs text-slate-600">{reading.service} kỳ {period(reading.period)}: {reading.previous_reading} → {reading.current_reading} = {reading.consumption} × {formatVND(reading.unit_price)} = {formatVND(reading.amount)}</p>)}</section>}
         <dl className="ml-auto w-full max-w-xs space-y-1 border-t-2 border-slate-800 pt-3">
