@@ -1421,3 +1421,11 @@ Hậu kiểm runDASHB-de87686235: checksum8bảng nguồn buildings/rooms/contra
 React StrictMode chạy thử effect khi gắn component. Log Nginx ở một lượt F5 trước sửa ghi 2 request `/auth/me` và 14 request dữ liệu Dashboard, trong đó 7 request đã gửi bị trình duyệt hủy (499). Các panel Dashboard dùng chung `useApiResource` và kiểm tra tín hiệu hủy trước khi gửi GET. `AuthProvider` cũng bỏ lượt khởi tạo đã bị dọn.
 
 Hai lượt F5 sau sửa ghi đúng 1 request `/auth/me` và 7 request dữ liệu mỗi lượt, tất cả 200. Nút Tải lại chỉ số gửi một GET và hiện lại dữ liệu. Hai lượt đo trước sửa là 2,7/4,2 giây, sau sửa là 5,0/1,3 giây. Thời gian còn dao động, chưa kết luận cải thiện ổn định. Frontend 166 test, build và lint đạt (9 cảnh báo cũ). Chỉ sửa frontend.
+
+### 12.71. Hủy GET trước khi gửi ở các màn Admin (04/11/2026)
+
+Trên dev 8080 với phiên Admin thật, một vòng qua Hóa đơn, Phòng, Hợp đồng và Tài khoản ghi 10 GET danh sách trước sửa (5 mã 499, 5 mã 200). Sau sửa ghi 5 GET, đều 200. Màn Phòng cần hai GET để lấy phòng và lựa chọn tòa nhà. Bộ lọc hóa đơn Bản nháp gửi một GET đúng tham số, nhận 200 và hiện bảng.
+
+`frontend/src/lib/http.ts` cho Axios chờ một microtask khi GET có tín hiệu hủy. Nếu React đã dọn effect thử, Axios dừng trước khi gửi request. Kiểm tra qua bộ gửi thử của Axios xác nhận GET đã hủy không tới bộ gửi, GET đang hoạt động gửi bình thường và POST vẫn gửi ngay. Frontend 166 test, build và lint đạt (9 cảnh báo cũ).
+
+Một vòng đo trước sửa mất 0,37–0,70 giây mỗi màn, vòng ổn định sau sửa mất 0,48–0,86 giây. Sau khi Vite nạp mã mới, Hóa đơn vẫn đang tải ở mốc 3,86 giây. Kết quả xác nhận giảm request lặp. Cần đo thêm để tách nguyên nhân của các lượt chậm bất thường. Môi trường đo đang dùng OPcache 60 giây và Vite polling 1 giây từ cấu hình cục bộ có sẵn.

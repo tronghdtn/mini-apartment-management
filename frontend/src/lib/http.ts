@@ -16,6 +16,12 @@ export const http = axios.create({
   },
 })
 
+// Cho phép cleanup của React hủy lượt GET thử trước khi Axios gửi qua mạng.
+http.interceptors.request.use(config => config, undefined, {
+  synchronous: false,
+  runWhen: config => config.method === 'get' && config.signal !== undefined,
+})
+
 /**
  * Gọi trước khi đăng nhập để Laravel đặt cookie XSRF-TOKEN.
  * Route này nằm ngoài prefix /api/v1.
