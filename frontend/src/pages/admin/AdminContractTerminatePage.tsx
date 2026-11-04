@@ -15,7 +15,7 @@ import { ContractSettlementPanel } from '@/features/contracts/ContractSettlement
 import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
 import type { Invoice } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
-import { apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
+import { apiConflictMessage, apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
 import { formatDate, formatDateTime, formatVND } from '@/lib/format'
 
 type StepState = 'done' | 'current' | 'pending'
@@ -139,6 +139,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
       setResult({ key, revision: contract.lifecycle_revision ?? '', data })
     } catch (failure) {
       applyApiErrors(failure, setError, ['actual_end_date', 'closure_note', 'electricity_reading', 'water_reading'])
+      if (isAxiosError(failure) && failure.response?.status === 409) setError('root', { message: apiConflictMessage(failure) })
       if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
     } finally { flight.current = false; setBusy(false) }
   }
@@ -207,6 +208,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
       const fields = ['damages', 'waiver_code', 'waiver_note', 'waiver_evidence',
         ...input.damages.flatMap((_, index) => ['description', 'reason', 'basis', 'amount'].map(field => `damages.${index}.${field}`))]
       applyApiErrors(failure, setError, fields)
+      if (isAxiosError(failure) && failure.response?.status === 409) setError('root', { message: apiConflictMessage(failure) })
       if (isAxiosError(failure) && failure.response?.status === 422) {
         const serverErrors = failure.response.data?.errors
         if (typeof serverErrors?.damage_photos?.[0] === 'string') {
@@ -239,7 +241,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
         ? 'Hóa đơn 0đ đã tất toán; không tạo giao dịch thu tiền.'
         : 'Đã phát hành hóa đơn tất toán. Khoản mục và tổng tiền đã được khóa.')
     } catch (failure) {
-      setMessage(apiErrorMessage(failure) + (isAxiosError(failure) && failure.response?.status === 409 ? ' Tải lại dữ liệu trước khi thử lại.' : ''))
+      setMessage(apiConflictMessage(failure))
       if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
     } finally { flight.current = false; setBusy(false) }
   }
@@ -324,7 +326,6 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
     </div>}
     {message && !invoice && <p role="status" className="text-sm text-teal-800">{message}</p>}
     {!invoice && <Button type="button" variant="outline" disabled={busy} onClick={onReload}>Tải lại dữ liệu bàn giao</Button>}
-    {errors.root && <p role="alert" className="text-sm text-rose-700">{errors.root.message}</p>}
   </section>
 }
 

@@ -2,7 +2,7 @@ import { useParams } from 'react-router'
 import { PrintField, PrintNotice, PrintSheet } from '@/components/ui/PrintSheet'
 import { useAuth } from '@/features/auth/useAuth'
 import { useApiResource } from '@/hooks/useApiResource'
-import { formatDate, formatVND } from '@/lib/format'
+import { formatDate, formatServicePeriod, formatVND } from '@/lib/format'
 import { getContract } from './api'
 import { contractStatusLabels, depositStatusLabels } from './types'
 import type { Contract } from './types'
@@ -44,14 +44,14 @@ export function ContractPrint() {
           {data.inspection_result && <PrintField label="Kiểm tra phòng khi bàn giao">{data.inspection_result === 'no_damage' ? 'Không hư hỏng' : 'Có hư hỏng'}</PrintField>}
         </dl>
         {!!data.contract_services?.length && <section className="space-y-2"><h2 className="font-bold">Dịch vụ đăng ký</h2>
-          <table className="w-full border-collapse text-left text-sm"><thead><tr className="border-y border-slate-400 bg-slate-100 text-xs">{['Dịch vụ', 'Cách tính', 'Số lượng', 'Đơn giá', 'Hiệu lực'].map(label => <th key={label} className="px-2 py-2">{label}</th>)}</tr></thead>
+          <div className="overflow-x-auto print:overflow-visible"><table className="w-full border-collapse text-left text-sm"><thead><tr className="border-y border-slate-400 bg-slate-100 text-xs">{['Dịch vụ', 'Cách tính', 'Số lượng', 'Đơn giá', 'Hiệu lực'].map(label => <th key={label} className="px-2 py-2">{label}</th>)}</tr></thead>
             <tbody>{data.contract_services.map(line => <tr key={line.id} className="break-inside-avoid border-b border-slate-200">
               <td className="px-2 py-2 font-semibold">{line.service.name}</td>
               <td className="px-2 py-2">{billingLabels[line.service.billing_type] ?? line.service.billing_type}</td>
               <td className="px-2 py-2">{line.service.billing_type === 'metered' ? 'Theo số đo' : [line.quantity, line.service.unit].filter(Boolean).join(' ')}</td>
               <td className="whitespace-nowrap px-2 py-2">{line.unit_price === null ? (line.service.billing_type === 'metered' ? 'Theo bảng giá điện nước' : '—') : formatVND(line.unit_price)}</td>
-              <td className="whitespace-nowrap px-2 py-2">{formatDate(line.start_date)} – {line.end_date ? formatDate(line.end_date) : 'Chưa kết thúc'}</td>
-            </tr>)}</tbody></table></section>}
+              <td className="min-w-[7rem] px-2 py-2">{formatServicePeriod(line.start_date, line.end_date)}</td>
+            </tr>)}</tbody></table></div></section>}
         <section className="space-y-2"><h2 className="font-bold">Điều khoản chấm dứt trước hạn đã lưu</h2><p>{feeTerm(data)}</p>
           {data.early_termination_waiver_conditions?.length ? <ul className="list-disc space-y-1 pl-5">{data.early_termination_waiver_conditions.map(condition => <li key={condition.code} className="whitespace-pre-wrap break-words">{condition.description}</li>)}</ul> : <p className="text-slate-500">Không có điều kiện miễn phí được lưu.</p>}</section>
         {data.inspection_note && <p className="whitespace-pre-wrap break-words"><strong>Ghi chú kiểm tra:</strong> {data.inspection_note}</p>}

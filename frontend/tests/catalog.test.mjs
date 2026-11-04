@@ -4,7 +4,7 @@ import { AxiosError } from 'axios'
 import { buildingSchema } from '../src/features/buildings/schemas.ts'
 import { roomSchema } from '../src/features/room-management/schemas.ts'
 import { amenitySchema } from '../src/features/amenities/schemas.ts'
-import { apiErrorMessage, applyApiErrors } from '../src/lib/apiErrors.ts'
+import { apiConflictMessage, apiErrorMessage, applyApiErrors } from '../src/lib/apiErrors.ts'
 
 const building = { name: ' Tòa Bình An ', address: ' 12 Nguyễn Trãi ', total_floors: 5, latitude: '', longitude: '', description: '' }
 test('building accepts confirmed fields and trims required values', () => {
@@ -65,4 +65,14 @@ test('TEXT descriptions count UTF-8 bytes and reject SQL overflow before submit'
   for(const description of ['a'.repeat(65536),'ế'.repeat(21846)])assert.equal(schema.safeParse({...base,description}).success,false)
   for(const description of ['a'.repeat(65535),'ế'.repeat(21845)])assert.equal(schema.safeParse({...base,description}).success,true)
  }
+})
+test('409 conflict message shows the controlled Backend reason but never SQL, long text or other statuses', () => {
+  const failure = (status, message) => new AxiosError('x', undefined, undefined, undefined, { status, data: { message }, headers: {} })
+  assert.equal(apiConflictMessage(failure(409, 'Hợp đồng vừa thay đổi. Vui lòng tải lại.')), 'Hợp đồng vừa thay đổi. Vui lòng tải lại.')
+  assert.equal(apiConflictMessage(failure(409, 'Hợp đồng đã có hóa đơn tất toán chưa hủy.')), 'Hợp đồng đã có hóa đơn tất toán chưa hủy. Tải lại dữ liệu trước khi thử lại.')
+  for (const message of ['SQLSTATE[23000]', 'SELECT password FROM users', 'a'.repeat(301), '', '  ', 42, undefined]) {
+    assert.equal(apiConflictMessage(failure(409, message)), apiErrorMessage(failure(409, message)))
+  }
+  for (const status of [403, 422, 500]) assert.equal(apiConflictMessage(failure(status, 'Bí mật')).includes('Bí mật'), false)
+  assert.ok(apiConflictMessage(new Error('private')).includes('kết nối'))
 })

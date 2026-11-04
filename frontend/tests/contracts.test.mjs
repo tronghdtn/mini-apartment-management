@@ -113,3 +113,11 @@ test('dịch vụ inactive cho giữ/giảm, chặn đăng ký mới hoặc tăn
   for (const quantity of [1, 3, 99999999]) assert.equal(inactiveServiceQuantityError('active', '2.00', quantity), undefined)
   assert.equal(inactiveServiceQuantityError('active', undefined, 1), undefined)
 })
+
+test('service period never prints a reversed range for same-day handover', async () => {
+  const { formatServicePeriod } = await import('../src/lib/format.ts')
+  assert.equal(formatServicePeriod('2026-11-04', null), '04/11/2026 – Chưa kết thúc')
+  assert.equal(formatServicePeriod('2026-11-04', '2027-11-03'), '04/11/2026 – 03/11/2027')
+  assert.equal(formatServicePeriod('2026-11-04', '2026-11-04', '→'), '04/11/2026 → 04/11/2026')
+  assert.equal(formatServicePeriod('2026-11-04', '2026-11-03'), 'Không phát sinh ngày sử dụng (bàn giao 04/11/2026)')
+})

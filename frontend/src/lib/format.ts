@@ -17,6 +17,16 @@ export function formatDate(dateStr: string): string {
   return dateStr
 }
 
+/**
+ * Khoảng hiệu lực dòng dịch vụ hợp đồng (`end_date` là ngày cuối được tính, có thể null).
+ * Nhận và trả cùng ngày cho `end_date` trước `start_date`: 0 ngày sử dụng, không in khoảng ngược.
+ */
+export function formatServicePeriod(start: string, end: string | null, separator = '–'): string {
+  if (!end) return `${formatDate(start)} ${separator} Chưa kết thúc`
+  if (end.slice(0, 10) < start.slice(0, 10)) return `Không phát sinh ngày sử dụng (bàn giao ${formatDate(start)})`
+  return `${formatDate(start)} ${separator} ${formatDate(end)}`
+}
+
 const dateTimeFormatter = new Intl.DateTimeFormat('en-GB', {
   timeZone: BUSINESS_TIME_ZONE,
   hour: '2-digit',
