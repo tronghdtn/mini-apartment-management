@@ -639,3 +639,11 @@ Một hành trình liên tục qua UI thật trên cặp 18082 (DB `mini_apartme
 | E2E-OBS-02 | — | Khi lập tất toán bị 409, UI hiện thông điệp chung "Dữ liệu bị xung đột…" thay vì câu cụ thể của Backend. **Đã sửa 04/11:** `apiConflictMessage` chỉ dùng ở trang thanh lý (bước 2 xem trước, bước 3 lập nháp, phát hành), lấy `message` của 409 (≤300 ký tự, không giống SQL), thêm hướng dẫn tải lại nếu câu chưa có; `apiErrorMessage` chung không đổi. Bỏ dòng lỗi gốc lặp lần hai ở bước 3 (có từ 3d35433). Browser DB test: sửa hợp đồng từ phiên khác → bước 2 và bước 3 đều hiện một dòng "Hợp đồng vừa thay đổi. Vui lòng tải lại."; tải lại → lập nháp thành công. PASS |
 
 Chưa kiểm trong lượt này: email (đã kiểm riêng §12.66), mất mạng/503 trên browser, nút Back/Forward, mobile cho toàn hành trình (các trang đã kiểm mobile riêng ở từng lát), Admin thật trên dev. Cleanup: fixture down so sánh baseline mọi bảng `diff=[]`, 24 bảng/21 migration, FK=1, file private/public mới = 0; cặp 18082 stopped, tab đóng.
+
+### E2E-ACC-04 — nghiệm thu bổ sung (04/11/2026)
+
+| ID | Môi trường | Kết quả quan sát |
+| --- | --- | --- |
+| E2E-04-MAIL | Docker dev 8080, Mailpit 8025 | Sau khi áp dụng cấu hình Compose, Laravel dùng `smtp/mailpit:1025`. Một thư thử nội bộ gửi tới địa chỉ tổng hợp xuất hiện trong API và giao diện Mailpit. Dev health 200, khách gọi `/api/v1/auth/me` nhận 401. Chưa gửi hoặc mở liên kết của tài khoản thật. |
+| E2E-04-NET | Browser Public, proxy GET cổng 18083 nối DB test cổng 18082 | Chọn giá tăng dần nhận 503, trang báo lỗi và giữ `sort=price_asc`. Chọn phòng dưới 3 triệu gặp kết nối bị ngắt, trang báo lỗi và giữ `max_price=2999999`. Nút Thử lại ở cả hai ca lấy 200. Quay lại/Tiến tới khôi phục đúng hai bộ lọc. Đã dừng proxy và đóng tab. Mô phỏng ngắt một request, chưa thử mất mạng toàn máy hoặc thao tác ghi. |
+| E2E-04-PRINT | Browser Admin test, 18082, khổ 375 px | Hóa đơn: trước sửa chiều rộng vùng xem/nội dung là 367/394 px, sau sửa là 367/367 px; bảng cuộn trong khung 286 px với nội dung 354 px, đủ ba dòng và tổng 3.778.475 ₫. Biên nhận có mã và số tiền, không tràn ngang (375/375 px). Chưa mở được hộp thoại in để lưu PDF. |

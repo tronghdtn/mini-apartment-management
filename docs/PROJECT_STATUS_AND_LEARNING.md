@@ -1588,3 +1588,10 @@ Câu hỏi bảo vệ: (1) Vì sao GET CSRF cũng chậm cùng lúc với POST t
 Câu hỏi bảo vệ: (1) Revision dùng để làm gì? Phát hiện dữ liệu đã đổi giữa lúc đọc và lúc ghi (khóa lạc quan). (2) Vì sao hash phải không phụ thuộc thứ tự? Cùng dữ liệu phải cho cùng mã, nếu không sẽ báo xung đột giả. (3) Vì sao test cũ không bắt được? Dữ liệu test tạo dịch vụ theo thứ tự trùng với chỉ mục; nghiệm thu UI mới tái hiện thứ tự thật.
 
 Bổ sung cùng ngày (E2E-OBS-01/02): `frontend/src/lib/format.ts` — `formatServicePeriod()` không in khoảng ngày ngược khi nhận–trả cùng ngày; `frontend/src/lib/apiErrors.ts` — `apiConflictMessage()` cho trang thanh lý hiện lý do 409 do Backend viết (vẫn chặn chuỗi giống SQL), còn `apiErrorMessage()` giữ thông báo chung cho mọi màn khác. Câu hỏi bảo vệ: vì sao không đổi luôn `apiErrorMessage()`? Vì test hiện có yêu cầu không lộ thông điệp server ở mọi status; chỉ màn nhiều điều kiện 409 mới cần lý do cụ thể.
+
+### 11.76. Xem hóa đơn trên màn nhỏ và gửi thư trên Docker dev
+
+- `frontend/src/features/invoices/InvoicePrint.tsx` — `InvoicePrint()` tải chi tiết hóa đơn qua `getInvoice()`. Bọc bảng khoản thu bằng `overflow-x-auto print:overflow-visible` để màn hình hẹp chỉ cuộn bên trong bảng, còn chế độ in không bị giới hạn bởi vùng cuộn. `PrintSheet()` trong `frontend/src/components/ui/PrintSheet.tsx` gọi `window.print()` để trình duyệt mở chức năng in.
+- `docker-compose.yml` — dịch vụ `app` nhận `MAIL_MAILER=smtp` và gửi tới `mailpit:1025` trong mạng Docker. Mở hộp thư nội bộ qua `localhost:8025`. Khi biến môi trường của Compose thay đổi, tạo lại container app để container mới nhận giá trị.
+
+Câu hỏi bảo vệ: (1) Vì sao bảng cuộn riêng? Để người dùng đọc được từng cột mà phần còn lại của trang vẫn vừa màn hình. (2) React lấy số tiền ở đâu? API chi tiết hóa đơn của Laravel. (3) Thư thử trong Mailpit chứng minh gì? App dev kết nối và gửi được qua SMTP nội bộ, còn luồng xác minh tài khoản cần kiểm riêng.
