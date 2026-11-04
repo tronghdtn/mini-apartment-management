@@ -1586,3 +1586,5 @@ Câu hỏi bảo vệ: (1) Vì sao GET CSRF cũng chậm cùng lúc với POST t
 | `backend/tests/Feature/Contracts/ContractRevisionOrderTest.php` | Đảo thứ tự quan hệ, revision phải giữ nguyên. |
 
 Câu hỏi bảo vệ: (1) Revision dùng để làm gì? Phát hiện dữ liệu đã đổi giữa lúc đọc và lúc ghi (khóa lạc quan). (2) Vì sao hash phải không phụ thuộc thứ tự? Cùng dữ liệu phải cho cùng mã, nếu không sẽ báo xung đột giả. (3) Vì sao test cũ không bắt được? Dữ liệu test tạo dịch vụ theo thứ tự trùng với chỉ mục; nghiệm thu UI mới tái hiện thứ tự thật.
+
+Bổ sung cùng ngày (E2E-OBS-01/02): `frontend/src/lib/format.ts` — `formatServicePeriod()` không in khoảng ngày ngược khi nhận–trả cùng ngày; `frontend/src/lib/apiErrors.ts` — `apiConflictMessage()` cho trang thanh lý hiện lý do 409 do Backend viết (vẫn chặn chuỗi giống SQL), còn `apiErrorMessage()` giữ thông báo chung cho mọi màn khác. Câu hỏi bảo vệ: vì sao không đổi luôn `apiErrorMessage()`? Vì test hiện có yêu cầu không lộ thông điệp server ở mọi status; chỉ màn nhiều điều kiện 409 mới cần lý do cụ thể.
