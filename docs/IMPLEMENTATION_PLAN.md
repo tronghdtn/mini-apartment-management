@@ -1437,3 +1437,11 @@ Một vòng đo trước sửa mất 0,37–0,70 giây mỗi màn, vòng ổn đ
 Cùng một phiên Admin, trước khi chuyển cấu hình ba lượt F5 mất 2,53/1,08/1,97 giây. Sau khi chuyển, lượt đầu sau khởi động lại mất 6,56 giây, năm lượt kế tiếp mất 0,73–1,11 giây. Mở Hóa đơn mất 0,36 giây và hiện ba dòng. Các số đo phản ánh hai cấu hình tổng thể trên máy hiện tại, chưa tách mức cải thiện riêng của PHP và frontend.
 
 Build trong container đạt và HTML trả tệp JS đã build. Health và danh sách phòng trả 200, Sanctum cấp cookie 204, gọi `/auth/me` chưa đăng nhập trả 401. Frontend 166 test đạt. Đã kiểm cấu hình Compose gốc để quay lại chế độ phát triển, chưa chạy lại các container theo cấu hình gốc trong lượt này.
+
+### 12.73. Bộ lọc phòng công khai và dữ liệu nghiệm thu local (05/11/2026)
+
+Khách chọn khoảng giá, diện tích và sức chứa từ danh sách. Trang chủ và danh sách dùng chung các khoảng giá. Bộ lọc vẫn lưu giới hạn trên URL và gửi các tham số API hiện có, kể cả liên kết cũ có khoảng riêng. Trang chủ lấy tối đa sáu phòng trống theo giá tăng dần, với liên kết mở danh sách đầy đủ.
+
+Theo yêu cầu chủ dự án, bổ sung 13 phòng demo có mã `DEMO-01` đến `DEMO-13` vào ba tòa demo trên DB local và đổi hai ảnh bìa demo bị trùng nội dung. Dữ liệu demo hiện có 18 phòng công khai, mỗi phòng có một ảnh bìa khác nội dung. Toàn bộ 18 URL ảnh trả 200 JPEG. Ảnh minh họa lấy từ [Pexels](https://www.pexels.com/legal-pages/license), tệp nguồn và script bổ sung lưu riêng trong `backend/storage/app/demo-public-photos/` của máy local.
+
+Đã kiểm trên trình duyệt: trang chủ hiện sáu thẻ và đủ ảnh; phối hợp ba khoảng trả đúng hai phòng; F5 giữ lựa chọn; xóa lọc trả 18 phòng; liên kết giá cũ vẫn hoạt động. Build đạt, 166 test frontend đạt, lint 0 lỗi và 9 cảnh báo cũ.

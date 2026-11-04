@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { RoomCard } from '@/features/rooms/RoomCard'
 import { HomeInformationSections } from '@/features/rooms/HomeInformationSections'
 import { getPublicRoomOptions, getPublicRooms } from '@/features/rooms/api'
+import { roomPriceRanges } from '@/features/rooms/ranges'
 import { emptyRoomFilters, roomSearch } from '@/features/rooms/schemas'
 import type { PublicRoomOptions, PublicRoomPage } from '@/features/rooms/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
@@ -20,7 +21,7 @@ export function HomePage() {
   const [revision, setRevision] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
-    getPublicRooms(1, emptyRoomFilters, controller.signal)
+    getPublicRooms(1, { ...emptyRoomFilters, sort: 'price_asc' }, controller.signal)
       .then(data => { if (!controller.signal.aborted) setResult(data) })
       .catch(failure => { if (!controller.signal.aborted) setError(apiErrorMessage(failure)) })
     getPublicRoomOptions(controller.signal)
@@ -28,6 +29,17 @@ export function HomePage() {
       .catch(failure => { if (!controller.signal.aborted) setOptionsError(apiErrorMessage(failure)) })
     return () => controller.abort()
   }, [revision])
+  const searchRooms = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const range = roomPriceRanges.find(([name]) => name === selectedPrice)
+    const search = roomSearch({
+      ...emptyRoomFilters,
+      building_id: selectedBuilding,
+      min_price: range?.[1] ?? '',
+      max_price: range?.[2] ?? '',
+    })
+    navigate({ pathname: '/rooms', search: search.toString() })
+  }
   const reload = () => { setError(''); setOptionsError(''); setResult(null); setOptions(null); setRevision(value => value + 1) }
   return <div className="space-y-16 sm:space-y-24 pb-16">
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10">
@@ -40,7 +52,7 @@ export function HomePage() {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">Tìm Không Gian Sống <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-sky-200 to-teal-300">Phù Hợp Với Bạn</span>
           </h1>
           <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed">Xem thông tin phòng đang cho thuê, giá niêm yết và tiện nghi được cập nhật từ hệ thống quản lý.</p>
-          <form onSubmit={event => { event.preventDefault(); const prices = selectedPrice === 'under-3.5m' ? { max_price: '3499999' } : selectedPrice === '3.5m-4.5m' ? { min_price: '3500000', max_price: '4500000' } : selectedPrice === 'above-4.5m' ? { min_price: '4500001' } : {}; navigate(`/rooms?${roomSearch({ ...emptyRoomFilters, ...prices, building_id: selectedBuilding })}`) }} className="mt-8 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-white/20 text-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-xl">
+          <form onSubmit={searchRooms} className="mt-8 p-3 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-white/20 text-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 shadow-xl">
             <div>
               <label htmlFor="home-building" className="block text-sm font-semibold mb-1">Tòa nhà</label>
               <select id="home-building" value={selectedBuilding} disabled={!options} onChange={event => setSelectedBuilding(event.target.value)} className="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
@@ -54,9 +66,7 @@ export function HomePage() {
               <label htmlFor="home-price" className="block text-sm font-semibold mb-1">Ngân sách thuê</label>
               <select id="home-price" value={selectedPrice} onChange={event => setSelectedPrice(event.target.value)} className="w-full border border-slate-200 rounded-xl p-2.5 text-sm">
                 <option value="">Tất cả mức giá</option>
-                <option value="under-3.5m">Dưới 3,5 triệu</option>
-                <option value="3.5m-4.5m">3,5–4,5 triệu</option>
-                <option value="above-4.5m">Trên 4,5 triệu</option>
+                {roomPriceRanges.map(([name]) => <option key={name} value={name}>{name}</option>)}
               </select>
             </div>
             <Button type="submit" className="self-end" icon={<Search aria-hidden="true" className="w-4 h-4" />}>Tìm phòng ngay</Button>
@@ -72,8 +82,8 @@ export function HomePage() {
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-extrabold text-slate-900">Phòng đang cho thuê</h2>
-          <p className="text-sm text-slate-500 mt-1">Khám phá các phòng đang công khai trên hệ thống.</p>
+          <h2 className="text-2xl font-extrabold text-slate-900">Phòng trống giá tốt</h2>
+          <p className="text-sm text-slate-500 mt-1">Tối đa 6 phòng đang cho thuê, sắp theo giá từ thấp đến cao.</p>
         </div>
         <Link to="/rooms" className="inline-flex items-center gap-2 text-sky-700 text-sm font-semibold">Xem tất cả{result ? ` (${result.meta.total} phòng)` : ''}<ArrowRight aria-hidden="true" className="w-4 h-4" />
         </Link>
@@ -83,7 +93,7 @@ export function HomePage() {
           {error}
         </p>
         <Button variant="outline" onClick={reload}>Thử lại</Button>
-      </div> : !result ? <p role="status" className="text-slate-500 py-8">Đang tải phòng cho thuê…</p> : result.data.length ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      </div> : !result ? <p role="status" className="text-slate-500 py-8">Đang tải phòng cho thuê…</p> : result.data.length ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {result.data.slice(0, 6).map(room => <RoomCard key={room.id} room={room} />)}
       </div> : <div className="rounded-3xl bg-white border border-slate-200 p-10 text-center text-slate-500">
         <Building2 aria-hidden="true" className="w-10 h-10 mx-auto mb-3 text-slate-400" />
