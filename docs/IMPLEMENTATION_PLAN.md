@@ -1429,3 +1429,11 @@ Trên dev 8080 với phiên Admin thật, một vòng qua Hóa đơn, Phòng, H�
 `frontend/src/lib/http.ts` cho Axios chờ một microtask khi GET có tín hiệu hủy. Nếu React đã dọn effect thử, Axios dừng trước khi gửi request. Kiểm tra qua bộ gửi thử của Axios xác nhận GET đã hủy không tới bộ gửi, GET đang hoạt động gửi bình thường và POST vẫn gửi ngay. Frontend 166 test, build và lint đạt (9 cảnh báo cũ).
 
 Một vòng đo trước sửa mất 0,37–0,70 giây mỗi màn, vòng ổn định sau sửa mất 0,48–0,86 giây. Sau khi Vite nạp mã mới, Hóa đơn vẫn đang tải ở mốc 3,86 giây. Kết quả xác nhận giảm request lặp. Cần đo thêm để tách nguyên nhân của các lượt chậm bất thường. Môi trường đo đang dùng OPcache 60 giây và Vite polling 1 giây từ cấu hình cục bộ có sẵn.
+
+### 12.72. Chạy bản build để nghiệm thu trên Docker local (04/11/2026)
+
+`docker-compose.demo.yml` chọn bản React đã build và giữ mã PHP trong OPcache (bộ nhớ đệm mã PHP) đến khi khởi động lại app. Áp dụng trên dev 8080 với `RUN_MIGRATIONS=false`, tạo lại app và frontend rồi khởi động lại Nginx. Giữ phiên Admin và dữ liệu dev. README có cách bật, nạp code mới và trở lại chế độ phát triển.
+
+Cùng một phiên Admin, trước khi chuyển cấu hình ba lượt F5 mất 2,53/1,08/1,97 giây. Sau khi chuyển, lượt đầu sau khởi động lại mất 6,56 giây, năm lượt kế tiếp mất 0,73–1,11 giây. Mở Hóa đơn mất 0,36 giây và hiện ba dòng. Các số đo phản ánh hai cấu hình tổng thể trên máy hiện tại, chưa tách mức cải thiện riêng của PHP và frontend.
+
+Build trong container đạt và HTML trả tệp JS đã build. Health và danh sách phòng trả 200, Sanctum cấp cookie 204, gọi `/auth/me` chưa đăng nhập trả 401. Frontend 166 test đạt. Đã kiểm cấu hình Compose gốc để quay lại chế độ phát triển, chưa chạy lại các container theo cấu hình gốc trong lượt này.

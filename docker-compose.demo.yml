@@ -1,0 +1,13 @@
+# Chế độ xem bản build trên Docker dev, dùng cùng URL và dữ liệu local.
+services:
+  app:
+    command: ["php-fpm", "-d", "opcache.validate_timestamps=0"]
+
+  frontend:
+    command:
+      - sh
+      - -ec
+      - |
+        npm install --no-audit --no-fund --prefer-offline
+        npm run build
+        exec npm run preview -- --host 0.0.0.0 --port 5173 --strictPort

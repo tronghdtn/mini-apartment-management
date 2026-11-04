@@ -57,6 +57,28 @@ Giữ `RUN_MIGRATIONS=false` trong `.env`. Nhóm 2 đã áp dụng riêng; bật
 | http://localhost:8080/api/v1/health | Kiểm tra API + kết nối CSDL |
 | `127.0.0.1:3307` | MySQL (dùng cho DBeaver/HeidiSQL hoặc artisan trên máy host) |
 
+### Chạy bản build để nghiệm thu trên Docker local
+
+Giữ `RUN_MIGRATIONS=false`. Từ thư mục dự án, chạy:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up -d
+docker compose restart nginx
+```
+
+Trang dùng `localhost:8080`. Frontend build khi container khởi động rồi phục vụ các tệp đã build. Nếu vừa khởi động, đợi log frontend hiện địa chỉ cổng 5173 trước khi mở web. PHP giữ mã đã nạp trong OPcache. Nếu sửa code, khởi động lại container tương ứng để nạp phiên bản mới.
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.demo.yml restart app frontend
+```
+
+Quay lại chế độ phát triển để tiếp tục dùng HMR (tự cập nhật frontend khi lưu code):
+
+```powershell
+docker compose up -d --no-deps app frontend
+docker compose restart nginx
+```
+
 ### Lệnh thường dùng
 
 ```bash
