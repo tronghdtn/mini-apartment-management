@@ -18,9 +18,15 @@ class PublicRoomService
         'area_asc' => ['area', 'asc'], 'area_desc' => ['area', 'desc'],
     ];
 
+    private static ?array $cachedTables = null;
+
     public function ensureReady(): void
     {
-        $this->tables = Schema::getTableListing(null, false);
+        if (app()->runningUnitTests()) {
+            $this->tables = Schema::getTableListing(null, false);
+        } else {
+            $this->tables = self::$cachedTables ??= Schema::getTableListing(null, false);
+        }
         foreach (['rooms', 'buildings', 'amenities', 'room_amenities', 'building_amenities'] as $table) {
             if (! in_array($table, $this->tables, true)) {
                 abort(503, 'Dữ liệu phòng công khai chưa sẵn sàng. Vui lòng thử lại sau.');

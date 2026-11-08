@@ -51,9 +51,9 @@ class RoomPhotoController extends Controller
         return $this->image($room, $photo, false);
     }
 
-    public function publicContent(Room $room, int $photo): StreamedResponse
+    public function publicContent(int $room, int $photo): StreamedResponse
     {
-        $visible = Room::publicAvailable()->findOrFail($room->id);
+        $visible = Room::publicAvailable()->with('building:id,status')->findOrFail($room);
         Gate::authorize('viewPublic', $visible);
 
         return $this->image($visible, $photo, true);
@@ -72,6 +72,7 @@ class RoomPhotoController extends Controller
 
         return Storage::disk('private')->response($photo->path, 'room-'.$room->id.'-'.$photo->id.'.'.$extension,
             ['Content-Type' => $photo->mime_type, 'Content-Disposition' => 'inline',
-                'X-Content-Type-Options' => 'nosniff', 'Cache-Control' => 'private, no-store']);
+                'X-Content-Type-Options' => 'nosniff',
+                'Cache-Control' => $public ? 'private, max-age=3600' : 'private, no-store']);
     }
 }

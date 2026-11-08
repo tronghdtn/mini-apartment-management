@@ -17,9 +17,14 @@ use Throwable;
 
 class RoomPhotoService
 {
+    private static ?bool $hasAttachmentsTable = null;
+
     public function ensureReady(): void
     {
-        abort_unless(Schema::hasTable('attachments'), 503, 'Chức năng ảnh phòng chưa sẵn sàng.');
+        $ready = app()->runningUnitTests()
+            ? Schema::hasTable('attachments')
+            : (self::$hasAttachmentsTable ??= Schema::hasTable('attachments'));
+        abort_unless($ready, 503, 'Chức năng ảnh phòng chưa sẵn sàng.');
     }
 
     public function list(Room $room): Collection
