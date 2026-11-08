@@ -30,7 +30,8 @@ test('password protects bcrypt byte boundary and NUL, including multibyte input'
 test('all five roles land in their mounted area and only admin goes to admin area', () => {
   assert.equal(accountDestination({ ...user, role: 'user' }), '/account/profile')
   assert.equal(accountDestination({ ...user, role: 'resident' }), '/resident')
-  for (const role of ['technician', 'guard']) assert.equal(accountDestination({ ...user, role }), '/staff/profile')
+  assert.equal(accountDestination({ ...user, role: 'technician' }), '/staff/maintenance-requests')
+  assert.equal(accountDestination({ ...user, role: 'guard' }), '/staff/appointments')
   assert.equal(accountDestination({ ...user, role: 'admin' }), '/admin')
 })
 test('return-to distinguishes resident technician and guard routes without widening other roles', () => {
@@ -40,9 +41,9 @@ test('return-to distinguishes resident technician and guard routes without widen
   assert.equal(safeDestination('/resident/contracts/12', resident), '/resident/contracts/12')
   assert.equal(safeDestination('/resident-other', resident), '/resident')
   assert.equal(safeDestination('/staff/maintenance-requests/12', technician), '/staff/maintenance-requests/12')
-  assert.equal(safeDestination('/staff/appointments', technician), '/staff/profile')
+  assert.equal(safeDestination('/staff/appointments', technician), '/staff/maintenance-requests')
   assert.equal(safeDestination('/staff/appointments', guard), '/staff/appointments')
-  assert.equal(safeDestination('/staff/maintenance-requests/12', guard), '/staff/profile')
+  assert.equal(safeDestination('/staff/maintenance-requests/12', guard), '/staff/appointments')
   for (const account of [resident, technician, guard]) assert.equal(safeDestination('/admin/settings', account), accountDestination(account))
 })
 test('return-to prevents external URLs, backslashes and wrong-role paths', () => {

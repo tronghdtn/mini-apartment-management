@@ -217,9 +217,6 @@ export function ContactPage() {
                         </span>
                       </div>
 
-                      <p className="border-t border-slate-100 pt-2 text-xs leading-relaxed text-slate-500">
-                        Tòa nhà chung cư mini hiện đại, trang bị thang máy tốc độ cao, khóa vân tay 2 lớp, camera an ninh 24/7 và hệ thống PCCC tiêu chuẩn.
-                      </p>
                     </div>
                   </div>
 

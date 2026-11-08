@@ -4,7 +4,6 @@ import { Link, useParams } from 'react-router'
 import {
   Building2,
   Calendar,
-  Check,
   CheckCircle2,
   ChevronRight,
   ExternalLink,
@@ -21,59 +20,6 @@ import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
 import { usePublicSettings } from '@/lib/publicSettings'
 
-const publicServices = [
-  {
-    code: 'ELECTRICITY',
-    name: 'Điện sinh hoạt',
-    priceDisplay: '3.500 đ',
-    unit: 'kWh',
-    note: 'Đo bằng công tơ điện tử riêng từng phòng, chốt chỉ số ngày 01 hàng tháng.',
-  },
-  {
-    code: 'WATER',
-    name: 'Nước sinh hoạt',
-    priceDisplay: '25.000 đ',
-    unit: 'm³',
-    note: 'Đồng hồ nước riêng từng phòng, nguồn nước sạch thành phố.',
-  },
-  {
-    code: 'INTERNET',
-    name: 'Internet Wifi tốc độ cao',
-    priceDisplay: '100.000 đ',
-    unit: 'phòng',
-    note: 'Wifi riêng từng tầng băng thông lớn, hỗ trợ kỹ thuật 24/7.',
-  },
-  {
-    code: 'SERVICE',
-    name: 'Phí dịch vụ chung & Vệ sinh',
-    priceDisplay: '120.000 đ',
-    unit: 'người',
-    note: 'Vệ sinh hành lang, thang máy, điện chiếu sáng chung, rác thải.',
-  },
-  {
-    code: 'PARKING',
-    name: 'Gửi xe máy an ninh',
-    priceDisplay: '100.000 đ',
-    unit: 'xe',
-    note: 'Camera giám sát 24/7, khóa vân tay và bảo vệ trực.',
-  },
-  {
-    code: 'LAUNDRY',
-    name: 'Giặt sấy tiện lợi',
-    priceDisplay: 'Miễn phí',
-    unit: 'lượt',
-    note: 'Khu giặt chung tầng thượng có mái che thoáng gió.',
-  },
-]
-
-const defaultBuildingAmenities = [
-  'Khóa cửa vân tay thông minh 2 lớp',
-  'Camera an ninh HD giám sát 24/7',
-  'Hệ thống PCCC tự động đạt chuẩn',
-  'Thang máy thẻ từ phân tầng tiện lợi',
-  'Nhà để xe rộng rãi có bảo vệ trực',
-  'Giờ giấc tự do 24/7, không chung chủ',
-]
 
 export function RoomDetailPage() {
   // Hotline lấy từ Cài đặt hệ thống, giống thanh điều hướng và chân trang.
@@ -329,62 +275,6 @@ export function RoomDetailPage() {
               ) : (
                 <p className="text-sm text-slate-500 pt-2">Đang cập nhật danh mục tiện nghi cụ thể.</p>
               )}
-            </div>
-
-            {/* Building Amenities Section (Tiện ích chung tòa nhà) */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 space-y-4 shadow-xs">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Tiện ích chung của tòa nhà ({room.building.name})
-                </h2>
-                <p className="text-xs sm:text-[13px] text-slate-500 mt-0.5">
-                  Cơ sở vật chất hạ tầng đồng bộ, an ninh và phòng cháy chữa cháy an toàn.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {defaultBuildingAmenities.map((amenity, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50/50 border border-emerald-200/70"
-                  >
-                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-[13px] font-medium text-slate-700">{amenity}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Transparent Public Services & Utility Pricing */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-7 space-y-4 shadow-xs">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Bảng giá dịch vụ sinh hoạt công khai
-                </h2>
-                <p className="text-xs sm:text-[13px] text-slate-500 mt-0.5">
-                  Minh bạch 100%, ghi chỉ số hàng tháng qua công tơ đo đếm riêng biệt.
-                </p>
-              </div>
-
-              <div className="divide-y divide-slate-100 border border-slate-200/80 rounded-2xl overflow-hidden">
-                {publicServices.map((svc) => (
-                  <div
-                    key={svc.code}
-                    className="p-3.5 sm:p-4 bg-slate-50/60 hover:bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors"
-                  >
-                    <div>
-                      <span className="text-sm font-bold text-slate-900 block">{svc.name}</span>
-                      <span className="text-xs text-slate-500 block mt-0.5">{svc.note}</span>
-                    </div>
-                    <div className="sm:text-right shrink-0">
-                      <span className="text-xs sm:text-[13px] font-extrabold text-sky-700 bg-sky-50 px-3 py-0.5 rounded-full border border-sky-200 inline-block whitespace-nowrap">
-                        {svc.priceDisplay}
-                      </span>
-                      <span className="text-xs text-slate-500 block mt-0.5">/ {svc.unit}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* Building Location & Interactive Map Section */}

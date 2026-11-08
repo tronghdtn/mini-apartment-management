@@ -50,9 +50,9 @@ export function PublicFooter() {
               <HeartHandshake className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-base font-semibold text-white">Bảo trì & Hỗ trợ kỹ thuật 24h</h4>
+              <h4 className="text-base font-semibold text-white">Báo sửa chữa trực tuyến</h4>
               <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                Đội ngũ kỹ thuật viên riêng biệt tiếp nhận và xử lý nhanh chóng mọi vấn đề điện nước sinh hoạt.
+                Cư dân gửi yêu cầu sửa chữa kèm ảnh ngay trên web; kỹ thuật viên tiếp nhận và cập nhật tiến độ xử lý.
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export function PublicFooter() {
           <div className="flex items-center gap-4 text-slate-400">
             <span>Bảo mật dữ liệu cư dân</span>
             <span>•</span>
-            <span>Hỗ trợ kỹ thuật 24/7</span>
+            <span>Báo sửa chữa trực tuyến</span>
           </div>
         </div>
       </div>

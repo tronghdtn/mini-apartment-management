@@ -159,7 +159,7 @@ export function AdminBuildingsPage() {
                         </div>
 
                         <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words">
-                          {building.description || 'Cơ sở căn hộ mini đầy đủ tiện nghi, khóa vân tay 24/7 và quản lý vận hành trực tuyến.'}
+                          {building.description || 'Chưa có mô tả.'}
                         </p>
                       </div>
                     </div>

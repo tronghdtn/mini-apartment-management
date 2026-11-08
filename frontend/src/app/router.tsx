@@ -27,8 +27,9 @@ import {
   AdminResidentsPage,
 } from './adminPages'
 import { RequireAuth } from '@/features/auth/RequireAuth'
+import { StaffHome } from '@/features/auth/StaffHome'
 import { Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router'
+import { createBrowserRouter } from 'react-router'
 import { AdminContractPrintPage, InvoicePrintPage, ReceiptPrintPage, ResidentContractPrintPage } from './printPages'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
@@ -162,7 +163,7 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth roles={['technician', 'guard']} />,
     children: [{ path: '/staff', element: <StaffLayout />, errorElement: <RouteErrorPage />, children: [
-      { index: true, element: <Navigate to="profile" replace /> },
+      { index: true, element: <StaffHome /> },
       { path: 'profile', element: <StaffProfilePage /> },
       { path: 'notifications', element: <StaffNotificationsPage /> },
       { element: <RequireAuth roles={['technician']} />, children: [

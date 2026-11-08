@@ -20,7 +20,9 @@ export const roleLabels: Record<UserRole, string> = {
 export function accountDestination(user: AuthUser) {
   if (user.role === 'admin') return '/admin'
   if (user.role === 'resident') return '/resident'
-  if (user.role === 'technician' || user.role === 'guard') return '/staff/profile'
+  // Nhân viên vào thẳng màn làm việc chính: kỹ thuật viên xem việc được giao, bảo vệ xem lịch đón khách hôm nay.
+  if (user.role === 'technician') return '/staff/maintenance-requests'
+  if (user.role === 'guard') return '/staff/appointments'
   return '/account/profile'
 }
 
