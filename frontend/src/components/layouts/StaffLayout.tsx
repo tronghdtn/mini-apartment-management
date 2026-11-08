@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { NavLink, Outlet, Link } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
 import {
   Wrench,
   CalendarCheck,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/useAuth'
 import { AccountActions } from '@/features/auth/AccountActions'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 export const StaffLayout: React.FC = () => {
   const { user } = useAuth()
@@ -66,7 +67,7 @@ export const StaffLayout: React.FC = () => {
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-2">
-          <Link to="/staff/notifications" aria-label="Thông báo" className="rounded-xl p-2 text-slate-500 hover:bg-slate-50"><Bell aria-hidden="true" className="h-5 w-5" /></Link>
+          <NotificationBell to="/staff/notifications" />
           <AccountActions menu internal />
         </div>
       </header>

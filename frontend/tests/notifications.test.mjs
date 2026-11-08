@@ -20,3 +20,13 @@ test('notification filters support owned all/unread pages and reject invalid URL
     assert.equal(notificationFiltersSchema.safeParse(input).success,false)
   }
 })
+
+test('bell badge hides zero and caps large unread counts', async () => {
+  const { unreadBadgeText } = await import('../src/features/notifications/unread.ts')
+  assert.equal(unreadBadgeText(0), null)
+  assert.equal(unreadBadgeText(-1), null)
+  assert.equal(unreadBadgeText(Number.NaN), null)
+  assert.equal(unreadBadgeText(3), '3')
+  assert.equal(unreadBadgeText(99), '99')
+  assert.equal(unreadBadgeText(100), '99+')
+})

@@ -16,7 +16,6 @@ import {
   Layers,
   Zap,
   Settings,
-  Bell,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -26,6 +25,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/useAuth'
 import { AccountActions } from '@/features/auth/AccountActions'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { getSettings } from '@/features/settings/api'
 import { useDialogFocus } from '@/hooks/useDialogFocus'
 import { syncSiteSettingsFromApi, usePublicSettings } from '@/lib/publicSettings'
@@ -264,7 +264,7 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <Link to="/admin/notifications" title="Thông báo hệ thống" aria-label="Thông báo hệ thống" className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><Bell aria-hidden="true" className="h-4.5 w-4.5" /></Link>
+            <NotificationBell to="/admin/notifications" />
 
 
             <AccountActions menu internal />

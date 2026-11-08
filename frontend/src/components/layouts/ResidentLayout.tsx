@@ -6,10 +6,10 @@ import {
   Receipt,
   Wrench,
   User,
-  Bell,
   Building2,
 } from 'lucide-react'
 import { AccountActions } from '@/features/auth/AccountActions'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 
 export const ResidentLayout: React.FC = () => {
 
@@ -60,7 +60,7 @@ export const ResidentLayout: React.FC = () => {
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-3">
-          <Link to="/resident/notifications" aria-label="Thông báo" className="rounded-xl p-2 text-slate-500 hover:bg-slate-50"><Bell aria-hidden="true" className="h-5 w-5" /></Link>
+          <NotificationBell to="/resident/notifications" />
           <AccountActions menu internal />
         </div>
       </header>

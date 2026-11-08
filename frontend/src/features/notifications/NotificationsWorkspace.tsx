@@ -12,6 +12,7 @@ import { notificationFiltersSchema } from './schemas'
 import type { NotificationItem, NotificationPage } from './types'
 import { RefreshingFrame } from '@/components/ui/RefreshingFrame'
 import { useKeepPrevious } from '@/hooks/useKeepPrevious'
+import { announceNotificationsChanged } from './unread'
 
 export function NotificationsWorkspace({ queryPrefix = '' }: { queryPrefix?: string }) {
   const {refresh}=useAuth()
@@ -39,6 +40,7 @@ export function NotificationsWorkspace({ queryPrefix = '' }: { queryPrefix?: str
     flight.current=true;setBusy(true);setActionError('')
     try{
       await action()
+      announceNotificationsChanged()
       if(target)navigate(target)
       else{
         if(status==='unread')setParams(previous=>withoutNotificationPage(previous,queryPrefix))
