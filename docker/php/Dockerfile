@@ -9,6 +9,7 @@ RUN apk add --no-cache icu-libs libzip \
 COPY --from=composer:2.9 /usr/bin/composer /usr/bin/composer
 
 COPY php.ini /usr/local/etc/php/conf.d/zz-app.ini
+RUN sed -i 's/^pm.max_children = .*/pm.max_children = 24/; s/^pm.start_servers = .*/pm.start_servers = 8/; s/^pm.min_spare_servers = .*/pm.min_spare_servers = 6/; s/^pm.max_spare_servers = .*/pm.max_spare_servers = 16/' /usr/local/etc/php-fpm.d/www.conf
 COPY entrypoint.sh /usr/local/bin/app-entrypoint
 # Loại bỏ CRLF phòng trường hợp file bị checkout trên Windows
 RUN sed -i 's/\r$//' /usr/local/bin/app-entrypoint && chmod +x /usr/local/bin/app-entrypoint
