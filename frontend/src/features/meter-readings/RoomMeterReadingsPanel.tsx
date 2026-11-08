@@ -9,6 +9,8 @@ import { MeterReadingsTable } from './MeterReadingsTable'
 import { clearRoomMeterFilters, roomMeterFilterValues, roomMeterSearchParams, type RoomMeterFilter } from './roomFilters'
 import { meterFiltersSchema } from './schemas'
 import type { MeterOptions, MeterReadingPage } from './types'
+import { RefreshingFrame } from '@/components/ui/RefreshingFrame'
+import { useKeepPrevious } from '@/hooks/useKeepPrevious'
 
 export function RoomMeterReadingsPanel({ roomId }: { roomId: number }) {
   const { refresh } = useAuth()
@@ -44,7 +46,8 @@ export function RoomMeterReadingsPanel({ roomId }: { roomId: number }) {
     return () => abort.abort()
   }, [roomId, service, period, kind, page, key, queryError, refresh])
 
-  const loaded = result?.key === key ? result : undefined
+  const current = result?.key === key ? result : undefined
+  const { value: loaded, stale } = useKeepPrevious(current?.data ? current : undefined)
   const error = queryError || loaded?.error
   return <section className="min-w-0 space-y-5" aria-label="Lịch sử điện nước của phòng">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -61,12 +64,12 @@ export function RoomMeterReadingsPanel({ roomId }: { roomId: number }) {
     {optionError && <div role="alert" className="space-y-2 text-sm text-rose-700"><p>{optionError}</p><Button variant="outline" onClick={() => setOptionRevision(value => value + 1)}>Tải lại danh mục dịch vụ</Button></div>}
     {error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800"><p>{error}</p>
       {queryError ? <Button variant="outline" onClick={() => setParams(clearRoomMeterFilters(params))}>Xóa bộ lọc không hợp lệ</Button> : <Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại lịch sử</Button>}
-    </div> : !loaded?.data ? <p role="status" className="p-6 text-sm text-slate-500">Đang tải lịch sử điện nước…</p> : <>
+    </div> : !loaded?.data ? <p role="status" className="p-6 text-sm text-slate-500">Đang tải lịch sử điện nước…</p> : <RefreshingFrame busy={stale} className="space-y-4">
       <MeterReadingsTable readings={loaded.data.data} />
       <nav aria-label="Phân trang lịch sử điện nước" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <p>Trang {loaded.data.meta.current_page}/{loaded.data.meta.last_page} · {loaded.data.meta.total} chỉ số</p>
         <div className="flex gap-2"><Button variant="outline" disabled={Number(page) <= 1} onClick={() => change('meter_page', String(Number(page) - 1))}>Trang trước</Button><Button variant="outline" disabled={Number(page) >= loaded.data.meta.last_page} onClick={() => change('meter_page', String(Number(page) + 1))}>Trang sau</Button></div>
       </nav>
-    </>}
+    </RefreshingFrame>}
   </section>
 }

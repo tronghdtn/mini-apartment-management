@@ -26,7 +26,7 @@ export function ProfileNameForm({ user, busy, onBusyChange }: { user: AuthUser; 
   return <form noValidate onSubmit={event => { void form.handleSubmit(submit)(event) }} className="space-y-4">
     <fieldset disabled={busy} className="min-w-0 space-y-4">
       <div><label htmlFor="profile-full-name" className="mb-1.5 block text-xs font-bold text-slate-700">Họ và tên</label>
-        <input id="profile-full-name" autoComplete="name" {...form.register('full_name')} aria-invalid={!!form.formState.errors.full_name} aria-describedby="profile-name-error" className={fieldClass} />
+        <input id="profile-full-name" autoComplete="name" placeholder="VD: Nguyễn Văn An" {...form.register('full_name')} aria-invalid={!!form.formState.errors.full_name} aria-describedby="profile-name-error" className={fieldClass} />
         {form.formState.errors.full_name && <p id="profile-name-error" role="alert" className="mt-1 text-xs text-rose-700">{form.formState.errors.full_name.message}</p>}</div>
       {[['phone', 'Số điện thoại', user.phone], ['email', 'Email', user.email ?? '']].map(([key, label, value]) => <div key={key}>
         <label htmlFor={`profile-${key}`} className="mb-1.5 block text-xs font-bold text-slate-700">{label}</label>

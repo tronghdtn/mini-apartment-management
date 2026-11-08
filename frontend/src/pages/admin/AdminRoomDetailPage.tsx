@@ -2,7 +2,7 @@ import { RoomPhotosPanel } from '@/features/room-photos/RoomPhotosPanel'
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { isAxiosError } from 'axios'
-import { ChevronRight, Pencil } from 'lucide-react'
+import { ChevronRight, ExternalLink, FilePlus2, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -60,37 +60,68 @@ export function AdminRoomDetailPage() {
   )
   return (
     <div className="space-y-6">
-      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/rooms" className="hover:text-slate-900">Phòng</Link><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="font-bold text-slate-900">{room.code}</span></nav>
+      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <Link to="/admin/buildings" className="hover:text-slate-900">Tòa nhà</Link>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <Link to={`/admin/buildings/${room.building_id}`} className="hover:text-slate-900">{room.building.name}</Link>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <Link to="/admin/rooms" className="hover:text-slate-900">Phòng</Link>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <span className="font-bold text-slate-900">{room.code}</span>
+      </nav>
       {success && <p role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</p>}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-2"><Badge tone={room.status === 'available' ? 'emerald' : room.status === 'occupied' ? 'sky' : room.status === 'maintenance' ? 'amber' : 'slate'} dot>{roomStatusLabels[room.status]}</Badge><Badge tone={room.is_public ? 'emerald' : 'slate'}>{room.is_public ? 'Đánh dấu công khai' : 'Không công khai'}</Badge></div>
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Badge tone={room.status === 'available' ? 'sky' : room.status === 'occupied' ? 'emerald' : room.status === 'maintenance' ? 'amber' : 'slate'} dot>{roomStatusLabels[room.status]}</Badge>
+            <Badge tone={room.is_public ? 'emerald' : 'slate'}>{room.is_public ? 'Đánh dấu công khai' : 'Không công khai'}</Badge>
+          </div>
           <h1 className="text-2xl font-extrabold text-slate-900 break-words">Phòng {room.code}</h1>
-          <p className="text-xs text-slate-500 mt-1">{room.building.name} · Tầng {room.floor_number}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            <Link to={`/admin/buildings/${room.building_id}`} className="text-sky-700 hover:underline font-semibold">{room.building.name}</Link> · Tầng {room.floor_number}
+          </p>
         </div>
-        <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {room.status === 'available' && room.is_public && (
+            <Link to={`/rooms/${room.id}`} target="_blank" rel="noreferrer">
+              <Button variant="ghost" size="sm" icon={<ExternalLink className="w-3.5 h-3.5" />}>
+                Xem trang công khai
+              </Button>
+            </Link>
+          )}
+          {room.status === 'available' && (
+            <Link to={`/admin/contracts/new?room_id=${room.id}`}>
+              <Button variant="primary" icon={<FilePlus2 className="w-4 h-4" />}>
+                Lập hợp đồng cho thuê
+              </Button>
+            </Link>
+          )}
+          <Button variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditing(true) }}>Sửa thông tin</Button>
+        </div>
       </div>
       {!validTab && <p role="alert" className="text-sm text-rose-700">Tab không hợp lệ. Đang hiển thị thông tin phòng.</p>}
       <Tabs tabs={[{ id: 'info', label: 'Thông tin phòng' }, { id: 'contracts', label: 'Hợp đồng' }, { id: 'utilities', label: 'Điện nước' }, { id: 'maintenance', label: 'Sửa chữa' }, { id: 'appointments', label: 'Lịch xem phòng' }]} activeTab={tab} onChange={setTab} />
-      <div hidden={tab !== 'info'} className="space-y-6"><section className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-5">
-        <h2 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h2>
-        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-5 text-sm">
-          <div><dt className="text-xs text-slate-500">Giá thuê niêm yết</dt><dd className="font-bold text-sky-700 mt-1 break-words">{formatVND(room.base_price)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Tiền cọc niêm yết</dt><dd className="font-bold text-slate-800 mt-1 break-words">{formatVND(room.deposit_amount)}</dd></div>
-          <div><dt className="text-xs text-slate-500">Diện tích</dt><dd className="font-bold text-slate-800 mt-1">{room.area} m²</dd></div>
-          <div><dt className="text-xs text-slate-500">Sức chứa tối đa</dt><dd className="font-bold text-slate-800 mt-1">{room.max_occupants} người</dd></div>
-          <div className="col-span-2 lg:col-span-4"><dt className="text-xs text-slate-500">Mô tả</dt><dd className="mt-1 text-slate-700 whitespace-pre-wrap break-words">{room.description || 'Chưa có mô tả.'}</dd></div>
-        </dl>
-      </section>
-      <RoomPhotosPanel key={room.id} roomId={room.id} />
-      <AmenityAssignmentPanel key={room.id} targetType="rooms" targetId={room.id} archivedVisibility="show" />
-      <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký. </p></div>
+      <div hidden={tab !== 'info'} className="space-y-6">
+        <section className="bg-white rounded-2xl border border-slate-200/90 p-6 space-y-5">
+          <h2 className="font-bold text-base text-slate-900">Thông Số Cơ Bản</h2>
+          <dl className="grid grid-cols-2 lg:grid-cols-4 gap-5 text-sm">
+            <div><dt className="text-xs text-slate-500">Giá thuê niêm yết</dt><dd className="font-bold text-sky-700 mt-1 break-words">{formatVND(room.base_price)}</dd></div>
+            <div><dt className="text-xs text-slate-500">Tiền cọc niêm yết</dt><dd className="font-bold text-slate-800 mt-1 break-words">{formatVND(room.deposit_amount)}</dd></div>
+            <div><dt className="text-xs text-slate-500">Diện tích</dt><dd className="font-bold text-slate-800 mt-1">{room.area} m²</dd></div>
+            <div><dt className="text-xs text-slate-500">Sức chứa tối đa</dt><dd className="font-bold text-slate-800 mt-1">{room.max_occupants} người</dd></div>
+            <div className="col-span-2 lg:col-span-4"><dt className="text-xs text-slate-500">Mô tả</dt><dd className="mt-1 text-slate-700 whitespace-pre-wrap break-words">{room.description || 'Chưa có mô tả.'}</dd></div>
+          </dl>
+        </section>
+        <RoomPhotosPanel key={`photos-${room.id}-${revision}`} roomId={room.id} />
+        <AmenityAssignmentPanel key={`amenities-${room.id}-${revision}`} targetType="rooms" targetId={room.id} archivedVisibility="show" />
+        <p className="text-xs text-slate-500">Giá niêm yết không sửa các hợp đồng đã ký.</p>
+      </div>
       {tab === 'contracts' && <RoomContractsPanel key={room.id} roomId={room.id} />}
       {tab === 'maintenance' && <MaintenanceRequestList audience="admin" roomId={room.id} />}
       {tab === 'utilities' && <RoomMeterReadingsPanel key={room.id} roomId={room.id} />}
       {tab === 'appointments' && <AppointmentsWorkspace key={room.id} mode="admin" roomId={room.id} />}
       <Modal isOpen={editing} onClose={close} title="Sửa thông tin phòng" maxWidth="lg">
-        <RoomForm key={room.id} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setSuccess('Đã lưu thông tin phòng.') }} />
+        <RoomForm key={`${room.id}-${revision}`} room={room} buildings={[]} onCancel={close} onBusyChange={setSaving} onSaved={updated => { setRoom(updated); setEditing(false); setRevision(v => v + 1); setSuccess('Đã lưu thông tin phòng, tiện nghi và ảnh.') }} />
       </Modal>
     </div>
   )

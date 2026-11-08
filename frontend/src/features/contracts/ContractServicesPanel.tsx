@@ -82,6 +82,7 @@ function DraftServicesForm({ contract, options, onSaved, onReload, onBusy, effec
           </label>
           {index >= 0 && <div className="sm:max-w-xs"><label htmlFor={`service-quantity-${option.id}`} className="text-xs font-semibold text-slate-600">Số lượng {option.name}</label>
             <input key={fields[index]?.id} id={`service-quantity-${option.id}`} type="number" min={1} max={active && option.status === 'inactive' && saved ? Number(saved.quantity) : 99999999} step={1} readOnly={option.billing_type === 'per_room'}
+              placeholder="VD: 1"
               aria-invalid={Boolean(fieldError?.quantity)} {...register(`services.${index}.quantity`, { valueAsNumber: true })}
               className="mt-1 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm read-only:bg-slate-50" />
             {fieldError?.quantity && <p role="alert" className="text-xs text-rose-700 mt-1">{fieldError.quantity.message}</p>}

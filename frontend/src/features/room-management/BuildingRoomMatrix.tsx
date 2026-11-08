@@ -9,8 +9,8 @@ import { roomStatusLabels } from './types'
 import type { Room } from './types'
 
 const roomColors = {
-  available: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400',
-  occupied: 'border-sky-200 bg-sky-50 text-sky-800 hover:border-sky-400',
+  available: 'border-sky-200 bg-sky-50 text-sky-800 hover:border-sky-400',
+  occupied: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400',
   maintenance: 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-400',
   inactive: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
 }

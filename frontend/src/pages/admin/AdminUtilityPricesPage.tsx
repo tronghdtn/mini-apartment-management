@@ -11,6 +11,8 @@ import { UtilityPriceForm } from '@/features/utility-prices/UtilityPriceForm'
 import { UtilityPriceHistory } from '@/features/utility-prices/UtilityPriceHistory'
 import { utilityPriceFiltersSchema } from '@/features/utility-prices/schemas'
 import type { MeteredService, UtilityBuilding, UtilityPricePage } from '@/features/utility-prices/types'
+import { RefreshingFrame } from '@/components/ui/RefreshingFrame'
+import { useKeepPrevious } from '@/hooks/useKeepPrevious'
 
 export function AdminUtilityPricesPage() {
   const { refresh } = useAuth()
@@ -55,7 +57,7 @@ export function AdminUtilityPricesPage() {
   const buildings = options?.buildings ?? []
   const loading = !queryError && loaded?.key !== key
   const error = queryError || (loaded?.key === key ? loaded.error : '')
-  const result = loaded?.key === key ? loaded.result : undefined
+  const { value: result } = useKeepPrevious(loaded?.key === key ? loaded.result : undefined)
   function filter(name: 'building_id' | 'service_id', value: string) {
     const next = new URLSearchParams()
     const building = name === 'building_id' ? value : buildingId
@@ -80,7 +82,7 @@ export function AdminUtilityPricesPage() {
       <label className="text-sm font-semibold">Lọc theo tòa nhà<select value={buildingId} disabled={optionsLoading || !!options?.error} onChange={event => filter('building_id', event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3"><option value="">Tất cả tòa nhà</option>{buildingId && !buildings.some(building => String(building.id) === buildingId) && <option value={buildingId}>Tòa #{buildingId} — chưa có thông tin</option>}{buildings.map(building => <option key={building.id} value={building.id}>{building.name}</option>)}</select></label>
       <label className="text-sm font-semibold">Lọc theo dịch vụ<select value={serviceId} disabled={optionsLoading || !!options?.error} onChange={event => filter('service_id', event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 p-3"><option value="">Tất cả dịch vụ theo chỉ số</option>{serviceId && !services.some(service => String(service.id) === serviceId) && <option value={serviceId}>Dịch vụ #{serviceId}</option>}{services.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}</select></label>
     </div>
-    {loading ? <p role="status" className="py-6 text-sm text-slate-500">Đang tải bảng giá điện nước…</p> : error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p className="text-sm text-rose-700">{error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại</Button>{queryError && <Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc không hợp lệ</Button>}</div> : result && <><UtilityPriceHistory prices={result.data} /><nav aria-label="Phân trang bảng giá điện nước" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"><p>Trang {result.meta.current_page}/{result.meta.last_page} · {result.meta.total} mức giá</p><div className="flex gap-2"><Button variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>Trang trước</Button><Button variant="outline" disabled={page >= result.meta.last_page} onClick={() => changePage(page + 1)}>Trang sau</Button></div></nav></>}
+    {loading && !result ? <p role="status" className="py-6 text-sm text-slate-500">Đang tải bảng giá điện nước…</p> : error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p className="text-sm text-rose-700">{error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại</Button>{queryError && <Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc không hợp lệ</Button>}</div> : result && <RefreshingFrame busy={loading} className="space-y-6"><UtilityPriceHistory prices={result.data} /><nav aria-label="Phân trang bảng giá điện nước" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"><p>Trang {result.meta.current_page}/{result.meta.last_page} · {result.meta.total} mức giá</p><div className="flex gap-2"><Button variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>Trang trước</Button><Button variant="outline" disabled={page >= result.meta.last_page} onClick={() => changePage(page + 1)}>Trang sau</Button></div></nav></RefreshingFrame>}
     <Modal isOpen={creating} onClose={close} title="Thêm mức giá áp dụng mới" maxWidth="md"><UtilityPriceForm buildings={buildings} buildingId={buildingId ? Number(buildingId) : undefined} services={services} onAuthFailure={refresh} onCancel={close} onBusyChange={setSaving} onSaved={price => { setCreating(false); setSuccess(`Đã thêm giá ${price.service.name} cho ${price.building.name} từ ${price.effective_from}.`); setParams({ building_id: String(price.building_id), service_id: String(price.service_id) }); setRevision(value => value + 1) }} /></Modal>
   </div>
 }

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { MailCheck } from 'lucide-react'
+import { Eye, EyeOff, MailCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { applyAuthErrors } from './errors'
@@ -15,6 +15,7 @@ const inputClass = 'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text
 export function ProfileEmailPanel({ user, busy, onBusyChange }: { user: AuthUser; busy: boolean; onBusyChange: (busy: boolean) => void }) {
   const flight = useRef(false)
   const [notice, setNotice] = useState<{ ok: boolean; message: string }>()
+  const [showPassword, setShowPassword] = useState(false)
   const form = useForm<ChangeEmailInput>({ resolver: zodResolver(changeEmailSchema), defaultValues: { email: '', current_password: '' } })
   async function guarded(action: () => Promise<void>) {
     if (flight.current) return
@@ -47,11 +48,26 @@ export function ProfileEmailPanel({ user, busy, onBusyChange }: { user: AuthUser
     <form noValidate onSubmit={event => { void form.handleSubmit(change)(event) }} className="space-y-3 border-t border-slate-100 pt-4">
       <h3 className="text-xs font-bold text-slate-700">{user.email ? 'Đổi email' : 'Thêm email'}</h3>
       <fieldset disabled={busy} className="min-w-0 space-y-3">
-        {([['email', 'Email mới', 'email', 'email'], ['current_password', 'Mật khẩu hiện tại', 'password', 'current-password']] as const).map(([key, label, type, complete]) => <div key={key}>
-          <label htmlFor={`profile-email-${key}`} className="mb-1.5 block text-xs font-bold text-slate-700">{label}</label>
-          <input id={`profile-email-${key}`} type={type} autoComplete={complete} {...form.register(key)} aria-invalid={!!form.formState.errors[key]} aria-describedby={`profile-email-${key}-error`} className={inputClass} />
-          {form.formState.errors[key] && <p id={`profile-email-${key}-error`} role="alert" className="mt-1 text-xs text-rose-700">{form.formState.errors[key]?.message}</p>}
-        </div>)}
+        {([['email', 'Email mới', 'email', 'email'], ['current_password', 'Mật khẩu hiện tại', 'password', 'current-password']] as const).map(([key, label, type, complete]) => {
+          const isPassword = type === 'password'
+          return <div key={key}>
+            <label htmlFor={`profile-email-${key}`} className="mb-1.5 block text-xs font-bold text-slate-700">{label}</label>
+            <div className="relative">
+              <input id={`profile-email-${key}`} type={isPassword ? (showPassword ? 'text' : 'password') : type} autoComplete={complete} placeholder={isPassword ? 'Nhập mật khẩu hiện tại để xác thực' : 'VD: emailmoi@gmail.com'} {...form.register(key)} aria-invalid={!!form.formState.errors[key]} aria-describedby={`profile-email-${key}-error`} className={`${inputClass} ${isPassword ? 'pr-10' : ''}`} />
+              {isPassword && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+            {form.formState.errors[key] && <p id={`profile-email-${key}-error`} role="alert" className="mt-1 text-xs text-rose-700">{form.formState.errors[key]?.message}</p>}
+          </div>
+        })}
         <p className="text-xs text-slate-500">Hệ thống gửi liên kết tới email mới; email hiện tại giữ nguyên cho tới khi bạn bấm xác nhận trong thư.</p>
         {form.formState.errors.root && <p role="alert" className="text-sm text-rose-700">{form.formState.errors.root.message}</p>}
         <Button type="submit" size="sm" isLoading={form.formState.isSubmitting}>Gửi liên kết xác nhận</Button>

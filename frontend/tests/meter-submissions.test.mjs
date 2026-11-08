@@ -14,3 +14,25 @@ test('photo and rejection limits reject unsupported files and blank reasons', ()
   assert.equal(rejectionSchema.safeParse({ rejection_reason: '  ' }).success, false)
   assert.deepEqual(rejectionSchema.parse({ rejection_reason: '  Ảnh mờ  ' }), { rejection_reason: 'Ảnh mờ' })
 })
+
+test('resident batch form sends only filled meters with month converted to day 01', async () => {
+  const { meterBatchSchema, toSubmissions } = await import('../src/features/meter-submissions/schemas.ts')
+  const photo = new File(['png'], 'meter.png', { type: 'image/png' })
+  const value = { month: '2026-11', reading_date: '2026-11-30', entries: [{ service_id: 1, current_reading: ' 1250.5 ', photo }, { service_id: 2, current_reading: '', photo: undefined }] }
+  const parsed = meterBatchSchema.parse(value)
+  assert.deepEqual(toSubmissions(parsed), [{ index: 0, input: { service_id: 1, period: '2026-11-01', reading_date: '2026-11-30', current_reading: '1250.5', photo } }])
+  const both = { ...value, entries: [value.entries[0], { service_id: 2, current_reading: '20', photo }] }
+  assert.equal(toSubmissions(meterBatchSchema.parse(both)).length, 2)
+})
+
+test('resident batch form requires one meter, a photo per filled meter and a reading date inside the month', () => {
+  return import('../src/features/meter-submissions/schemas.ts').then(({ meterBatchSchema }) => {
+    const photo = new File(['png'], 'meter.png', { type: 'image/png' })
+    const base = { month: '2026-11', reading_date: '2026-11-30', entries: [{ service_id: 1, current_reading: '', photo: undefined }, { service_id: 2, current_reading: '', photo: undefined }] }
+    assert.equal(meterBatchSchema.safeParse(base).success, false)
+    assert.equal(meterBatchSchema.safeParse({ ...base, entries: [{ service_id: 1, current_reading: '12', photo: undefined }, base.entries[1]] }).success, false)
+    assert.equal(meterBatchSchema.safeParse({ ...base, entries: [{ service_id: 1, current_reading: '1.001', photo }, base.entries[1]] }).success, false)
+    assert.equal(meterBatchSchema.safeParse({ ...base, reading_date: '2026-10-31', entries: [{ service_id: 1, current_reading: '12', photo }, base.entries[1]] }).success, false)
+    assert.equal(meterBatchSchema.safeParse({ ...base, month: '2026-13', entries: [{ service_id: 1, current_reading: '12', photo }, base.entries[1]] }).success, false)
+  })
+})

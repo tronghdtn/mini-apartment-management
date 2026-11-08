@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { isAxiosError } from 'axios'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, DoorOpen, FilePlus2, FileText, Pencil, UserCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -53,28 +53,71 @@ export function AdminUserDetailPage() {
       </div>
     </div>
   )
+
+  const canCreateContract =
+    user.status === 'active' &&
+    (user.role === 'user' || (user.role === 'resident' && !user.active_contract))
+
   return (
     <div className="space-y-6">
       {success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
-      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link to="/admin/users" className="hover:text-slate-900">Người dùng</Link><ChevronRight className="w-3.5 h-3.5 text-slate-400" /><span className="font-bold text-slate-900 break-words">{user.full_name}</span></nav>
-      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
-        <div className="flex items-start sm:items-center gap-4">
-          <div className="w-14 h-14 shrink-0 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xl">{Array.from(user.full_name)[0]}</div>
+      <nav aria-label="Đường dẫn" className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <Link to="/admin/users" className="hover:text-slate-900">Tài khoản & Phân quyền</Link>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+        <span className="font-bold text-slate-900 break-words">{user.full_name}</span>
+      </nav>
+
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-start sm:items-center gap-4 min-w-0">
+          <div className="w-14 h-14 shrink-0 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xl">
+            {Array.from(user.full_name)[0]}
+          </div>
           <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-bold text-slate-900 break-words">{user.full_name}</h1><Badge tone={user.status === 'active' ? 'emerald' : 'rose'} dot>{user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}</Badge></div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900 break-words">{user.full_name}</h1>
+              <Badge tone={user.status === 'active' ? 'emerald' : 'rose'} dot>
+                {user.status === 'active' ? 'Hoạt động' : 'Đã khóa'}
+              </Badge>
+              <Badge tone={user.role === 'admin' ? 'purple' : user.role === 'resident' ? 'emerald' : 'sky'}>
+                {managedUserRoleLabels[user.role]}
+              </Badge>
+            </div>
             <p className="text-xs text-slate-500 break-words">{user.email ?? 'Chưa có email'} · {user.phone}</p>
-            <Badge tone={user.role === 'admin' ? 'purple' : user.role === 'resident' ? 'emerald' : 'sky'}>{managedUserRoleLabels[user.role]}</Badge>
-            <div className="mt-3"><UserStatusAction user={user} onChanged={updated => {
-              setSuccess(updated.status === 'locked' ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.')
-              setLoading(true)
-              setRevision(value => value + 1)
-            }} /></div>
+            <div className="pt-1">
+              <UserStatusAction
+                user={user}
+                onChanged={updated => {
+                  setSuccess(updated.status === 'locked' ? 'Đã khóa tài khoản.' : 'Đã mở khóa tài khoản.')
+                  setLoading(true)
+                  setRevision(value => value + 1)
+                }}
+              />
+            </div>
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {canCreateContract && (
+            <Link to={`/admin/contracts/new?user_id=${user.id}`}>
+              <Button variant="primary" icon={<FilePlus2 className="w-4 h-4" />}>
+                {user.role === 'user' ? 'Lập hợp đồng thuê (Chuyển thành Cư dân)' : 'Lập hợp đồng thuê phòng mới'}
+              </Button>
+            </Link>
+          )}
+          <Button type="button" variant="outline" icon={<Pencil className="w-4 h-4" />} onClick={() => { setSuccess(''); setEditingName(true) }}>
+            Sửa họ tên
+          </Button>
+        </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <section className="md:col-span-2 bg-white rounded-3xl border border-slate-200/90 p-6 space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-bold text-base text-slate-900">Hồ Sơ Cá Nhân</h2><Button type="button" size="sm" variant="outline" onClick={() => { setSuccess(''); setEditingName(true) }}>Sửa họ tên</Button></div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-bold text-base text-slate-900">Hồ Sơ Cá Nhân</h2>
+            <Button type="button" size="sm" variant="outline" onClick={() => { setSuccess(''); setEditingName(true) }}>
+              Sửa họ tên
+            </Button>
+          </div>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
             <div><dt className="text-xs text-slate-500">Họ và tên</dt><dd className="font-semibold text-slate-800 mt-1 break-words">{user.full_name}</dd></div>
             <div><dt className="text-xs text-slate-500">Vai trò trong hệ thống</dt><dd className="font-semibold text-slate-800 mt-1">{managedUserRoleLabels[user.role]}</dd></div>
@@ -87,30 +130,82 @@ export function AdminUserDetailPage() {
             <div className="sm:col-span-2"><dt className="text-xs text-slate-500">Địa chỉ thường trú</dt><dd className="text-slate-800 mt-1 whitespace-pre-wrap break-words">{user.permanent_address ?? 'Chưa cập nhật'}</dd></div>
           </dl>
         </section>
-        <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4">
-          <h2 className="font-bold text-base text-slate-900">Tình trạng thuê hiện tại</h2>
-          <ActiveContractInfo user={user} />
-          <p className="text-xs text-slate-500">Vai trò cư dân được giữ để xem lịch sử sau thanh lý. Đang thuê được xác định từ hợp đồng đang hiệu lực.</p>
+
+        <section className="bg-white rounded-3xl border border-slate-200/90 p-6 space-y-4 flex flex-col justify-between">
+          <div className="space-y-4">
+            <h2 className="font-bold text-base text-slate-900">Tình trạng thuê hiện tại</h2>
+            <ActiveContractInfo user={user} />
+
+            {user.active_contract && (
+              <div className="pt-2 space-y-2 border-t border-slate-100">
+                <Link
+                  to={`/admin/contracts/${user.active_contract.id}`}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 text-xs font-semibold transition"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Xem chi tiết hợp đồng đang thuê</span>
+                </Link>
+                <Link
+                  to={`/admin/rooms/${user.active_contract.room.id}`}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition"
+                >
+                  <DoorOpen className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Xem Phòng {user.active_contract.room.code}</span>
+                </Link>
+              </div>
+            )}
+
+            {canCreateContract && (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
+                <div className="flex items-start gap-2 text-xs text-emerald-900">
+                  <UserCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p>
+                    {user.role === 'user'
+                      ? 'Tài khoản này đang là Khách đã đăng ký. Để chuyển sang Cư dân chính thức, hãy lập và kích hoạt hợp đồng thuê phòng cho khách.'
+                      : 'Cư dân này hiện không có hợp đồng đang hiệu lực. Bạn có thể lập hợp đồng thuê phòng mới bên dưới.'}
+                  </p>
+                </div>
+                <Link
+                  to={`/admin/contracts/new?user_id=${user.id}`}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition"
+                >
+                  <FilePlus2 className="w-4 h-4" />
+                  <span>{user.role === 'user' ? 'Lập hợp đồng (Chuyển thành Cư dân)' : 'Lập hợp đồng thuê mới'}</span>
+                </Link>
+              </div>
+            )}
+          </div>
+
+          <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+            Vai trò Cư dân được tự động gán khi kích hoạt hợp đồng và được giữ lại để tra cứu lịch sử hóa đơn sau khi thanh lý.
+          </p>
         </section>
       </div>
+
       <UserContractsPanel key={user.id} userId={user.id} />
-      {user.role === 'resident' && <>
-        <UserDebtSummaryCard key={`debt-${user.id}`} userId={user.id} />
-        <PersonMaintenancePanel key={`requests-${user.id}`} filter="user_id" personId={user.id} title="Yêu cầu sửa chữa đã gửi" pageParam="requests_page" />
-      </>}
-      {user.role === 'technician' && <PersonMaintenancePanel key={`tasks-${user.id}`} filter="assigned_to" personId={user.id} title="Việc sửa chữa được giao" pageParam="tasks_page" />}
-      <section className="bg-sky-50 rounded-3xl border border-sky-100 p-6 text-sm text-sky-800 space-y-2">
-        <p>Chỉ cho cập nhật họ tên. SĐT, email, mật khẩu, vai trò và dữ liệu pháp lý chưa mở chỉnh sửa tại đây.</p>
-        <p>Hóa đơn xem trong chi tiết từng hợp đồng.</p>
-      </section>
+      {user.role === 'resident' && (
+        <>
+          <UserDebtSummaryCard key={`debt-${user.id}`} userId={user.id} />
+          <PersonMaintenancePanel key={`requests-${user.id}`} filter="user_id" personId={user.id} title="Yêu cầu sửa chữa đã gửi" pageParam="requests_page" />
+        </>
+      )}
+      {user.role === 'technician' && (
+        <PersonMaintenancePanel key={`tasks-${user.id}`} filter="assigned_to" personId={user.id} title="Việc sửa chữa được giao" pageParam="tasks_page" />
+      )}
+
       <Modal isOpen={editingName} onClose={closeName} title="Sửa họ tên">
-        <UserNameForm user={user} onCancel={closeName} onBusyChange={busy => { savingName.current = busy }} onSaved={updated => {
-          setEditingName(false)
-          setSuccess('Đã cập nhật họ tên.')
-          setLoading(true)
-          setRevision(value => value + 1)
-          if (updated.id === auth.user?.id) void auth.refresh()
-        }} />
+        <UserNameForm
+          user={user}
+          onCancel={closeName}
+          onBusyChange={busy => { savingName.current = busy }}
+          onSaved={updated => {
+            setEditingName(false)
+            setSuccess('Đã cập nhật họ tên.')
+            setLoading(true)
+            setRevision(value => value + 1)
+            if (updated.id === auth.user?.id) void auth.refresh()
+          }}
+        />
       </Modal>
     </div>
   )

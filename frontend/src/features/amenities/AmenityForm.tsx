@@ -27,13 +27,13 @@ export function AmenityForm({ amenity, onSaved, onCancel, onBusyChange }: Amenit
   return <form onSubmit={submit} noValidate className="space-y-4" aria-busy={isSubmitting}>
     <fieldset disabled={isSubmitting} className="space-y-4">
       <div>
-        <label htmlFor="amenity-name" className="block text-xs font-bold text-slate-700 mb-1">Tên tiện nghi</label>
-        <input id="amenity-name" {...register('name')} aria-invalid={!!errors.name} aria-describedby="amenity-name-error" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none" />
+        <label htmlFor="amenity-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tên tiện nghi</label>
+        <input id="amenity-name" placeholder="VD: Điều hòa 2 chiều, Bình nóng lạnh, Tủ lạnh..." {...register('name')} aria-invalid={!!errors.name} aria-describedby="amenity-name-error" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none" />
         <p id="amenity-name-error" className="text-xs text-rose-600 mt-1">{errors.name?.message}</p>
       </div>
       <div>
-        <label htmlFor="amenity-description" className="block text-xs font-bold text-slate-700 mb-1">Mô tả (tùy chọn)</label>
-        <textarea id="amenity-description" rows={3} {...register('description')} aria-invalid={!!errors.description} aria-describedby="amenity-description-error" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none" />
+        <label htmlFor="amenity-description" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mô tả (tùy chọn)</label>
+        <textarea id="amenity-description" rows={3} placeholder="VD: Trang bị sẵn trong phòng hoặc khu vực dùng chung của tòa nhà..." {...register('description')} aria-invalid={!!errors.description} aria-describedby="amenity-description-error" className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-200 outline-none" />
         <p id="amenity-description-error" className="text-xs text-rose-600 mt-1">{errors.description?.message}</p>
       </div>
     </fieldset>

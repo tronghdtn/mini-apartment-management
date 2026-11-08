@@ -17,7 +17,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-xl transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2'
+  const baseStyles = 'inline-flex items-center justify-center font-medium whitespace-nowrap shrink-0 rounded-xl transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2'
 
   const variantStyles = {
     primary: 'bg-sky-600 text-white hover:bg-sky-700 active:bg-sky-800 focus-visible:outline-sky-600 shadow-sm shadow-sky-600/20',

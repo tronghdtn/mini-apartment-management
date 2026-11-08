@@ -26,35 +26,35 @@ export function ServiceCreateForm({ onSaved, onCancel, onBusyChange }: FormProps
     <form onSubmit={submit} noValidate aria-busy={isSubmitting} className="space-y-4">
       <fieldset disabled={isSubmitting} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="service-name" className="block text-xs font-bold text-slate-700 mb-1">Tên dịch vụ</label>
-          <input id="service-name" {...register('name')} aria-invalid={!!errors.name} aria-describedby="service-name-error" className={inputClass} />
+          <label htmlFor="service-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tên dịch vụ</label>
+          <input id="service-name" placeholder="VD: Internet Wifi tốc độ cao, Gửi xe máy, Vệ sinh..." {...register('name')} aria-invalid={!!errors.name} aria-describedby="service-name-error" className={inputClass} />
           <p id="service-name-error" className="text-xs text-rose-600 mt-1">{errors.name?.message}</p>
         </div>
         <div>
-          <label htmlFor="service-code" className="block text-xs font-bold text-slate-700 mb-1">Mã dịch vụ</label>
-          <input id="service-code" {...register('code')} aria-invalid={!!errors.code} aria-describedby="service-code-error" className={`${inputClass} uppercase`} />
+          <label htmlFor="service-code" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mã dịch vụ</label>
+          <input id="service-code" placeholder="VD: WIFI, PARKING, CLEANING" {...register('code')} aria-invalid={!!errors.code} aria-describedby="service-code-error" className={`${inputClass} uppercase`} />
           <p id="service-code-error" className="text-xs text-rose-600 mt-1">{errors.code?.message}</p>
         </div>
         <div>
-          <label htmlFor="service-billing_type" className="block text-xs font-bold text-slate-700 mb-1">Cách tính phí</label>
+          <label htmlFor="service-billing_type" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Cách tính phí</label>
           <select id="service-billing_type" {...register('billing_type')} aria-invalid={!!errors.billing_type} aria-describedby="service-billing_type-error" className={inputClass}>
             <option value="per_room">Theo phòng / tháng</option><option value="per_person">Theo người / tháng</option><option value="per_unit">Theo số lượng</option>
           </select>
           <p id="service-billing_type-error" className="text-xs text-rose-600 mt-1">{errors.billing_type?.message}</p>
         </div>
         <div>
-          <label htmlFor="service-price" className="block text-xs font-bold text-slate-700 mb-1">Đơn giá niêm yết (VND)</label>
-          <input id="service-price" type="number" {...register('price', { valueAsNumber: true })} aria-invalid={!!errors.price} aria-describedby="service-price-error" className={inputClass} />
+          <label htmlFor="service-price" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Đơn giá niêm yết (VND)</label>
+          <input id="service-price" type="number" placeholder="VD: 100000" {...register('price', { valueAsNumber: true })} aria-invalid={!!errors.price} aria-describedby="service-price-error" className={inputClass} />
           <p id="service-price-error" className="text-xs text-rose-600 mt-1">{errors.price?.message}</p>
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="service-unit" className="block text-xs font-bold text-slate-700 mb-1">Đơn vị tính (tùy chọn)</label>
-          <input id="service-unit" {...register('unit')} aria-invalid={!!errors.unit} aria-describedby="service-unit-error" className={inputClass} />
+          <label htmlFor="service-unit" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Đơn vị tính (tùy chọn)</label>
+          <input id="service-unit" placeholder="VD: phòng/tháng, người/tháng, xe/tháng..." {...register('unit')} aria-invalid={!!errors.unit} aria-describedby="service-unit-error" className={inputClass} />
           <p id="service-unit-error" className="text-xs text-rose-600 mt-1">{errors.unit?.message}</p>
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="service-description" className="block text-xs font-bold text-slate-700 mb-1">Mô tả (tùy chọn)</label>
-          <textarea id="service-description" rows={2} {...register('description')} aria-invalid={!!errors.description} aria-describedby="service-description-error" className={inputClass} />
+          <label htmlFor="service-description" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mô tả (tùy chọn)</label>
+          <textarea id="service-description" rows={2} placeholder="VD: Áp dụng cố định hàng tháng theo hợp đồng..." {...register('description')} aria-invalid={!!errors.description} aria-describedby="service-description-error" className={inputClass} />
           <p id="service-description-error" className="text-xs text-rose-600 mt-1">{errors.description?.message}</p>
         </div>
       </fieldset>
@@ -89,18 +89,18 @@ export function ServiceEditForm({ service, onSaved, onCancel, onBusyChange }: Fo
       </dl>
       <fieldset disabled={isSubmitting} className="space-y-4">
         <div>
-          <label htmlFor="service-name" className="block text-xs font-bold text-slate-700 mb-1">Tên dịch vụ</label>
-          <input id="service-name" {...register('name')} aria-invalid={!!errors.name} aria-describedby="service-name-error" className={inputClass} />
+          <label htmlFor="service-name" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tên dịch vụ</label>
+          <input id="service-name" placeholder="VD: Internet Wifi tốc độ cao..." {...register('name')} aria-invalid={!!errors.name} aria-describedby="service-name-error" className={inputClass} />
           <p id="service-name-error" className="text-xs text-rose-600 mt-1">{errors.name?.message}</p>
         </div>
         {service.billing_type !== 'metered' ? <div>
-          <label htmlFor="service-price" className="block text-xs font-bold text-slate-700 mb-1">Đơn giá niêm yết (VND)</label>
-          <input id="service-price" type="number" {...register('price', { valueAsNumber: true })} aria-invalid={!!errors.price} aria-describedby="service-price-error" className={inputClass} />
+          <label htmlFor="service-price" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Đơn giá niêm yết (VND)</label>
+          <input id="service-price" type="number" placeholder="VD: 100000" {...register('price', { valueAsNumber: true })} aria-invalid={!!errors.price} aria-describedby="service-price-error" className={inputClass} />
           <p id="service-price-error" className="text-xs text-rose-600 mt-1">{errors.price?.message}</p>
         </div> : <p className="text-xs text-sky-800 bg-sky-50 rounded-xl p-3">Giá theo chỉ số được quản lý tại Bảng giá điện nước; không sửa tại đây.</p>}
         <div>
-          <label htmlFor="service-description" className="block text-xs font-bold text-slate-700 mb-1">Mô tả (tùy chọn)</label>
-          <textarea id="service-description" rows={2} {...register('description')} aria-invalid={!!errors.description} aria-describedby="service-description-error" className={inputClass} />
+          <label htmlFor="service-description" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mô tả (tùy chọn)</label>
+          <textarea id="service-description" rows={2} placeholder="VD: Áp dụng cố định hàng tháng theo hợp đồng..." {...register('description')} aria-invalid={!!errors.description} aria-describedby="service-description-error" className={inputClass} />
           <p id="service-description-error" className="text-xs text-rose-600 mt-1">{errors.description?.message}</p>
         </div>
       </fieldset>

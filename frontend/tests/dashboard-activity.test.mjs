@@ -16,7 +16,7 @@ test('building URL pagination rejects invalid or unsafe input', () => {
 test('work queues use exact pending and due filters, with server totals beyond one page', () => {
   assert.equal(dashboardCountPageSchema.parse({ data: Array(20).fill({}), meta: { total: 41 } }).meta.total, 41)
   assert.equal(dashboardCountPageSchema.safeParse({ meta: { total: -1 } }).success, false)
-  assert.deepEqual(dashboardQueues.map(q => q.params), [{ status: 'pending' }, { status: 'pending' }, { due: 'expiring' }, { due: 'overdue' }])
+  assert.deepEqual(dashboardQueues.map(q => q.params), [{ overdue: '1' }, { status: 'pending' }, { status: 'pending' }, { due: 'expiring' }, { due: 'overdue' }, { status: 'pending' }])
   assert.ok(dashboardQueues.every(q => q.href.startsWith('/admin/')))
 })
 test('today appointments retain only the displayed projection and use server total', () => {

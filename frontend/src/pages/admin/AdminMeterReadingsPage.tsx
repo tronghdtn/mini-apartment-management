@@ -12,12 +12,15 @@ import { SubmissionList } from '@/features/meter-submissions/SubmissionList'
 import { meterFiltersSchema } from '@/features/meter-readings/schemas'
 import type { MeterOptions, MeterReading, MeterReadingPage } from '@/features/meter-readings/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
+import { RefreshingFrame } from '@/components/ui/RefreshingFrame'
+import { useKeepPrevious } from '@/hooks/useKeepPrevious'
 
 type MeterTab = 'list' | 'batch' | 'verify'
 export function AdminMeterReadingsPage() {
   const { refresh } = useAuth()
   const [params, setParams] = useSearchParams()
-  const [tab, setTab] = useState<MeterTab>('list')
+  // `?tab=verify` cho phép liên kết thẳng tới tab duyệt ảnh (ví dụ từ Việc cần làm ở Tổng quan).
+  const [tab, setTab] = useState<MeterTab>(() => params.get('tab') === 'verify' ? 'verify' : 'list')
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [revision, setRevision] = useState(0)
@@ -49,7 +52,7 @@ export function AdminMeterReadingsPage() {
     return () => abort.abort()
   }, [optionRevision, refresh])
   const optionLoading = options?.revision !== optionRevision
-  const data = loaded?.key === key ? loaded.data : undefined
+  const { value: data } = useKeepPrevious(loaded?.key === key ? loaded.data : undefined)
   const error = queryError || (loaded?.key === key ? loaded.error : '')
   const loading = !queryError && loaded?.key !== key
   const ready = !loading && !error && !optionLoading && !!options?.data && options.data.rooms.length > 0 && options.data.services.length > 0
@@ -82,10 +85,10 @@ export function AdminMeterReadingsPage() {
         <label className="text-xs font-bold text-slate-700">Kỳ tiêu thụ<input type="date" value={period} onChange={event => filter('period', event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm" /></label>
         <label className="text-xs font-bold text-slate-700">Loại chỉ số<select value={kind} onChange={event => filter('kind', event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm"><option value="">Tất cả loại</option><option value="periodic">Định kỳ</option><option value="final">Chốt thanh lý</option></select></label>
       </fieldset>
-      {loading ? <p role="status">Đang tải chỉ số điện nước…</p> : error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p>{error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại</Button>{queryError && <Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc không hợp lệ</Button>}</div> : data && <>
+      {loading && !data ? <p role="status">Đang tải chỉ số điện nước…</p> : error ? <div role="alert" className="space-y-3 rounded-2xl border border-rose-200 bg-rose-50 p-5"><p>{error}</p><Button variant="outline" onClick={() => setRevision(value => value + 1)}>Thử lại</Button>{queryError && <Button variant="ghost" onClick={() => setParams({})}>Xóa bộ lọc không hợp lệ</Button>}</div> : data && <RefreshingFrame busy={loading} className="space-y-6">
         <MeterReadingsTable readings={data.data} />
         <nav aria-label="Phân trang chỉ số" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"><p>Trang {data.meta.current_page}/{data.meta.last_page} · {data.meta.total} chỉ số</p><div className="flex gap-2"><Button variant="outline" disabled={busy || Number(page) <= 1} onClick={() => filter('page', String(Number(page) - 1))}>Trang trước</Button><Button variant="outline" disabled={busy || Number(page) >= data.meta.last_page} onClick={() => filter('page', String(Number(page) + 1))}>Trang sau</Button></div></nav>
-      </>}
+      </RefreshingFrame>}
     </>}
     <Modal isOpen={creating} onClose={close} title="Nhập chỉ số chính thức" maxWidth="lg">{options?.data && <MeterReadingForm key={`single:${building}`} options={options.data} buildingId={building ? Number(building) : undefined} onSaved={saved} onCancel={close} onBusyChange={setBusy} onAuthFailure={refresh} />}</Modal>
   </div>

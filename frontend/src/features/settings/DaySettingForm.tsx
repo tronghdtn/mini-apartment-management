@@ -52,7 +52,7 @@ export function DaySettingForm({ settingKey, setting, onSaved, onAuthFailure }: 
       <p className="text-sm text-slate-500">Giá trị đã lưu: {setting?.value ?? 'Chưa cấu hình'}{setting?.value != null ? ' ngày' : ''}.</p>
       <div className="flex flex-wrap gap-3 items-start">
         <div className="flex-1 min-w-40">
-          <input id={id} inputMode="numeric" autoComplete="off" disabled={busy} aria-invalid={!!errors.value} aria-describedby={`${id}-help`} {...register('value')} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-sky-500 disabled:bg-slate-100" />
+          <input id={id} inputMode="numeric" autoComplete="off" placeholder="VD: 5" disabled={busy} aria-invalid={!!errors.value} aria-describedby={`${id}-help`} {...register('value')} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-sky-500 disabled:bg-slate-100" />
           <p id={`${id}-help`} className="text-xs text-slate-500 mt-1">Nhập từ 1 đến 365 ngày.</p>
           {errors.value && <p role="alert" className="text-sm text-rose-700 mt-1">{errors.value.message}</p>}
         </div>

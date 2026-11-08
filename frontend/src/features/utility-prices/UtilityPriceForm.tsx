@@ -47,8 +47,8 @@ export function UtilityPriceForm({ services, buildings, buildingId = 0, onSaved,
           <p id="utility-price-service_id-error" className="text-xs text-rose-600 mt-1">{errors.service_id?.message}</p>
         </div>
         <div>
-          <label htmlFor="utility-price-unit_price" className="block text-xs font-bold text-slate-700 mb-1">Đơn giá mới (VND)</label>
-          <input id="utility-price-unit_price" type="number" {...register('unit_price', { valueAsNumber: true })} aria-invalid={!!errors.unit_price} aria-describedby="utility-price-unit_price-error" className={inputClass} />
+          <label htmlFor="utility-price-unit_price" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Đơn giá mới (VND)</label>
+          <input id="utility-price-unit_price" type="number" placeholder="VD: 3500 (Điện) hoặc 25000 (Nước)" {...register('unit_price', { valueAsNumber: true })} aria-invalid={!!errors.unit_price} aria-describedby="utility-price-unit_price-error" className={inputClass} />
           <p id="utility-price-unit_price-error" className="text-xs text-rose-600 mt-1">{errors.unit_price?.message}</p>
         </div>
         <div>

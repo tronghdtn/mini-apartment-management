@@ -50,7 +50,7 @@ export function SystemSettingForm({ settingKey, setting, onSaved, onAuthFailure 
     <label htmlFor={id} className="block text-sm font-bold text-slate-700">{textSettingLabels[settingKey]}</label>
     <p className="text-xs text-slate-500 break-words">Giá trị đã lưu: {baseline ?? 'Chưa cấu hình'}.</p>
     <fieldset disabled={busy} className="min-w-0 space-y-3">
-      <input id={id} type={settingKey === 'system.contact_email' ? 'email' : 'text'} inputMode={settingKey === 'system.contact_phone' ? 'tel' : undefined} {...form.register('value')} aria-invalid={!!form.formState.errors.value} aria-describedby={`${id}-help`} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-sky-500 disabled:bg-slate-100" />
+      <input id={id} type={settingKey === 'system.contact_email' ? 'email' : 'text'} inputMode={settingKey === 'system.contact_phone' ? 'tel' : undefined} placeholder="Nhập giá trị cấu hình..." {...form.register('value')} aria-invalid={!!form.formState.errors.value} aria-describedby={`${id}-help`} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm focus:outline-sky-500 disabled:bg-slate-100" />
       <p id={`${id}-help`} className="text-xs text-slate-500">Để trống và lưu để xóa giá trị cấu hình. Mỗi lần chỉ lưu trường này.</p>
       {form.formState.errors.value && <p role="alert" className="text-sm text-rose-700">{form.formState.errors.value.message}</p>}
       <div className="flex flex-wrap gap-2"><Button type="submit" size="sm" disabled={conflict} isLoading={busy}>Lưu {textSettingLabels[settingKey].toLowerCase()}</Button>

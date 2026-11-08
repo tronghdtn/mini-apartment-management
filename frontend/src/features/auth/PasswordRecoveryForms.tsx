@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { isAxiosError } from 'axios'
 import { applyAuthErrors } from './errors'
@@ -24,7 +25,7 @@ export function ForgotPasswordForm() {
     <p className="text-sm text-slate-500">Nhập email đã xác minh của tài khoản. Liên kết đặt lại mật khẩu có hiệu lực 60 phút.</p>
     <div>
       <label htmlFor="forgot-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">Email</label>
-      <input id="forgot-email" type="email" autoComplete="email" {...register('email')} className={inputClass} aria-invalid={!!errors.email} aria-describedby="forgot-email-error" />
+      <input id="forgot-email" type="email" autoComplete="email" placeholder="VD: nguyenvanan@gmail.com" {...register('email')} className={inputClass} aria-invalid={!!errors.email} aria-describedby="forgot-email-error" />
       <p id="forgot-email-error" className="mt-1 text-xs text-rose-600">{errors.email?.message}</p>
     </div>
     {errors.root && <p role="alert" className="text-sm text-rose-600">{errors.root.message}</p>}
@@ -36,6 +37,7 @@ export function ForgotPasswordForm() {
 export function ResetPasswordForm({ email, token }: { email: string; token: string }) {
   const [done, setDone] = useState(false)
   const [linkError, setLinkError] = useState('')
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({})
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema), defaultValues: { password: '', password_confirmation: '' },
   })
@@ -50,11 +52,24 @@ export function ResetPasswordForm({ email, token }: { email: string; token: stri
   if (done) return <div role="status" className="space-y-3 rounded-xl bg-teal-50 p-4 text-sm text-teal-800"><p>Đã đặt lại mật khẩu. Mọi thiết bị đã được đăng xuất.</p><Link to="/login" className="font-bold underline">Đăng nhập bằng mật khẩu mới</Link></div>
   return <form onSubmit={submit} noValidate className="space-y-4" aria-busy={isSubmitting}>
     <p className="break-all text-sm text-slate-500">Đặt mật khẩu mới cho <strong>{email}</strong>.</p>
-    {([['password', 'Mật khẩu mới'], ['password_confirmation', 'Xác nhận mật khẩu mới']] as const).map(([key, label]) => <div key={key}>
-      <label htmlFor={`reset-${key}`} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">{label}</label>
-      <input id={`reset-${key}`} type="password" autoComplete="new-password" {...register(key)} className={inputClass} aria-invalid={!!errors[key]} aria-describedby={`reset-${key}-error`} />
-      <p id={`reset-${key}-error`} className="mt-1 text-xs text-rose-600">{errors[key]?.message}</p>
-    </div>)}
+    {([['password', 'Mật khẩu mới'], ['password_confirmation', 'Xác nhận mật khẩu mới']] as const).map(([key, label]) => {
+      const isVisible = !!visiblePasswords[key]
+      return <div key={key}>
+        <label htmlFor={`reset-${key}`} className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">{label}</label>
+        <div className="relative">
+          <input id={`reset-${key}`} type={isVisible ? 'text' : 'password'} autoComplete="new-password" placeholder={key === 'password' ? 'Nhập mật khẩu mới (tối thiểu 8 ký tự)' : 'Nhập lại mật khẩu mới'} {...register(key)} className={`${inputClass} pr-10`} aria-invalid={!!errors[key]} aria-describedby={`reset-${key}-error`} />
+          <button
+            type="button"
+            onClick={() => setVisiblePasswords(prev => ({ ...prev, [key]: !prev[key] }))}
+            aria-label={isVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+          >
+            {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        <p id={`reset-${key}-error`} className="mt-1 text-xs text-rose-600">{errors[key]?.message}</p>
+      </div>
+    })}
     {linkError && <p role="alert" className="text-sm text-rose-600">{linkError} <Link to="/forgot-password" className="font-bold underline">Gửi lại liên kết</Link></p>}
     {errors.root && !linkError && <p role="alert" className="text-sm text-rose-600">{errors.root.message}</p>}
     <p className="text-xs text-slate-500">Tối thiểu 8 ký tự, tối đa 72 byte. Đặt lại thành công sẽ đăng xuất mọi thiết bị.</p>

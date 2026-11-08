@@ -24,11 +24,11 @@ export function StaffUserForm({ onCreated, onCancel, onBusyChange }: StaffUserFo
     defaultValues: { full_name: '', phone: '', email: '', role: 'technician', password: '', password_confirmation: '' },
   })
   const fields = [
-    { name: 'full_name', label: 'Họ và tên', type: 'text' },
-    { name: 'phone', label: 'Số điện thoại', type: 'tel' },
-    { name: 'email', label: 'Email (tùy chọn)', type: 'email' },
-    { name: 'password', label: 'Mật khẩu ban đầu', type: 'password' },
-    { name: 'password_confirmation', label: 'Nhập lại mật khẩu', type: 'password' },
+    { name: 'full_name', label: 'Họ và tên', type: 'text', placeholder: 'VD: Phạm Văn Kỹ Thuật' },
+    { name: 'phone', label: 'Số điện thoại', type: 'tel', placeholder: 'VD: 0912345678' },
+    { name: 'email', label: 'Email (tùy chọn)', type: 'email', placeholder: 'VD: kythuat@miniapart.vn' },
+    { name: 'password', label: 'Mật khẩu ban đầu', type: 'password', placeholder: 'Tối thiểu 8 ký tự (VD: Password123!)' },
+    { name: 'password_confirmation', label: 'Nhập lại mật khẩu', type: 'password', placeholder: 'Nhập lại mật khẩu khớp ở trên' },
   ] as const
   async function submit(input: StaffUserInput) {
     if (requestInFlight.current) return
@@ -59,8 +59,8 @@ export function StaffUserForm({ onCreated, onCancel, onBusyChange }: StaffUserFo
         </div>
         {fields.map(field => (
           <div key={field.name} className={field.name === 'full_name' ? 'sm:col-span-2' : ''}>
-            <label htmlFor={`staff-user-${field.name}`} className="block text-xs font-bold text-slate-700 mb-1">{field.label}</label>
-            <input id={`staff-user-${field.name}`} type={field.type} autoComplete={field.type === 'password' ? 'new-password' : 'off'} {...register(field.name)}
+            <label htmlFor={`staff-user-${field.name}`} className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">{field.label}</label>
+            <input id={`staff-user-${field.name}`} type={field.type} placeholder={field.placeholder} autoComplete={field.type === 'password' ? 'new-password' : 'off'} {...register(field.name)}
               aria-invalid={!!errors[field.name]} aria-describedby={`staff-user-${field.name}-error`} className={inputClass} />
             <p id={`staff-user-${field.name}-error`} className="text-xs text-rose-600 mt-1">{errors[field.name]?.message}</p>
           </div>

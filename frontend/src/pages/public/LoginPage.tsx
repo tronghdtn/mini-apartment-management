@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Building2, Sparkles } from 'lucide-react'
+import { Building2, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/features/auth/useAuth'
 import { loginSchema } from '@/features/auth/schemas'
@@ -13,6 +14,7 @@ export function LoginPage() {
   const auth = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showPassword, setShowPassword] = useState(false)
   // Context survives RequireAuth's redirect, so a successful logout cannot lose its confirmation message.
   const accountNotice = auth.accountNotice
   const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginInput>({
@@ -46,7 +48,26 @@ export function LoginPage() {
               </div>
               <div>
                 <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Mật khẩu</label>
-                <input id="password" type="password" autoComplete="current-password" {...register('password')} className={inputClass} aria-invalid={!!errors.password} aria-describedby="password-error" />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="Nhập mật khẩu"
+                    {...register('password')}
+                    className={`${inputClass} pr-10`}
+                    aria-invalid={!!errors.password}
+                    aria-describedby="password-error"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(prev => !prev)}
+                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <p id="password-error" className="text-xs text-rose-600 mt-1">{errors.password?.message}</p>
               </div>
               <p className="text-right text-xs"><Link to="/forgot-password" className="font-semibold text-sky-600 hover:underline">Quên mật khẩu?</Link></p>

@@ -15,6 +15,7 @@ export const maintenancePriorityLabels: Record<MaintenancePriority, string> = {
   low: 'Thấp', normal: 'Bình thường', high: 'Cao', urgent: 'Khẩn cấp',
 }
 
-export const maintenancePriorityTones: Record<MaintenancePriority, 'slate' | 'sky' | 'amber' | 'rose'> = {
-  low: 'slate', normal: 'sky', high: 'amber', urgent: 'rose',
+// Ưu tiên thấp/bình thường để trung tính; chỉ mức cao và khẩn cấp mới có màu, tránh trùng màu trạng thái "Đang xử lý".
+export const maintenancePriorityTones: Record<MaintenancePriority, 'slate' | 'amber' | 'rose'> = {
+  low: 'slate', normal: 'slate', high: 'amber', urgent: 'rose',
 }

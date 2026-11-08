@@ -17,3 +17,7 @@ export async function getDashboardQueue(queue: DashboardQueue, signal?: AbortSig
 export async function getDashboardAppointments(date: string, signal?: AbortSignal) {
   return dashboardAppointmentsSchema.parse((await http.get('/viewing-appointments', { params: { date, page: 1 }, signal })).data)
 }
+/** Tổng số phòng (mọi trạng thái) lấy từ meta phân trang của danh sách phòng, để tính tỷ lệ lấp đầy. */
+export async function getTotalRooms(signal?: AbortSignal) {
+  return dashboardCountPageSchema.parse((await http.get('/rooms', { params: { page: 1 }, signal })).data).meta.total
+}

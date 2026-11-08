@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import { AlertTriangle, Clock, FileText, Plus, Search } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { Link, useNavigate, useSearchParams } from 'react-router'
+import { AlertTriangle, ChevronRight, Clock, FileText, Plus, RotateCcw, Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Tabs } from '@/components/ui/Tabs'
-import { apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
+import { RefreshingFrame } from '@/components/ui/RefreshingFrame'
+import { useKeepPrevious } from '@/hooks/useKeepPrevious'
+import { apiErrorMessage } from '@/lib/apiErrors'
 import { businessToday, formatVND, formatDate } from '@/lib/format'
 import { getContracts } from '@/features/contracts/api'
 import { contractFiltersSchema } from '@/features/contracts/schemas'
@@ -27,29 +27,61 @@ const filterKeys = ['status', 'due', 'building_id', 'room_id', 'user_id', 'q'] a
 const scopeKeys = ['building_id', 'room_id', 'user_id', 'q'] as const
 
 function DueNote({ state }: { state: ReturnType<typeof contractDueState> }) {
-  if (state === 'overdue') return <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-rose-700"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />Quá hạn trả phòng: đã qua ngày cuối được ở, chưa bàn giao</span>
-  if (state === 'expiring') return <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-amber-700"><Clock className="h-3.5 w-3.5 shrink-0" />Sắp hết hạn</span>
+  if (state === 'overdue') return <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-700" title="Đã qua ngày cuối được ở nhưng chưa bàn giao phòng"><AlertTriangle className="h-3.5 w-3.5 shrink-0" />Quá hạn trả phòng</span>
+  if (state === 'expiring') return <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700"><Clock className="h-3.5 w-3.5 shrink-0" />Sắp hết hạn</span>
   return null
 }
 
-function ContractCard({ contract, due }: { contract: Contract; due: ContractDueWindow }) {
-  return <li className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0"><Link to={`/admin/contracts/${contract.id}`} className="font-mono text-sm font-bold text-slate-900 hover:text-sky-600">{contractLabel(contract)}</Link>
-        <p className="mt-1 text-sm font-semibold text-slate-800">Phòng {contract.room.code} <span className="font-normal text-slate-500">· {contract.room.building.name}</span></p></div>
-      <Badge tone={contractStatusTones[contract.status]} dot>{contractStatusLabels[contract.status]}</Badge>
+const dayMs = 86_400_000
+function dateValue(date: string) {
+  const [year, month, day] = date.split('-').map(Number)
+  return Date.UTC(year, month - 1, day)
+}
+
+/** Thanh thời hạn: phần đã ở so với tổng thời hạn, chỉ cho hợp đồng đang hiệu lực. */
+function TermBar({ contract, today, state }: { contract: Contract; today: string; state: ReturnType<typeof contractDueState> }) {
+  if (contract.status !== 'active') return null
+  const start = dateValue(contract.start_date)
+  const total = dateValue(contract.end_date) - start + dayMs
+  const used = Math.min(Math.max(dateValue(today) - start + dayMs, 0), total)
+  const ratio = total > 0 ? Math.round((used / total) * 100) : 0
+  const color = state === 'overdue' ? 'bg-rose-500' : state === 'expiring' ? 'bg-amber-500' : 'bg-sky-500'
+  return (
+    <div className="mt-2 h-1 w-full max-w-40 overflow-hidden rounded-full bg-slate-100" role="img" aria-label={`Đã qua ${ratio}% thời hạn`}>
+      <div className={`h-full ${color}`} style={{ width: `${ratio}%` }} />
     </div>
-    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-      <div className="col-span-2"><dt className="text-slate-500">Người thuê</dt><dd className="font-semibold text-slate-800 break-words">{contract.tenant.full_name} · {contract.tenant.phone}</dd></div>
-      <div className="col-span-2"><dt className="text-slate-500">Thời hạn (ngày cuối ở)</dt><dd className="text-slate-800">{formatDate(contract.start_date)} → <strong>{formatDate(contract.end_date)}</strong></dd><DueNote state={contractDueState(contract, due)} /></div>
-      <div><dt className="text-slate-500">Tiền thuê</dt><dd className="font-bold text-sky-700">{formatVND(contract.monthly_rent)}/tháng</dd></div>
-      <div><dt className="text-slate-500">Tiền cọc</dt><dd><Badge size="sm" tone={depositStatusTone(contract.deposit_status)}>{depositStatusText(contract)}</Badge></dd></div>
-    </dl>
-    <Link to={`/admin/contracts/${contract.id}`} className="mt-4 block rounded-xl border border-slate-300 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</Link>
-  </li>
+  )
+}
+
+function ContractCard({ contract, due, onOpen }: { contract: Contract; due: ContractDueWindow; onOpen: () => void }) {
+  const state = contractDueState(contract, due)
+  return (
+    <li onClick={onOpen} className="min-w-0 cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <Link to={`/admin/contracts/${contract.id}`} onClick={e => e.stopPropagation()} className="font-semibold text-slate-900 hover:text-sky-700">
+            Phòng {contract.room.code}
+          </Link>
+          <p className="truncate text-xs text-slate-500">{contract.room.building.name}</p>
+        </div>
+        <Badge size="sm" tone={contractStatusTones[contract.status]} dot>{contractStatusLabels[contract.status]}</Badge>
+      </div>
+      <p className="mt-3 text-sm font-medium text-slate-800">{contract.tenant.full_name}<span className="font-normal text-slate-500"> · {contract.tenant.phone}</span></p>
+      {contract.status === 'draft' && <div className="mt-2"><Badge size="sm" tone={depositStatusTone(contract.deposit_status)}>{depositStatusText(contract)}</Badge></div>}
+      <div className="mt-2 flex items-end justify-between gap-3">
+        <div className="min-w-0 text-xs text-slate-600">
+          <p className="tabular-nums">{formatDate(contract.start_date)} – {formatDate(contract.end_date)}</p>
+          <TermBar contract={contract} today={due.today} state={state} />
+          <div className="mt-1"><DueNote state={state} /></div>
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-slate-900 tabular-nums">{formatVND(contract.monthly_rent)}<span className="text-xs font-normal text-slate-500">/tháng</span></p>
+      </div>
+    </li>
+  )
 }
 
 export function AdminContractsPage() {
+  const routerNavigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const urlFilters = Object.fromEntries(filterKeys.map(field => [field, params.get(field) ?? ''])) as ContractFilters
   const scope = scopeKeys.map(field => params.get(field) ?? '').join('|')
@@ -61,27 +93,44 @@ export function AdminContractsPage() {
   const filtersJson = filters ? JSON.stringify(filters) : ''
   const key = `${filtersJson}:${page}:${retry}`
   const [result, setResult] = useState<{ key: string; data?: ContractPage; error?: string }>()
-  // Số đếm chỉ đổi theo phạm vi lọc (tòa/phòng/người thuê/từ khóa), giữ nguyên khi chuyển tab trong lúc tải.
   const [countsFor, setCountsFor] = useState<{ scope: string; counts: ContractTabCounts }>()
-  const { register, handleSubmit, reset, setValue, setError: setFieldError, formState: { errors } } = useForm<ContractFilters>({ resolver: zodResolver(contractFiltersSchema), defaultValues: filters ?? urlFilters })
   const queryText = filters?.q ?? ''
-  useEffect(() => { setValue('q', queryText) }, [queryText, setValue])
+  const [searchInput, setSearchInput] = useState(queryText)
+
+  useEffect(() => { setSearchInput(queryText) }, [queryText])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchInput.trim()
+      if (trimmed !== queryText) {
+        const merged = { ...(filters ?? urlFilters), q: trimmed }
+        const search = new URLSearchParams()
+        for (const field of filterKeys) { const value = merged[field]; if (value) search.set(field, value) }
+        setParams(search, { replace: true })
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput, queryText, filters, urlFilters, setParams])
+
   useEffect(() => {
     if (!filtersJson) return
     const requestKey = `${filtersJson}:${page}:${retry}`
     const controller = new AbortController()
     getContracts(page, JSON.parse(filtersJson) as ContractFilters, controller.signal)
       .then(data => { if (!controller.signal.aborted) { setResult({ key: requestKey, data }); if (data.meta.counts) setCountsFor({ scope, counts: data.meta.counts }) } })
-      .catch(failure => { if (!controller.signal.aborted) { setResult({ key: requestKey, error: apiErrorMessage(failure) }); applyApiErrors(failure, setFieldError, ['q', 'status', 'due']) } })
+      .catch(failure => { if (!controller.signal.aborted) { setResult({ key: requestKey, error: apiErrorMessage(failure) }) } })
     return () => controller.abort()
-  }, [filtersJson, page, retry, scope, setFieldError])
+  }, [filtersJson, page, retry, scope])
+
   const current = result?.key === key ? result : undefined
+  const { value: shown, stale } = useKeepPrevious(current?.data ? current : undefined)
   const today = businessToday()
-  const due: ContractDueWindow = current?.data?.meta.due ?? { today, expiring_until: today, expiring_warning_days: 0 }
+  const due: ContractDueWindow = shown?.data?.meta.due ?? { today, expiring_until: today, expiring_warning_days: 0 }
   const activeTab: TabId = (filters?.due || filters?.status || '') as TabId
   const counts = countsFor?.scope === scope ? countsFor.counts : undefined
   const tabs = tabDefs.map(tab => ({ id: tab.id, label: tab.label, count: counts?.[tab.count] }))
   const hasFilters = !!filters && filterKeys.some(field => (filters[field] ?? '') !== '')
+
   function navigate(next: Partial<ContractFilters>, nextPage = 1) {
     const merged = { ...(filters ?? urlFilters), ...next }
     const search = new URLSearchParams()
@@ -89,32 +138,154 @@ export function AdminContractsPage() {
     if (nextPage > 1) search.set('page', String(nextPage))
     setParams(search)
   }
-  function clearFilters() { reset({ status: '', due: '', building_id: '', room_id: '', user_id: '', q: '' }); setParams(new URLSearchParams()) }
 
-  return <div className="space-y-6">
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
-      <div><h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">Quản Lý Hợp Đồng Thuê</h1><p className="text-xs text-slate-500 mt-1">Bản nháp được sửa, nhận cọc và kích hoạt tại trang chi tiết. Quá hạn/sắp hết hạn chỉ là nhãn theo ngày cuối được ở; hợp đồng vẫn hiệu lực đến khi thanh lý.</p></div>
-      <Link to="/admin/contracts/new" className="self-start sm:self-auto"><Button icon={<Plus className="w-4 h-4" />}>Lập hợp đồng mới</Button></Link>
-    </div>
-    <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <Tabs size="sm" tabs={tabs} activeTab={activeTab} onChange={value => navigate(tabDefs.find(tab => tab.id === value)?.filter ?? {})} />
-        <form noValidate role="search" onSubmit={event => { void handleSubmit(input => navigate({ q: input.q }))(event) }} className="flex w-full lg:w-auto gap-2 items-start">
-          <div className="flex-1 lg:w-72"><label htmlFor="contract-q" className="sr-only">Tìm hợp đồng</label><div className="relative"><Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" /><input id="contract-q" type="search" {...register('q')} placeholder="Mã hợp đồng, người thuê, phòng…" aria-invalid={!!errors.q} aria-describedby="contract-q-error" className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-sm" /></div>{errors.q && <p id="contract-q-error" role="alert" className="text-xs text-rose-600 mt-1">{errors.q.message}</p>}</div>
-          <Button type="submit">Tìm</Button>
-        </form>
+  function clearFilters() {
+    setSearchInput('')
+    setParams(new URLSearchParams())
+  }
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hợp đồng thuê</h1>
+          <p className="mt-1 text-sm text-slate-500">Theo dõi thời hạn, tiền cọc và trạng thái của từng hợp đồng.</p>
+        </div>
+        <Link to="/admin/contracts/new" className="self-start sm:self-auto shrink-0">
+          <Button icon={<Plus className="w-4 h-4" />}>Hợp đồng mới</Button>
+        </Link>
+      </header>
+
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3">
+          <Tabs size="sm" tabs={tabs} activeTab={activeTab} onChange={value => navigate(tabDefs.find(tab => tab.id === value)?.filter ?? {})} />
+          <div className="flex w-full items-center gap-2">
+            <div className="relative w-full max-w-md">
+              <label htmlFor="contract-q" className="sr-only">Tìm hợp đồng</label>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                id="contract-q"
+                type="text"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                placeholder="Tìm người thuê, phòng, mã hợp đồng"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-100"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-0.5 text-slate-400 hover:text-slate-600"
+                  aria-label="Xóa từ khóa"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {(hasFilters || !filters) && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} icon={<RotateCcw className="h-3.5 w-3.5" />}>Xóa lọc</Button>
+            )}
+          </div>
+        </div>
+        {filters && (filters.building_id || filters.room_id || filters.user_id) && (
+          <p className="text-xs text-slate-500">
+            Đang xem hợp đồng của {[filters.building_id && 'một tòa nhà', filters.room_id && 'một phòng', filters.user_id && 'một người thuê'].filter(Boolean).join(', ')}.
+          </p>
+        )}
       </div>
-      {(hasFilters || !filters) && <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">{(filters?.building_id || filters?.room_id || filters?.user_id) && <span className="rounded-full bg-slate-100 px-3 py-1">Đang lọc theo {[filters.building_id && 'tòa', filters.room_id && 'phòng', filters.user_id && 'người thuê'].filter(Boolean).join(', ')} từ liên kết</span>}<button type="button" onClick={clearFilters} className="font-semibold text-sky-700 underline">Xóa bộ lọc</button></div>}
+
+      {!filters ? (
+        <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
+          Đường dẫn có bộ lọc không hợp lệ. Hãy xóa lọc để xem danh sách.
+        </div>
+      ) : current?.error ? (
+        <div role="alert" className="space-y-3 rounded-xl border border-rose-200 bg-rose-50 p-5">
+          <p className="text-sm text-rose-700">{current?.error}</p>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => setRetry(value => value + 1)}>Thử lại</Button>
+            <a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a>
+          </div>
+        </div>
+      ) : !shown?.data ? (
+        <p role="status" className="py-6 text-sm text-slate-500">Đang tải danh sách hợp đồng…</p>
+      ) : (
+        <RefreshingFrame busy={stale} className="space-y-4">{shown.data.data.length === 0 ? (
+          <div className="space-y-3 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+            <FileText className="mx-auto h-10 w-10 text-slate-300" />
+            <p className="font-medium text-slate-700">{hasFilters ? 'Không có hợp đồng phù hợp bộ lọc.' : 'Chưa có hợp đồng nào.'}</p>
+            {hasFilters ? (
+              <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button>
+            ) : (
+              <Link to="/admin/contracts/new" className="inline-block text-sm font-semibold text-sky-700 underline">Lập hợp đồng đầu tiên</Link>
+            )}
+          </div>
+        ) : (
+          <>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:hidden" aria-label="Danh sách hợp đồng">
+              {shown.data.data.map(contract => (
+                <ContractCard key={contract.id} contract={contract} due={due} onOpen={() => routerNavigate(`/admin/contracts/${contract.id}`)} />
+              ))}
+            </ul>
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white xl:block">
+              <table className="w-full min-w-[860px] text-left text-sm">
+                <thead className="border-b border-slate-200 text-xs text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Phòng</th>
+                    <th className="px-5 py-3 font-medium">Người thuê</th>
+                    <th className="px-5 py-3 font-medium">Thời hạn</th>
+                    <th className="px-5 py-3 text-right font-medium">Tiền thuê</th>
+                    <th className="px-5 py-3 font-medium">Tiền cọc</th>
+                    <th className="px-5 py-3 font-medium">Trạng thái</th>
+                    <th className="w-10 px-3 py-3" aria-label="Mở"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {shown.data.data.map(contract => {
+                    const state = contractDueState(contract, due)
+                    return (
+                      <tr key={contract.id} onClick={() => routerNavigate(`/admin/contracts/${contract.id}`)} className="group cursor-pointer transition-colors hover:bg-slate-50">
+                        <td className="px-5 py-3.5">
+                          <Link to={`/admin/contracts/${contract.id}`} onClick={e => e.stopPropagation()} className="font-semibold text-slate-900 hover:text-sky-700">
+                            Phòng {contract.room.code}
+                          </Link>
+                          <span className="block max-w-56 truncate text-xs text-slate-500" title={contract.room.building.name}>{contract.room.building.name}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="block whitespace-nowrap font-medium text-slate-900">{contract.tenant.full_name}</span>
+                          <span className="text-xs text-slate-500 tabular-nums">{contract.tenant.phone}</span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="whitespace-nowrap tabular-nums">{formatDate(contract.start_date)} – {formatDate(contract.end_date)}</span>
+                          <TermBar contract={contract} today={due.today} state={state} />
+                          <div className="mt-1 empty:hidden"><DueNote state={state} /></div>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-3.5 text-right font-semibold text-slate-900 tabular-nums">{formatVND(contract.monthly_rent)}</td>
+                        <td className="px-5 py-3.5"><Badge size="sm" tone={depositStatusTone(contract.deposit_status)}>{depositStatusText(contract)}</Badge></td>
+                        <td className="px-5 py-3.5">
+                          <Badge size="sm" tone={contractStatusTones[contract.status]} dot>{contractStatusLabels[contract.status]}</Badge>
+                          <span className="mt-1 block font-mono text-[11px] text-slate-400">{contractLabel(contract)}</span>
+                        </td>
+                        <td className="px-3 py-3.5 text-slate-300 group-hover:text-slate-500"><ChevronRight className="h-4 w-4" aria-hidden="true" /></td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {shown.data.meta.last_page > 1 ? (
+              <nav aria-label="Phân trang hợp đồng" className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+                <p>Trang {shown.data.meta.current_page}/{shown.data.meta.last_page} · {shown.data.meta.total} hợp đồng</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => navigate({}, page - 1)}>Trang trước</Button>
+                  <Button variant="outline" size="sm" disabled={page >= shown.data.meta.last_page} onClick={() => navigate({}, page + 1)}>Trang sau</Button>
+                </div>
+              </nav>
+            ) : (
+              <p className="text-sm text-slate-500">{shown.data.meta.total} hợp đồng</p>
+            )}
+          </>
+        )}</RefreshingFrame>
+      )}
     </div>
-    {!filters ? <div role="alert" className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-900">Bộ lọc trên địa chỉ trang không hợp lệ. Hãy xóa bộ lọc để xem danh sách.</div>
-      : !current ? <p role="status" className="text-sm text-slate-500 py-6">Đang tải danh sách hợp đồng…</p>
-      : current.error ? <div role="alert" className="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-3"><p className="text-sm text-rose-700">{current.error}</p><div className="flex gap-3 items-center"><Button variant="outline" onClick={() => setRetry(value => value + 1)}>Thử lại</Button><a href="/login" className="text-sm text-sky-700 underline">Đăng nhập</a></div></div>
-      : current.data && (current.data.data.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center space-y-3"><FileText className="mx-auto h-10 w-10 text-slate-300" /><p className="font-semibold text-slate-700">{hasFilters ? 'Không có hợp đồng phù hợp bộ lọc.' : 'Chưa có hợp đồng nào.'}</p>{hasFilters ? <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button> : <Link to="/admin/contracts/new" className="inline-block text-sm font-semibold text-sky-700 underline">Lập hợp đồng đầu tiên</Link>}</div> : <>
-        <ul className="space-y-3 md:hidden" aria-label="Danh sách hợp đồng">{current.data.data.map(contract => <ContractCard key={contract.id} contract={contract} due={due} />)}</ul>
-        <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-x-auto shadow-2xs"><table className="w-full min-w-[880px] text-left text-xs"><thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase"><tr><th className="px-5 py-3.5">Mã hợp đồng</th><th className="px-5 py-3.5">Phòng / Tòa nhà</th><th className="px-5 py-3.5">Người đại diện thuê</th><th className="px-5 py-3.5">Thời hạn (ngày cuối ở)</th><th className="px-5 py-3.5">Tiền thuê</th><th className="px-5 py-3.5">Trạng thái cọc</th><th className="px-5 py-3.5">Trạng thái</th><th className="px-5 py-3.5 text-right">Chi tiết</th></tr></thead><tbody className="divide-y divide-slate-100 text-slate-700">
-          {current.data.data.map(contract => <tr key={contract.id} className="hover:bg-slate-50/80"><td className="px-5 py-4 font-mono font-bold text-slate-900"><Link to={`/admin/contracts/${contract.id}`} className="hover:text-sky-600">{contractLabel(contract)}</Link></td><td className="px-5 py-4"><span className="font-bold text-sm text-slate-800 block">{contract.room.code}</span><span className="text-slate-500">{contract.room.building.name}</span></td><td className="px-5 py-4"><span className="font-semibold text-sm text-slate-900 block">{contract.tenant.full_name}</span><span className="text-slate-500">{contract.tenant.phone}</span></td><td className="px-5 py-4 text-sm"><span className="whitespace-nowrap">{formatDate(contract.start_date)} → <strong>{formatDate(contract.end_date)}</strong></span><DueNote state={contractDueState(contract, due)} /></td><td className="px-5 py-4 font-bold text-sky-700 whitespace-nowrap">{formatVND(contract.monthly_rent)}/tháng</td><td className="px-5 py-4"><Badge tone={depositStatusTone(contract.deposit_status)}>{depositStatusText(contract)}</Badge></td><td className="px-5 py-4"><Badge tone={contractStatusTones[contract.status]} dot>{contractStatusLabels[contract.status]}</Badge></td><td className="px-5 py-4 text-right"><Link to={`/admin/contracts/${contract.id}`} className="inline-block px-3 py-1.5 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50">Chi tiết</Link></td></tr>)}
-        </tbody></table></div>
-        <nav aria-label="Phân trang hợp đồng" className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500"><p>Trang {current.data.meta.current_page}/{current.data.meta.last_page} · {current.data.meta.total} hợp đồng</p><div className="flex gap-2"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => navigate({}, page - 1)}>Trang trước</Button><Button variant="outline" size="sm" disabled={page >= current.data.meta.last_page} onClick={() => navigate({}, page + 1)}>Trang sau</Button></div></nav>
-      </>)}
-  </div>
+  )
 }

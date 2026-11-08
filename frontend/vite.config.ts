@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       // Bind mount trên Windows/macOS không phát sinh sự kiện inotify trong container.
-      watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 300 } : undefined,
+      watch: env.VITE_USE_POLLING === 'true' ? { usePolling: true, interval: 1000 } : undefined,
       proxy: {
         '/api': { target: apiTarget, changeOrigin: false },
         '/sanctum': { target: apiTarget, changeOrigin: false },

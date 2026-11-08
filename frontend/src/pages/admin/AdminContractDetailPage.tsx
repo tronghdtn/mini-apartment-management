@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
-import { AlertTriangle, CheckCircle2, ChevronRight, Circle, ClipboardCheck, Lock, Pencil, Receipt, Trash2, Printer } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Lock, Pencil, Receipt, Trash2, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -25,25 +25,6 @@ const invoiceTypeLabels = { monthly: 'Định kỳ tháng', final: 'Tất toán'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return <div className="py-3 flex flex-wrap justify-between gap-2"><dt className="text-slate-500">{label}</dt><dd className="font-semibold text-slate-800 text-right break-words">{children}</dd></div>
-}
-
-/** Các điều kiện kích hoạt đọc từ dữ liệu đã lưu; Laravel vẫn kiểm tra lại khi kích hoạt. */
-function ActivationChecklist({ contract, onOpenTab }: { contract: Contract; onOpenTab: (tab: TabId) => void }) {
-  const serviceCount = (contract.contract_services ?? []).filter(line => line.service.billing_type !== 'metered').length
-  const items: { label: string; detail: string; state: 'done' | 'todo' | 'optional'; tab?: TabId }[] = [
-    { label: 'Thông tin cơ bản', detail: 'Phòng, người thuê, thời hạn và tiền đã lưu nháp.', state: 'done' },
-    { label: 'Dịch vụ định kỳ', detail: serviceCount ? `${serviceCount} dịch vụ đã lưu. Điện, nước được thêm khi kích hoạt.` : 'Chưa chọn (không bắt buộc). Điện, nước được thêm khi kích hoạt.', state: serviceCount ? 'done' : 'optional', tab: 'services' },
-    { label: 'Điều khoản phí trước hạn', detail: contract.early_termination_fee_type ? 'Đã lưu điều khoản thỏa thuận.' : 'Chưa lưu — bắt buộc trước khi kích hoạt.', state: contract.early_termination_fee_type ? 'done' : 'todo', tab: 'terms' },
-    { label: 'Tiền cọc', detail: contract.deposit_amount === 0 ? 'Hợp đồng không yêu cầu cọc.' : contract.deposit_status === 'held' ? 'Đã xác nhận thực nhận đủ cọc.' : 'Cần xác nhận thực nhận đủ cọc trước khi kích hoạt.', state: contract.deposit_amount === 0 || contract.deposit_status === 'held' ? 'done' : 'todo' },
-  ]
-  return <section aria-labelledby="activation-checklist" className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-3">
-    <h2 id="activation-checklist" className="flex items-center gap-2 font-bold text-slate-900"><ClipboardCheck className="h-5 w-5 text-sky-600" />Chuẩn bị kích hoạt</h2>
-    <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{items.map(item => <li key={item.label} className={`rounded-2xl border p-4 ${item.state === 'todo' ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-slate-50/60'}`}>
-      <p className="flex items-center gap-2 text-sm font-bold text-slate-900">{item.state === 'done' ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" /> : <Circle className={`h-4 w-4 shrink-0 ${item.state === 'todo' ? 'text-amber-500' : 'text-slate-400'}`} />}{item.label}</p>
-      <p className="mt-1 text-xs text-slate-600">{item.detail}</p>
-      {item.tab && <button type="button" onClick={() => onOpenTab(item.tab as TabId)} className="mt-2 text-xs font-semibold text-sky-700 underline">Mở tab {item.tab === 'services' ? 'Dịch vụ' : 'Điều khoản'}</button>}
-    </li>)}</ol>
-  </section>
 }
 
 function ContractInvoicesTab({ contract, visible }: { contract: Contract; visible: boolean }) {
@@ -142,7 +123,6 @@ export function AdminContractDetailPage() {
     </div>
     {contract.status === 'active' && <p className="p-4 bg-slate-100 border border-slate-200 rounded-2xl flex items-start gap-2 text-sm text-slate-600"><Lock className="w-4 h-4 shrink-0 mt-0.5" />Hợp đồng đang hiệu lực: phòng, người thuê, thời hạn, tiền thuê, cọc và điều khoản chỉ đọc; dịch vụ định kỳ chỉ thay đổi từ kỳ tiếp theo.</p>}
     {overdue && <p className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2 text-sm text-amber-900"><AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />Đã qua ngày cuối được ở nhưng chưa bàn giao. Hợp đồng vẫn hiệu lực và tiếp tục tính tiền sử dụng thực tế cho đến ngày bàn giao.</p>}
-    {contract.status === 'draft' && <ActivationChecklist contract={contract} onOpenTab={setTab} />}
     <ContractLifecycleActions key={`actions-${contract.id}`} contract={contract} onSaved={setContract} onReload={reload} onBusy={setWriting} onAuthFailure={refresh} />
     <Tabs tabs={[{ id: 'info', label: 'Thông tin hợp đồng' }, { id: 'services', label: 'Dịch vụ đăng ký' }, { id: 'terms', label: 'Điều khoản' }, { id: 'occupants', label: 'Người ở cùng' }, { id: 'invoices', label: 'Hóa đơn' }]} activeTab={tab} onChange={setTab} />
     <div hidden={tab !== 'info'}><div className="grid grid-cols-1 md:grid-cols-2 gap-6">

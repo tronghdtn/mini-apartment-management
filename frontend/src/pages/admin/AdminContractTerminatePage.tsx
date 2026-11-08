@@ -146,7 +146,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
   return <><form noValidate onSubmit={event => { void handleSubmit(submit)(event) }} className="rounded-2xl border border-slate-200 bg-white p-5"><fieldset disabled={busy} className="space-y-4">
     <h2 className="font-bold text-slate-900">2. Ngày bàn giao và chỉ số chốt</h2>
     <label className="block text-sm font-bold">Ngày bàn giao thực tế<input type="date" {...register('actual_end_date')} min={contract.start_date} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 sm:max-w-xs" />{errors.actual_end_date && <span role="alert" className="mt-1 block text-rose-700">{errors.actual_end_date.message}</span>}</label>
-    <label className="block text-sm font-bold">Lý do và ghi chú<textarea {...register('closure_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />{errors.closure_note && <span role="alert" className="mt-1 block text-rose-700">{errors.closure_note.message}</span>}</label>
+    <label className="block text-sm font-bold">Lý do và ghi chú<textarea placeholder="VD: Bàn giao trả phòng đúng hạn hợp đồng / Cư dân xin chuyển đi sớm..." {...register('closure_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />{errors.closure_note && <span role="alert" className="mt-1 block text-rose-700">{errors.closure_note.message}</span>}</label>
     <p className="text-sm text-slate-500">Bắt buộc ghi lý do khi nhận–trả cùng ngày, trả trước hạn hoặc quá hạn. Ngày bàn giao không tính tiền phòng cho hợp đồng cũ.</p>
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="block text-sm font-bold"><span className="inline-flex items-center gap-2"><Zap className="h-4 w-4 text-amber-500" />Chỉ số điện cuối (kWh)</span>
@@ -262,14 +262,14 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
           {fields.map((field, index) => <fieldset key={field.id} className="space-y-3 rounded-xl border border-amber-100 bg-white p-4">
             <div className="flex items-center justify-between gap-3"><h4 className="font-semibold text-slate-900">Hạng mục {index + 1}</h4>
               <Button type="button" size="sm" variant="ghost" aria-label={'Xóa hạng mục ' + (index + 1)} onClick={() => remove(index)}><Trash2 className="h-4 w-4" /></Button></div>
-            <label className="block text-sm font-semibold">Tên khoản<input {...register(('damages.' + index + '.description') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+            <label className="block text-sm font-semibold">Tên khoản<input placeholder="VD: Bồi thường hỏng khóa cửa" {...register(('damages.' + index + '.description') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />
               {errors.damages?.[index]?.description && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.description?.message}</span>}</label>
-            <label className="block text-sm font-semibold">Lý do<textarea rows={2} {...register(('damages.' + index + '.reason') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+            <label className="block text-sm font-semibold">Lý do<textarea rows={2} placeholder="VD: Khóa cửa bị gãy chốt khi kiểm tra bàn giao..." {...register(('damages.' + index + '.reason') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />
               {errors.damages?.[index]?.reason && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.reason?.message}</span>}</label>
-            <label className="block text-sm font-semibold">Căn cứ (ví dụ: báo giá, hóa đơn sửa chữa)<textarea rows={2} {...register(('damages.' + index + '.basis') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+            <label className="block text-sm font-semibold">Căn cứ (ví dụ: báo giá, hóa đơn sửa chữa)<textarea rows={2} placeholder="VD: Hóa đơn thay khóa của thợ ngày..." {...register(('damages.' + index + '.basis') as FieldPath<FinalInvoiceInput>)} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />
               {errors.damages?.[index]?.basis && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.basis?.message}</span>}</label>
-            <label className="block text-sm font-semibold">Số tiền bồi thường (VND)<input type="number" min={1} step={1} inputMode="numeric"
-              {...register(('damages.' + index + '.amount') as FieldPath<FinalInvoiceInput>, { valueAsNumber: true })} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 tabular-nums" />
+            <label className="block text-sm font-semibold">Số tiền bồi thường (VND)<input type="number" min={1} step={1} inputMode="numeric" placeholder="VD: 250000"
+              {...register(('damages.' + index + '.amount') as FieldPath<FinalInvoiceInput>, { valueAsNumber: true })} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 tabular-nums placeholder:text-slate-400" />
               {errors.damages?.[index]?.amount && <span role="alert" className="mt-1 block text-rose-700">{errors.damages[index]?.amount?.message}</span>}</label>
             <label className="block text-sm font-semibold">Ảnh căn cứ (JPG, PNG hoặc WebP; tối đa 5 ảnh)<input
               type="file" accept="image/jpeg,image/png,image/webp" multiple className="mt-1 block w-full rounded-xl border border-slate-300 p-3 text-sm"
@@ -290,7 +290,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
               </select>
             </label>
             {values.waiver_code && <>
-              <label className="block text-sm font-semibold">Căn cứ áp dụng<textarea rows={3} {...register('waiver_note')} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+              <label className="block text-sm font-semibold">Căn cứ áp dụng<textarea rows={3} placeholder="VD: Cư dân đã gửi thông báo từ ngày..." {...register('waiver_note')} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />
                 {errors.waiver_note && <span role="alert" className="mt-1 block text-rose-700">{errors.waiver_note.message}</span>}</label>
               <label className="block text-sm font-semibold">Ảnh căn cứ miễn (ít nhất 1 ảnh)<input type="file" multiple accept="image/jpeg,image/png,image/webp"
                 className="mt-1 block w-full rounded-xl border border-slate-300 p-3 text-sm"
@@ -374,7 +374,7 @@ function InspectionForm({ contract, onAuthFailure, onSaved }: { contract: Contra
           </select>
           {errors.inspection_result && <span role="alert" className="mt-1 block text-rose-700">{errors.inspection_result.message}</span>}
         </label>
-        <label className="block text-sm font-bold">Ghi chú kiểm tra<textarea {...register('inspection_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3" />
+        <label className="block text-sm font-bold">Ghi chú kiểm tra<textarea placeholder="VD: Các thiết bị điều hòa, nóng lạnh, giường tủ hoạt động tốt..." {...register('inspection_note')} rows={3} className="mt-1 block w-full rounded-xl border border-slate-300 p-3 placeholder:text-slate-400" />
           {errors.inspection_note && <span role="alert" className="mt-1 block text-rose-700">{errors.inspection_note.message}</span>}
         </label>
         <label className="block text-sm font-bold">Ảnh hiện trạng (tối đa 5 ảnh, 5 MB mỗi ảnh)

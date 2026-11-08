@@ -26,15 +26,17 @@ export function Tabs<T extends string = string>({
   }
 
   return (
-    <div className={`flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full ${className}`}>
+    <div role="tablist" className={`flex flex-nowrap items-center gap-1 p-1 bg-slate-100 rounded-xl max-w-full overflow-x-auto [scrollbar-width:none] ${className}`}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id
         return (
           <button
             key={tab.id}
             type="button"
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onChange(tab.id)}
-            className={`inline-flex items-center rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
+            className={`inline-flex shrink-0 items-center rounded-lg font-medium transition-all whitespace-nowrap cursor-pointer ${
               sizeStyles[size]
             } ${
               isActive
