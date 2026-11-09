@@ -29,7 +29,7 @@ import {
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { StaffHome } from '@/features/auth/StaffHome'
 import { Suspense, type ReactNode } from 'react'
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AdminContractPrintPage, InvoicePrintPage, ReceiptPrintPage, ResidentContractPrintPage } from './printPages'
 import { PublicLayout } from '@/components/layouts/PublicLayout'
 import { AdminLayout } from '@/components/layouts/AdminLayout'
@@ -61,6 +61,9 @@ import { GuestProfilePage } from '@/pages/public/GuestProfilePage'
 // Bản in đứng riêng ngoài layout để giấy chỉ còn nội dung tài liệu.
 const printPage = (page: ReactNode) => <Suspense fallback={<p role="status" className="py-8 text-center text-slate-600">Đang tải bản in…</p>}>{page}</Suspense>
 
+// Lỗi của trang con (vd. mất mạng khi tải mã trang) hiện trong layout, giữ menu để người dùng thao tác tiếp.
+const inLayout = (children: RouteObject[]): RouteObject[] => [{ errorElement: <RouteErrorPage embedded />, children }]
+
 // Guard luôn ở ngoài layout; route chỉ thêm sau khi có trang tương ứng.
 export const router = createBrowserRouter([
   {
@@ -85,7 +88,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <PublicLayout />,
     errorElement: <RouteErrorPage />,
-    children: [
+    children: inLayout([
       { index: true, element: <HomePage /> },
       { path: 'rooms', element: <RoomListPage /> },
       { path: 'rooms/:roomId', element: <RoomDetailPage /> },
@@ -104,7 +107,7 @@ export const router = createBrowserRouter([
         { path: 'account/profile', element: <GuestProfilePage /> },
       ] },
       { path: '*', element: <NotFoundPage /> },
-    ],
+    ]),
   },
   {
     element: <RequireAuth roles={['admin']} />,
@@ -112,7 +115,7 @@ export const router = createBrowserRouter([
     path: '/admin',
     element: <AdminLayout />,
     errorElement: <RouteErrorPage />,
-    children: [
+    children: inLayout([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'buildings', element: <AdminBuildingsPage /> },
       { path: 'buildings/:buildingId', element: <AdminBuildingDetailPage /> },
@@ -141,12 +144,12 @@ export const router = createBrowserRouter([
       { path: 'invoices', element: <AdminInvoicesPage /> },
       { path: 'invoices/:invoiceId', element: <AdminInvoiceDetailPage /> },
       { path: '*', element: <NotFoundPage /> },
-    ],
+    ]),
     }],
   },
   {
     element: <RequireAuth roles={['resident']} />,
-    children: [{ path: '/resident', element: <ResidentLayout />, errorElement: <RouteErrorPage />, children: [
+    children: [{ path: '/resident', element: <ResidentLayout />, errorElement: <RouteErrorPage />, children: inLayout([
       { index: true, element: <ResidentOverviewPage /> },
       { path: 'profile', element: <ResidentProfilePage /> },
       { path: 'contracts', element: <ResidentContractsPage /> },
@@ -158,11 +161,11 @@ export const router = createBrowserRouter([
       { path: 'requests/:requestId', element: <ResidentRequestDetailPage /> },
       { path: 'notifications', element: <ResidentNotificationsPage /> },
       { path: '*', element: <NotFoundPage /> },
-    ] }],
+    ]) }],
   },
   {
     element: <RequireAuth roles={['technician', 'guard']} />,
-    children: [{ path: '/staff', element: <StaffLayout />, errorElement: <RouteErrorPage />, children: [
+    children: [{ path: '/staff', element: <StaffLayout />, errorElement: <RouteErrorPage />, children: inLayout([
       { index: true, element: <StaffHome /> },
       { path: 'profile', element: <StaffProfilePage /> },
       { path: 'notifications', element: <StaffNotificationsPage /> },
@@ -174,6 +177,6 @@ export const router = createBrowserRouter([
         { path: 'appointments', element: <GuardAppointmentsPage /> },
       ] },
       { path: '*', element: <NotFoundPage /> },
-    ] }],
+    ]) }],
   },
 ])
