@@ -3,6 +3,7 @@
 namespace Tests;
 
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use RuntimeException;
 
@@ -14,6 +15,9 @@ abstract class TestCase extends BaseTestCase
 
     public const TEST_USERNAME = 'mini_apartment_test';
 
+    /** Tên kết nối không tồn tại, dùng khi guard từ chối để mọi truy cập DB đều thất bại. */
+    public const BLOCKED_CONNECTION = 'blocked_by_test_guard';
+
     /**
      * Chặn mọi test chạy ngoài database test (ví dụ database dev mini_apartment).
      * Kiểm tra ngay sau khi tạo ứng dụng, trước RefreshDatabase hay bất kỳ truy vấn nào.
@@ -23,12 +27,48 @@ abstract class TestCase extends BaseTestCase
         $app = parent::createApplication();
         $config = $app->make(Repository::class);
 
-        static::ensureSafeTestDatabase($config);
+        static::guardTestDatabase($app);
 
         // Code gọi thẳng DB::connection('mysql') trong lúc test cũng chỉ tới được database test.
         $config->set('database.connections.mysql', $config->get('database.connections.'.self::TEST_CONNECTION));
 
         return $app;
+    }
+
+    /**
+     * Kiểm tra database test; nếu không an toàn thì chặn mọi truy cập database của $app rồi báo lỗi.
+     */
+    public static function guardTestDatabase(Application $app): void
+    {
+        $config = $app->make(Repository::class);
+
+        try {
+            static::ensureSafeTestDatabase($config);
+        } catch (RuntimeException $unsafe) {
+            // PHPUnit vẫn gọi tearDown() của test con khi setUp lỗi, và facade DB/Schema/Eloquent
+            // vẫn trỏ về ứng dụng vừa tạo. Phải cắt mọi kết nối trước khi báo lỗi, nếu không phần
+            // dọn dẹp (gỡ migration, xóa dòng, Artisan migrate) sẽ chạy trên database sai.
+            static::blockDatabaseAccess($app);
+
+            throw $unsafe;
+        }
+    }
+
+    /**
+     * Ngắt các kết nối đã mở và xóa toàn bộ cấu hình kết nối của ứng dụng: sau đó mọi truy cập qua
+     * DB, Schema, Eloquent, app('db') hay Artisan đều ném lỗi "not configured" thay vì chạm database.
+     */
+    public static function blockDatabaseAccess(Application $app): void
+    {
+        $database = $app->make('db');
+
+        foreach (array_keys($database->getConnections()) as $name) {
+            $database->purge($name);
+        }
+
+        $config = $app->make(Repository::class);
+        $config->set('database.connections', []);
+        $config->set('database.default', self::BLOCKED_CONNECTION);
     }
 
     public static function ensureSafeTestDatabase(Repository $config): void
