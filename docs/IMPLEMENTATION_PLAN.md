@@ -1522,3 +1522,13 @@ Kiểm trình duyệt trên dev 8080 sau khôi phục U3 (10/11, chỉ đọc, k
 - **Cư dân 1:** `/resident` hiện khối gửi chỉ số Điện/Nước của phòng A-201 và lịch sử có yêu cầu #1 đang chờ duyệt; `meter-reading-submissions` và `/context` trả 200.
 - **Đăng nhập dev:** 5 tài khoản demo (Admin id2, KTV id15, Bảo vệ id16, Cư dân 1 id17, Khách id20) có `updated_at` 08/11 18:40:56–57 UTC. Mật khẩu hiện tại của chúng khớp `$defaultPassword` trong `DemoDataSeeder.php` (chưa commit), không khớp mật khẩu chung mà chủ dự án đang dùng. Cư dân 2–3 (id18/19) và id1 vẫn khớp mật khẩu chung. Kiểm bằng `Hash::check` chỉ đọc, không in hash và không đổi mật khẩu. Nguồn ghi lúc 18:40 chưa xác định; cần chủ dự án quyết định có đặt lại mật khẩu dev hay không.
 - Đã đăng xuất cả hai phiên. Snapshot schema/migration dev sau lượt kiểm khớp trước lượt (29 bảng, 30 migration).
+
+### 12.78. Báo mất kết nối trong khung trang (10/11/2026)
+
+Sửa quan sát của `E2E-04-OFFLINE` theo yêu cầu chủ dự án. Chỉ đổi frontend, không đổi API, quyền hay nghiệp vụ.
+- `app/router.tsx`: trang con của 4 layout (Công khai, Admin, Cư dân, Nhân viên) nằm trong route không có path mang `errorElement: <RouteErrorPage embedded />` (hàm `inLayout`). Lỗi của trang con hiện trong vùng nội dung, giữ menu và thanh trên. `errorElement` cũ ở cấp layout vẫn giữ cho lỗi của chính layout.
+- `lib/routeErrors.ts`: `isChunkLoadError` nhận lỗi tải mã trang của Chrome/Edge, Firefox, Safari và Vite; `isConnectionRouteError` coi mọi lỗi route khi `navigator.onLine = false` là lỗi kết nối.
+- `pages/RouteErrorPage.tsx`: lỗi kết nối hiện "Mất kết nối mạng", nói rõ phiên và dữ liệu đã lưu vẫn giữ, nút "Thử lại" (tải lại trang). Lỗi khác giữ thông điệp cũ.
+- Test mới `tests/route-errors.test.mjs` (3 test).
+
+Frontend 175 test, build đạt, oxlint 0 lỗi (14 cảnh báo có sẵn, không có ở file đã sửa). Build lại frontend chế độ bản build trên dev 8080 rồi chạy lại kịch bản `E2E-04-OFFLINE` ở 1280 và 375 px: Admin → Hóa đơn, KTV → Thông báo, Cư dân → Hóa đơn khi mất mạng đều hiện "Mất kết nối mạng" trong khung, còn menu; có mạng lại bấm Thử lại vào đúng trang. Các bước khác cho kết quả như lượt trước. Nginx trong cửa sổ chạy chỉ có POST login/logout; dữ liệu dev trước/sau khớp. Chưa kiểm được lỗi render không do mạng trong khung (không có cách gây lỗi an toàn trên dev).
