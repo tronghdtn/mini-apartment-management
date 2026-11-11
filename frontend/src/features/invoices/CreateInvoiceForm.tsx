@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { isAxiosError } from 'axios'
 import { Button } from '@/components/ui/Button'
-import { apiErrorMessage } from '@/lib/apiErrors'
+import { apiActionMessage, apiErrorMessage } from '@/lib/apiErrors'
 import { createInvoice, getInvoiceContracts } from './api'
 import { createInvoiceSchema, type CreateInvoiceInput } from './schemas'
 import type { Invoice, InvoiceContractOption } from './types'
@@ -27,7 +27,7 @@ export function CreateInvoiceForm({ onSaved, onBusyChange, onAuthFailure }: { on
             if (typeof message === 'string') form.setError(key, { message })
           }
         }
-        form.setError('root', { message: apiErrorMessage(failure) })
+        form.setError('root', { message: apiActionMessage(failure) })
         if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) onAuthFailure()
       }
     })(event) } finally { flight.current = false; onBusyChange(false) }

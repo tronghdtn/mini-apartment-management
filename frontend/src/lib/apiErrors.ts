@@ -18,17 +18,35 @@ export function apiErrorMessage(error: unknown): string {
 }
 
 /**
- * 409 ở các bước nhiều điều kiện (thanh lý) cần lý do cụ thể. Thông điệp 409 do Backend tự viết bằng `abort(409, ...)`,
- * nhưng vẫn chặn chuỗi dài hoặc giống lỗi SQL; các status khác giữ thông báo chung.
+ * Thông điệp nghiệp vụ Backend tự viết bằng `abort(409|422, '...')` (422 không kèm lỗi theo trường).
+ * Trả `null` khi không có hoặc khi chuỗi dài, giống SQL/đường dẫn mã nguồn, để nơi gọi dùng thông báo chung.
+ */
+export function apiBusinessMessage(error: unknown): string | null {
+  if (!isAxiosError(error) || !error.response) return null
+  const { status, data } = error.response
+  if (status !== 409 && status !== 422) return null
+  const fieldErrors: unknown = data?.errors
+  if (status === 422 && fieldErrors && typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) return null
+  const message: unknown = data?.message
+  if (typeof message !== 'string') return null
+  const text = message.trim()
+  if (text === '' || text.length > 300 || /sql|select |insert |update |delete |exception|\.php/i.test(text)) return null
+  return text
+}
+
+/**
+ * 409 ở các bước nhiều điều kiện (thanh lý, lập hóa đơn) cần lý do cụ thể; các status khác giữ thông báo chung.
  */
 export function apiConflictMessage(error: unknown): string {
-  if (isAxiosError(error) && error.response?.status === 409) {
-    const message: unknown = error.response.data?.message
-    if (typeof message === 'string' && message.trim() !== '' && message.length <= 300 && !/sql|select |insert |update |delete /i.test(message)) {
-      return /tải lại/i.test(message) ? message.trim() : `${message.trim()} Tải lại dữ liệu trước khi thử lại.`
-    }
-  }
+  const message = isAxiosError(error) && error.response?.status === 409 ? apiBusinessMessage(error) : null
+  if (message) return /tải lại/i.test(message) ? message : `${message} Tải lại dữ liệu trước khi thử lại.`
   return apiErrorMessage(error)
+}
+
+/** Thông báo cấp form: lý do nghiệp vụ của 409/422 nếu Backend có gửi, ngược lại là thông báo chung theo status. */
+export function apiActionMessage(error: unknown): string {
+  if (isAxiosError(error) && error.response?.status === 409) return apiConflictMessage(error)
+  return apiBusinessMessage(error) ?? apiErrorMessage(error)
 }
 
 export function applyApiErrors<T extends FieldValues>(error: unknown, setError: UseFormSetError<T>, allowedFields: readonly string[]): void {
@@ -42,5 +60,5 @@ export function applyApiErrors<T extends FieldValues>(error: unknown, setError: 
       }
     }
   }
-  setError('root', { message: apiErrorMessage(error) })
+  setError('root', { message: apiActionMessage(error) })
 }

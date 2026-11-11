@@ -16,7 +16,7 @@ import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
 import type { Invoice } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
 import { apiConflictMessage, apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
-import { formatDate, formatDateTime, formatVND } from '@/lib/format'
+import { businessToday, formatDate, formatDateTime, formatVND } from '@/lib/format'
 
 type StepState = 'done' | 'current' | 'pending'
 const stepStyles: Record<StepState, { label: string; dot: string }> = {
@@ -173,7 +173,7 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
           <dt className="border-t border-slate-100 pt-1 font-semibold">Tạm tính</dt><dd className="border-t border-slate-100 pt-1 text-right font-semibold">{formatVND(reading.amount)}</dd>
         </dl></article>)}</div>
       <p className="font-bold text-teal-950">Tổng điện nước chốt: {formatVND(preview.meter_amount)}</p>
-      <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Khi lập nháp, hệ thống kiểm tra lại chuỗi chỉ số và nguồn tiền.</p></section>}
+      <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Khi lập nháp, hệ thống kiểm tra lại chuỗi chỉ số và nguồn tiền.</p>{preview.actual_end_date > businessToday() && <p role="note" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Ngày bàn giao {formatDate(preview.actual_end_date)} còn ở tương lai: chỉ xem trước được. Hóa đơn tất toán lập được từ ngày bàn giao trở đi.</p>}</section>}
     {preview && (contract.inspection_result
       ? <FinalInvoiceForm key={result?.key} contract={contract} closure={finalMeterPreviewSchema.parse(values)} preview={preview} onAuthFailure={onAuthFailure} onReload={onReload} />
       : <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Hãy lưu kết quả kiểm tra tài sản ở bước 1 trước khi lập hóa đơn tất toán.</p>)}
