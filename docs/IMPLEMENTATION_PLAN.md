@@ -1562,3 +1562,12 @@ Sửa mục 2 và 3 của §12.79 theo yêu cầu chủ dự án. Chỉ đổi f
 - Test mới `tests/api-errors.test.mjs` (4 test).
 
 Frontend 179 test, build đạt, oxlint 0 lỗi (14 cảnh báo có sẵn). Build lại bản build trên dev 8080 và kiểm trình duyệt bằng Admin demo: hai thông điệp trên hiện đúng; hai lần thử bị Backend từ chối nên không tạo thêm hóa đơn (danh sách vẫn 4 hóa đơn tháng, HD-2026-0007 vẫn active). Mục 1, 4, 5 của §12.79 vẫn chờ chủ dự án quyết định.
+
+### 12.81. PUB-SET — hotline/email cho khách (11/11/2026, DB-D96)
+
+Sửa mục 1 của §12.79 sau khi chủ dự án duyệt. Nguyên nhân rộng hơn báo cáo ban đầu: `GET /api/v1/settings` chỉ dành cho Admin, nên mọi trình duyệt chưa từng mở trang quản trị (khách, cư dân, nhân viên) đều thấy `0901.000.001` và email mặc định viết cứng.
+- Backend: `GET /api/v1/public/settings` (`SettingController::publicIndex`, `SettingService::publicContact`, `PublicSettingsResource`); test `Catalog/PublicSettingsTest` (khách đọc được, đúng 3 trường, không lộ ngân hàng, giá trị trống → null, 5 vai trò đọc giống nhau, 405 với POST/PUT/DELETE).
+- `phpunit.xml`: thêm `APP_ROUTES_CACHE` trỏ tới file không tồn tại, để test chạy theo `routes/*.php` thay vì route cache của web (lần chạy đầu 8 test trả 404 vì `bootstrap/cache/routes-v7.php`).
+- Frontend: `lib/publicContact.ts` (`normalizePublicContact`, `telHrefOf`) + test `public-contact.test.mjs`; `lib/publicSettings.ts` bỏ hotline/email mặc định, thêm `loadPublicContact`; thanh trên, chân trang, trang chủ, chi tiết phòng ẩn khi trống, trang Liên hệ hiện "Chưa cập nhật".
+
+Kiểm chứng: full PHPUnit trong container **1560 test / 16061 assertion PASS** (954 s), Pint 400 file PASS; frontend 181 test, build, oxlint 0 lỗi (14 cảnh báo có sẵn). Dev: chạy `php artisan route:cache` (route cache 04/11 chưa có route mới) và khởi động lại `app`/`frontend` theo chế độ bản build (`RUN_MIGRATIONS=false`). `/api/v1/public/settings` trả hotline `0328929580`; trình duyệt đã xóa localStorage, chưa đăng nhập: trang chủ, Liên hệ, chi tiết phòng đều dùng `tel:0328929580` và email trong Cài đặt, không còn số giả. Chưa kiểm trên trình duyệt trạng thái chưa cấu hình/API lỗi (đã có test đơn vị cho hàm chuẩn hóa).
