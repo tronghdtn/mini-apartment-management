@@ -8,14 +8,14 @@ import {
   CheckCircle,
   HeartHandshake,
 } from 'lucide-react'
-import { usePublicSettings } from '@/lib/publicSettings'
+import { telHrefOf, usePublicSettings } from '@/lib/publicSettings'
 
 export function PublicFooter() {
   const siteSettings = usePublicSettings()
   const systemName = siteSettings.systemName || 'MiniApart'
-  const contactPhone = siteSettings.contactPhone || '0901.000.001'
-  const contactEmail = siteSettings.contactEmail || 'hotro@miniapartment.vn'
-  const telHref = `tel:${contactPhone.replace(/[^0-9+]/g, '')}`
+  const contactPhone = siteSettings.contactPhone
+  const contactEmail = siteSettings.contactEmail
+  const telHref = telHrefOf(contactPhone)
   return (
     <footer className="bg-slate-900 text-slate-300 pt-16 pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -74,14 +74,14 @@ export function PublicFooter() {
               Hệ thống quản lý chuỗi căn hộ mini và phòng studio khép kín chất lượng cao. Không gian sống tiện nghi, an toàn, phù hợp sinh viên và người đi làm.
             </p>
             <div className="pt-2 flex flex-col gap-2.5 text-sm text-slate-300">
-              <div className="flex items-center gap-2.5">
+              {telHref && <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-sky-400 shrink-0" />
                 <span>Hotline: <a href={telHref} className="text-white hover:text-sky-400 font-semibold">{contactPhone}</a> (08:00 – 20:00)</span>
-              </div>
-              <div className="flex items-center gap-2.5">
+              </div>}
+              {contactEmail && <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-sky-400 shrink-0" />
                 <span>Email: <a href={`mailto:${contactEmail}`} className="text-white hover:text-sky-400 font-semibold">{contactEmail}</a></span>
-              </div>
+              </div>}
               <div className="flex items-center gap-2.5">
                 <Clock className="w-4 h-4 text-sky-400 shrink-0" />
                 <span>Xem phòng: Thứ 2 – Chủ nhật (08:00 – 20:00)</span>

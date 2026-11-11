@@ -7,7 +7,7 @@ import { getCachedPublicRoomOptions, getCachedPublicRooms, getPublicRoomOptions,
 import { emptyRoomFilters } from '@/features/rooms/schemas'
 import type { PublicRoom, PublicRoomOptions } from '@/features/rooms/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
-import { usePublicSettings } from '@/lib/publicSettings'
+import { telHrefOf, usePublicSettings } from '@/lib/publicSettings'
 
 const fallbackBuildingPhotos = [
   'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80',
@@ -45,9 +45,9 @@ const faqs = [
 
 export function ContactPage() {
   const siteSettings = usePublicSettings()
-  const contactPhone = siteSettings.contactPhone || '0901.000.001'
-  const contactEmail = siteSettings.contactEmail || 'hotro@miniapartment.vn'
-  const telHref = `tel:${contactPhone.replace(/[^0-9+]/g, '')}`
+  const contactPhone = siteSettings.contactPhone
+  const contactEmail = siteSettings.contactEmail
+  const telHref = telHrefOf(contactPhone)
   const [buildings, setBuildings] = useState<PublicRoomOptions['buildings'] | null>(
     () => getCachedPublicRoomOptions()?.buildings ?? null,
   )
@@ -100,12 +100,12 @@ export function ContactPage() {
           <div>
             <h2 className="text-sm font-bold text-slate-900">Hotline tư vấn</h2>
             <p className="mt-0.5 text-xs text-slate-500">08:00 – 20:00 hàng ngày · Lịch xem phòng & giải đáp</p>
-            <a
+            {telHref ? <a
               href={telHref}
               className="mt-2 block text-base font-extrabold text-sky-700 hover:underline"
             >
               {contactPhone}
-            </a>
+            </a> : <p className="mt-2 text-sm text-slate-500">Chưa cập nhật</p>}
           </div>
         </section>
 
@@ -116,12 +116,12 @@ export function ContactPage() {
           <div>
             <h2 className="text-sm font-bold text-slate-900">Hòm thư điện tử</h2>
             <p className="mt-0.5 text-xs text-slate-500">Gửi ý kiến đóng góp & hợp tác</p>
-            <a
+            {contactEmail ? <a
               href={`mailto:${contactEmail}`}
               className="mt-2 block text-sm font-bold text-teal-700 hover:underline"
             >
               {contactEmail}
-            </a>
+            </a> : <p className="mt-2 text-sm text-slate-500">Chưa cập nhật</p>}
           </div>
         </section>
 
@@ -210,12 +210,12 @@ export function ContactPage() {
                         <span>{address}</span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      {contactPhone && <div className="flex items-center gap-2 text-xs text-slate-600">
                         <Phone className="size-4 shrink-0 text-sky-600" />
                         <span>
                           Hotline quản lý tòa: <strong>{contactPhone}</strong>
                         </span>
-                      </div>
+                      </div>}
 
                     </div>
                   </div>

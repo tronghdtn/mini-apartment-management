@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { Setting } from '@/features/settings/types'
+import { http } from '@/lib/http'
+import { normalizePublicContact, type PublicContact } from '@/lib/publicContact'
+
+export { telHrefOf } from '@/lib/publicContact'
 
 export interface PublicSiteSettings {
   systemName: string
@@ -17,8 +21,9 @@ const EVENT_NAME = 'miniapart:settings-updated'
 
 export const DEFAULT_SITE_SETTINGS: PublicSiteSettings = {
   systemName: 'MiniApart',
-  contactPhone: '0901.000.001',
-  contactEmail: 'contact@miniapart.vn',
+  // Không có hotline/email mặc định: khi chưa cấu hình, giao diện ẩn mục liên hệ thay vì hiện số giả.
+  contactPhone: '',
+  contactEmail: '',
   bankName: '',
   bankAccountNumber: '',
   bankAccountHolder: '',
@@ -52,8 +57,8 @@ export function syncSiteSettingsFromApi(settings: Setting[]): void {
   const current = readStoredSiteSettings()
   const next: Omit<PublicSiteSettings, 'customQrDataUrl'> = {
     systemName: map.get('system.name') || DEFAULT_SITE_SETTINGS.systemName,
-    contactPhone: map.get('system.contact_phone') || DEFAULT_SITE_SETTINGS.contactPhone,
-    contactEmail: map.get('system.contact_email') || DEFAULT_SITE_SETTINGS.contactEmail,
+    contactPhone: map.get('system.contact_phone') ?? '',
+    contactEmail: map.get('system.contact_email') ?? '',
     bankName: map.has('bank.name') ? (map.get('bank.name') ?? '') : current.bankName,
     bankAccountNumber: map.has('bank.account_number') ? (map.get('bank.account_number') ?? '') : current.bankAccountNumber,
     bankAccountHolder: map.has('bank.account_holder') ? (map.get('bank.account_holder') ?? '') : current.bankAccountHolder,
@@ -64,6 +69,34 @@ export function syncSiteSettingsFromApi(settings: Setting[]): void {
   } catch {
     // Ignore storage quota errors
   }
+}
+
+/** Ghi tên hệ thống, hotline, email từ API công khai vào bộ nhớ đệm; giữ nguyên phần ngân hàng đã có. */
+export function applyPublicContact(contact: PublicContact): void {
+  if (typeof window === 'undefined') return
+  const current = readStoredSiteSettings()
+  const next: Omit<PublicSiteSettings, 'customQrDataUrl'> = {
+    ...normalizePublicContact(contact, DEFAULT_SITE_SETTINGS.systemName),
+    bankName: current.bankName,
+    bankAccountNumber: current.bankAccountNumber,
+    bankAccountHolder: current.bankAccountHolder,
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  } catch {
+    // Bộ nhớ trình duyệt bị chặn: vẫn báo cập nhật để hook đọc lại phần còn dùng được.
+  }
+  window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: next }))
+}
+
+let publicContactRequest: Promise<void> | null = null
+
+/** Gọi `GET /public/settings` tối đa một lần mỗi lần tải trang; lỗi mạng giữ bộ nhớ đệm hiện có. */
+export function loadPublicContact(): Promise<void> {
+  publicContactRequest ??= http.get<{ data: PublicContact }>('/public/settings')
+    .then(response => applyPublicContact(response.data.data))
+    .catch(() => { publicContactRequest = null })
+  return publicContactRequest
 }
 
 export function saveCustomQrDataUrl(dataUrl: string): void {
@@ -81,7 +114,11 @@ export function usePublicSettings(): PublicSiteSettings {
   const [state, setState] = useState<PublicSiteSettings>(() => readStoredSiteSettings())
 
   useEffect(() => {
-    const refresh = () => setState(readStoredSiteSettings())
+    void loadPublicContact()
+    const refresh = (event?: Event) => {
+      const detail = event instanceof CustomEvent ? (event.detail as Omit<PublicSiteSettings, 'customQrDataUrl'> | undefined) : undefined
+      setState(detail ? { ...readStoredSiteSettings(), ...detail } : readStoredSiteSettings())
+    }
     window.addEventListener(EVENT_NAME, refresh)
     window.addEventListener('storage', refresh)
     return () => {

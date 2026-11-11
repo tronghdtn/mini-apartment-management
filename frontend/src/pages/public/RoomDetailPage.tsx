@@ -18,13 +18,13 @@ import { AppointmentBookingForm } from '@/features/viewing-appointments/Appointm
 import type { PublicRoom } from '@/features/rooms/types'
 import { apiErrorMessage } from '@/lib/apiErrors'
 import { formatVND } from '@/lib/format'
-import { usePublicSettings } from '@/lib/publicSettings'
+import { telHrefOf, usePublicSettings } from '@/lib/publicSettings'
 
 
 export function RoomDetailPage() {
   // Hotline lấy từ Cài đặt hệ thống, giống thanh điều hướng và chân trang.
   const contactPhone = usePublicSettings().contactPhone
-  const telHref = `tel:${contactPhone.replace(/[^0-9+]/g, '')}`
+  const telHref = telHrefOf(contactPhone)
   const { roomId = '' } = useParams<{ roomId: string }>()
   const [revision, setRevision] = useState(0)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
@@ -323,7 +323,7 @@ export function RoomDetailPage() {
               {/* Embedded Booking Form Component (compact mode so it fits 100% in viewport) */}
               <AppointmentBookingForm roomId={String(room.id)} room={room} compact />
 
-              <div className="pt-2 border-t border-slate-100">
+              {telHref && <div className="pt-2 border-t border-slate-100">
                 <a
                   href={telHref}
                   className="flex items-center justify-center gap-2 w-full py-2 px-4 rounded-xl border border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition-colors"
@@ -331,7 +331,7 @@ export function RoomDetailPage() {
                   <PhoneCall className="w-4 h-4 text-sky-600" />
                   <span>Hotline tư vấn: {contactPhone}</span>
                 </a>
-              </div>
+              </div>}
             </div>
           </div>
         </div>
@@ -346,13 +346,13 @@ export function RoomDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <a
+          {telHref && <a
             href={telHref}
             className="p-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
             title="Gọi hotline"
           >
             <PhoneCall className="w-5 h-5 text-sky-600" />
-          </a>
+          </a>}
           <Button
             variant="primary"
             size="md"

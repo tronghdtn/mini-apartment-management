@@ -11,7 +11,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { usePublicSettings } from '@/lib/publicSettings'
+import { telHrefOf, usePublicSettings } from '@/lib/publicSettings'
 import type { PublicRoom, PublicRoomOptions } from './types'
 
 const fallbackBuildingPhotos = [
@@ -35,7 +35,7 @@ interface HomeInformationSectionsProps {
 export function HomeInformationSections({ options, rooms, error, onRetry }: HomeInformationSectionsProps) {
   // Hotline lấy từ Cài đặt hệ thống, giống thanh điều hướng và chân trang.
   const contactPhone = usePublicSettings().contactPhone
-  const telHref = `tel:${contactPhone.replace(/[^0-9+]/g, '')}`
+  const telHref = telHrefOf(contactPhone)
   return (
     <>
       {/* 1. KHÁM PHÁ HỆ THỐNG TÒA NHÀ (Được đẩy lên cao để khách dễ chọn vị trí) */}
@@ -317,13 +317,13 @@ export function HomeInformationSections({ options, rooms, error, onRetry }: Home
                   Xem danh sách phòng trống
                 </Button>
               </Link>
-              <a
+              {telHref && <a
                 href={telHref}
                 className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
               >
                 <PhoneCall className="size-4" />
                 Hotline: {contactPhone}
-              </a>
+              </a>}
               <Link
                 to="/contact"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
