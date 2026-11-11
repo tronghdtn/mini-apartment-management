@@ -37,6 +37,9 @@
              để test luôn nạp config từ config/*.php với biến của phpunit. -->
         <server name="APP_CONFIG_CACHE" value="bootstrap/cache/config.phpunit-never-cached.php"/>
         <env name="APP_CONFIG_CACHE" value="bootstrap/cache/config.phpunit-never-cached.php" force="true"/>
+        <!-- Tương tự với route cache: test luôn chạy theo routes/*.php hiện tại, không theo bản cache của web. -->
+        <server name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.phpunit-never-cached.php"/>
+        <env name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.phpunit-never-cached.php" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -62,6 +62,23 @@ class SettingService
         return ['name' => $read('bank.name'), 'account_number' => $read('bank.account_number'), 'account_holder' => $read('bank.account_holder')];
     }
 
+    /**
+     * Thông tin liên hệ hiện trên trang công khai. Chỉ gồm 3 khóa system.*; không bao giờ có khóa bank.*.
+     *
+     * @return array{system_name: ?string, contact_phone: ?string, contact_email: ?string} Chuỗi rỗng được coi như chưa cấu hình.
+     */
+    public function publicContact(): array
+    {
+        $stored = Setting::query()->whereIn('key', self::WRITABLE_SYSTEM_KEYS)->pluck('value', 'key');
+        $read = fn (string $key) => is_string($stored[$key] ?? null) && trim($stored[$key]) !== '' ? trim($stored[$key]) : null;
+
+        return [
+            'system_name' => $read('system.name'),
+            'contact_phone' => $read('system.contact_phone'),
+            'contact_email' => $read('system.contact_email'),
+        ];
+    }
+
     /** @return Collection<int, Setting> */
     public function all(): Collection
     {

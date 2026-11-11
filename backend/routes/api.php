@@ -87,6 +87,8 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('viewing-appointments')->n
     });
 });
 
+Route::get('public/settings', [SettingController::class, 'publicIndex'])->name('api.v1.public.settings.index');
+
 Route::prefix('public/rooms')->name('api.v1.public.rooms.')->group(function () {
     Route::get('/{room}/photos/{photo}', [RoomPhotoController::class, 'publicContent'])
         ->whereNumber(['room', 'photo'])->name('photos.show');

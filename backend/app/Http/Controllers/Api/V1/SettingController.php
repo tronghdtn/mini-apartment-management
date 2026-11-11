@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Setting\UpdateSettingRequest;
+use App\Http\Resources\PublicSettingsResource;
 use App\Http\Resources\SettingResource;
 use App\Models\Setting;
 use App\Services\SettingService;
@@ -22,6 +23,12 @@ class SettingController extends Controller
         $missingKeys = array_values(array_diff(array_keys(SettingService::DEFAULT_SETTINGS), $settings->pluck('key')->all()));
 
         return SettingResource::collection($settings)->additional(['missing_keys' => $missingKeys]);
+    }
+
+    /** Không cần đăng nhập: chỉ trả tên hệ thống, hotline và email liên hệ để trang công khai hiển thị. */
+    public function publicIndex(): PublicSettingsResource
+    {
+        return new PublicSettingsResource($this->settings->publicContact());
     }
 
     public function update(UpdateSettingRequest $request, string $key): JsonResponse
