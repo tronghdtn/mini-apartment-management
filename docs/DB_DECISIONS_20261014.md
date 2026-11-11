@@ -317,3 +317,7 @@ Chủ dự án duyệt thêm `GET /api/v1/public/settings` không cần đăng n
 ## DB-D97 — Chỉ số chốt cùng ngày với chỉ số định kỳ (CONFIRMED 11/11/2026)
 
 Chủ dự án duyệt cho thanh lý trong ngày khi hợp đồng đã có chỉ số `periodic` ghi đúng ngày bàn giao (ví dụ cư dân gửi ảnh chỉ số sáng ngày trả phòng và Admin đã duyệt). `FinalMeterReadingPreviewService` chỉ chặn khi mốc periodic của hợp đồng **sau** ngày bàn giao (trước đây chặn cả cùng ngày). Thứ tự trong cùng ngày theo `id`, đúng tinh thần DB-D28 (quy trình + thời điểm, không chỉ DATE): `final` tạo sau là mốc cuối; `MeterReadingService` vẫn chặn ghi periodic sau khi đã có final (409). Chỉ số chốt không được nhỏ hơn periodic; hóa đơn tất toán tính cả đoạn periodic chưa thu và đoạn chốt. Không đổi bảng/cột/API. Quy tắc R18 ở DATABASE_IMPLEMENTATION_PLAN §5.2.
+
+## DB-D98 — Kiểm tra tài sản "Có hư hỏng" bắt buộc ghi chú (CONFIRMED 11/11/2026)
+
+Chủ dự án chọn phương án B: `POST /api/v1/contracts/{id}/inspection` với `inspection_result = damaged` bắt buộc `inspection_note` (không rỗng sau trim), lỗi 422 "Vui lòng ghi rõ hư hỏng khi chọn "Có hư hỏng"."; `no_damage` vẫn để trống được. Ảnh không bắt buộc ở bước kiểm tra vì mỗi khoản bồi thường trên hóa đơn tất toán đã bắt buộc lý do, căn cứ và ít nhất một ảnh riêng tư. Không đổi bảng/cột; dữ liệu cũ không bị sửa.
