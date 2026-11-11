@@ -174,9 +174,11 @@ class FinalMeterReadingPreviewService
                             'Chỉ số đầu thấp hơn mốc gần nhất hoặc chênh lệch chưa được xác nhận.');
                     }
                 }
-                if ($latest && $latest->contract_id === $contract->id && $latest->reading_date->format('Y-m-d') >= $data['actual_end_date']) {
+                // DB-D97: chỉ số chốt được ghi cùng ngày với periodic gần nhất (trả phòng đúng ngày đã ghi chỉ số).
+                // Thứ tự trong ngày theo id: chỉ số chốt luôn tạo sau nên là mốc cuối; periodic sau chốt đã bị MeterReadingService chặn.
+                if ($latest && $latest->contract_id === $contract->id && $latest->reading_date->format('Y-m-d') > $data['actual_end_date']) {
                     $this->invalid($code === Service::CODE_ELECTRICITY ? 'electricity_reading' : 'water_reading',
-                        'Ngày bàn giao phải sau lần ghi periodic gần nhất để xác định chuỗi tiêu thụ.');
+                        'Ngày bàn giao không được trước lần ghi periodic gần nhất của hợp đồng.');
                 }
 
                 $rawCurrent = $data[$code === Service::CODE_ELECTRICITY ? 'electricity_reading' : 'water_reading'];

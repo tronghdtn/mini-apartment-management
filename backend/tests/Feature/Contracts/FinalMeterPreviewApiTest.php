@@ -257,6 +257,55 @@ class FinalMeterPreviewApiTest extends TestCase
         $this->spa('POST', $url, $this->input($contract))->assertUnprocessable()->assertJsonValidationErrors('water_reading');
     }
 
+    /** DB-D97: cư dân/Admin ghi periodic đúng ngày trả phòng vẫn thanh lý được trong ngày, tính đủ cả hai đoạn tiêu thụ. */
+    public function test_final_meter_can_share_the_handover_date_with_the_latest_periodic_and_bills_both_segments(): void
+    {
+        $contract = $this->contract();
+        $this->periodic($contract, $this->power, '2026-10-01', '2026-10-30', '120.00', '123.00', 3500);
+        $this->periodic($contract, $this->water, '2026-10-01', '2026-10-30', '12.00', '12.50', 15000);
+        $contract = app(ContractService::class)->find($contract->id);
+        $this->login();
+
+        $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/final-meter-preview', $this->input($contract))->assertOk()
+            ->assertJsonPath('data.readings.0.previous_reading', '123.00')->assertJsonPath('data.readings.0.consumption', '2.00')
+            ->assertJsonPath('data.readings.0.reading_date', '2026-10-30')->assertJsonPath('data.readings.1.previous_reading', '12.50')
+            ->assertJsonPath('data.readings.1.consumption', '0.50')->assertJsonPath('data.meter_amount', 7_000 + 7_500);
+        $this->assertSame(6, DB::table('meter_readings')->where('contract_id', $contract->id)->count());
+
+        $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
+            'inspection_result' => 'no_damage', 'expected_revision' => $contract->lifecycleRevision(),
+        ])->assertOk();
+        $contract = app(ContractService::class)->find($contract->id);
+        $draft = $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/final-invoice', $this->input($contract))
+            ->assertCreated()->json('data');
+
+        $sameDay = DB::table('meter_readings')->where('contract_id', $contract->id)->where('reading_date', '2026-10-30')
+            ->orderBy('id')->get(['id', 'kind', 'previous_reading', 'current_reading', 'invoice_id']);
+        $this->assertSame(['periodic', 'periodic', 'final', 'final'], $sameDay->pluck('kind')->all());
+        $this->assertTrue($sameDay->every(fn ($reading) => $reading->invoice_id === $draft['id']), 'Cả periodic chưa thu và chốt cùng ngày phải vào hóa đơn tất toán');
+        $finals = $sameDay->where('kind', 'final')->values();
+        $this->assertSame(['123.00', '12.50'], $finals->pluck('previous_reading')->all());
+        $this->assertSame(8, DB::table('meter_readings')->where('invoice_id', $draft['id'])->count());
+
+        $this->spa('POST', '/api/v1/meter-readings', [
+            'room_id' => $contract->room_id, 'service_id' => $this->power->id, 'period' => '2026-11-01',
+            'reading_date' => '2026-10-30', 'current_reading' => '126.00',
+        ])->assertStatus(422);
+        $this->assertSame(8, DB::table('meter_readings')->where('contract_id', $contract->id)->count());
+    }
+
+    public function test_periodic_dated_after_the_handover_still_blocks_the_final_meter(): void
+    {
+        $contract = $this->contract();
+        $this->periodic($contract, $this->power, '2026-10-01', '2026-10-31', '120.00', '123.00', 3500);
+        $contract = app(ContractService::class)->find($contract->id);
+        $this->login();
+
+        $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/final-meter-preview', $this->input($contract))
+            ->assertUnprocessable()->assertJsonValidationErrors('electricity_reading');
+        $this->assertSame(0, DB::table('meter_readings')->where('contract_id', $contract->id)->where('kind', 'final')->count());
+    }
+
     public function test_final_draft_creates_final_meters_and_issues_the_full_unbilled_balance(): void
     {
         $contract = $this->contract();
