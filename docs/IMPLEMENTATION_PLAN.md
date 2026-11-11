@@ -1552,3 +1552,13 @@ Lỗi và vướng mắc tìm được:
 8. Nhỏ: "Gửi email xác minh" mất ~8 giây (gửi thư đồng bộ); dòng "gồm cả hợp đồng đã thanh lý" khó hiểu với cư dân mới; dữ liệu demo có lịch hẹn ngoài 08–20h.
 
 Bỏ qua: Bảo vệ check-in/check-out (không có lịch đã xác nhận trong ngày, đã quá 20:00), ảnh phòng (tùy chọn), chặn thanh lý khi còn khoản chờ, và các bước tất toán/đối soát cọc/trả phòng của HD-2026-0007 (chặn bởi mục 3–4). Kiểm lại từ 12/11: APT-202611-0010 với Bảo vệ lúc 10:00 và thanh lý HD-2026-0007 với ngày bàn giao 12/11. Không sửa code trong lượt này.
+
+### 12.80. Hiện lý do nghiệp vụ của 409/422 trên form (11/11/2026)
+
+Sửa mục 2 và 3 của §12.79 theo yêu cầu chủ dự án. Chỉ đổi frontend, không đổi API, quyền hay nghiệp vụ.
+- `lib/apiErrors.ts`: thêm `apiBusinessMessage` (lấy `message` Backend tự viết cho 409, và cho 422 không kèm lỗi theo trường; bỏ qua chuỗi rỗng, dài hơn 300 ký tự, giống SQL, chứa `exception` hoặc `.php`) và `apiActionMessage`. `apiConflictMessage` dùng lại bộ lọc này. `applyApiErrors` đặt lỗi cấp form bằng `apiActionMessage`, nên mọi form dùng hàm này hiện lý do nghiệp vụ thay cho câu chung; 422 có lỗi theo trường vẫn giữ câu chung và lỗi tại ô.
+- `features/invoices/CreateInvoiceForm.tsx`: lập trùng hóa đơn tháng hiện "Đã có hóa đơn tháng chưa hủy cho hợp đồng/kỳ này. Tải lại dữ liệu trước khi thử lại."
+- `pages/admin/AdminContractTerminatePage.tsx`: xem trước với ngày bàn giao sau hôm nay (giờ VN) hiện ghi chú "chỉ xem trước được; hóa đơn tất toán lập được từ ngày bàn giao trở đi". Không chặn xem trước ngày tương lai. Lập tất toán với ngày tương lai hiện đúng thông điệp Backend.
+- Test mới `tests/api-errors.test.mjs` (4 test).
+
+Frontend 179 test, build đạt, oxlint 0 lỗi (14 cảnh báo có sẵn). Build lại bản build trên dev 8080 và kiểm trình duyệt bằng Admin demo: hai thông điệp trên hiện đúng; hai lần thử bị Backend từ chối nên không tạo thêm hóa đơn (danh sách vẫn 4 hóa đơn tháng, HD-2026-0007 vẫn active). Mục 1, 4, 5 của §12.79 vẫn chờ chủ dự án quyết định.
