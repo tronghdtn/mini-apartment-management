@@ -82,7 +82,7 @@ trait InteractsWithContractSettlement
         $contracts = app(ContractService::class);
         $contract = $contracts->find($contract->id);
         $contract = app(ContractInspectionService::class)->record($contract, $admin, ['inspection_result' => $damaged ? 'damaged' : 'no_damage',
-            'expected_revision' => $contract->lifecycleRevision()], []);
+            'inspection_note' => $damaged ? 'Hư hỏng thử nghiệm.' : null, 'expected_revision' => $contract->lifecycleRevision()], []);
         $data = ['actual_end_date' => '2026-10-30', 'closure_note' => 'Chỉ sử dụng trong DB test.',
             'electricity_reading' => '100.00', 'water_reading' => '10.00', 'expected_revision' => $contract->lifecycleRevision()];
         if ($damaged) {

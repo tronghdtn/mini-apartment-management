@@ -24,3 +24,13 @@ test('inspection accepts up to five ordinary image files and rejects unsupported
     assert.equal(contractInspectionSchema.safeParse({ inspection_result: 'no_damage', inspection_note: '', photos: [file] }).success, false)
   }
 })
+
+test('a damaged inspection needs a note while no damage may leave it empty (DB-D98)', () => {
+  for (const inspection_note of ['', '   ']) {
+    const result = contractInspectionSchema.safeParse({ inspection_result: 'damaged', inspection_note, photos: [] })
+    assert.equal(result.success, false)
+    assert.deepEqual(result.error.issues.map(issue => [issue.path.join('.'), issue.message]), [['inspection_note', 'Vui lòng ghi rõ hư hỏng khi chọn "Có hư hỏng".']])
+  }
+  assert.equal(contractInspectionSchema.safeParse({ inspection_result: 'no_damage', inspection_note: '', photos: [] }).success, true)
+  assert.equal(contractInspectionSchema.safeParse({ inspection_result: 'damaged', inspection_note: 'Trầy cửa tủ', photos: [] }).success, true)
+})

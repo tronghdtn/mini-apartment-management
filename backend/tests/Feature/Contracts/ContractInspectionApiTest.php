@@ -105,6 +105,28 @@ class ContractInspectionApiTest extends TestCase
             base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQWQAAAAASUVORK5CYII='));
     }
 
+    /** DB-D98: "Có hư hỏng" phải có ghi chú mô tả; "Không có hư hỏng" vẫn để trống được. Ảnh không bắt buộc ở bước này. */
+    public function test_damaged_inspection_requires_a_note_but_no_damage_does_not(): void
+    {
+        $this->login(UserRole::Admin, '0900081011');
+        $tenant = User::factory()->role(UserRole::Resident)->create(['phone' => '0900081012']);
+        $contract = $this->contract($tenant);
+        $url = '/api/v1/contracts/'.$contract->id.'/inspection';
+        $revision = fn () => $contract->fresh()->load('contractServices')->lifecycleRevision();
+
+        foreach ([[], ['inspection_note' => null], ['inspection_note' => '   ']] as $note) {
+            $this->spa('POST', $url, ['inspection_result' => 'damaged', 'expected_revision' => $revision(), ...$note])
+                ->assertUnprocessable()->assertJsonValidationErrors(['inspection_note' => 'Vui lòng ghi rõ hư hỏng khi chọn "Có hư hỏng".']);
+        }
+        $this->assertNull($contract->fresh()->inspection_result);
+        $this->assertDatabaseMissing('attachments', ['attachable_type' => 'contract', 'attachable_id' => $contract->id]);
+
+        $this->spa('POST', $url, ['inspection_result' => 'no_damage', 'expected_revision' => $revision()])
+            ->assertOk()->assertJsonPath('data.inspection_result', 'no_damage')->assertJsonPath('data.inspection_note', null);
+        $this->spa('POST', $url, ['inspection_result' => 'damaged', 'inspection_note' => 'Trầy cửa tủ.', 'expected_revision' => $revision()])
+            ->assertOk()->assertJsonPath('data.inspection_result', 'damaged')->assertJsonPath('data.inspection_photos', []);
+    }
+
     public function test_admin_records_inspection_and_owner_can_view_private_photos(): void
     {
         $admin = $this->login(UserRole::Admin, '0900081001');

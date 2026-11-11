@@ -104,7 +104,7 @@ class FinalMeterPreviewApiTest extends TestCase
         $contract = $this->contract();
         $this->login();
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
-            'inspection_result' => 'damaged', 'expected_revision' => $contract->lifecycleRevision(),
+            'inspection_result' => 'damaged', 'inspection_note' => 'Hư hỏng kiểm thử.', 'expected_revision' => $contract->lifecycleRevision(),
         ])->assertOk();
         $contract = app(ContractService::class)->find($contract->id);
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aQWQAAAAASUVORK5CYII=');
@@ -325,7 +325,7 @@ class FinalMeterPreviewApiTest extends TestCase
             'closure_reason' => 'early_termination']);
         $stagedContract = app(ContractService::class)->find($contract->id);
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
-            'inspection_result' => 'damaged', 'expected_revision' => $stagedContract->lifecycleRevision(),
+            'inspection_result' => 'damaged', 'inspection_note' => 'Hư hỏng kiểm thử.', 'expected_revision' => $stagedContract->lifecycleRevision(),
         ])->assertConflict()->assertJsonPath('message', 'Không thể đổi kết quả kiểm kê sau khi đã lưu chỉ số chốt; hóa đơn lập lại phải giữ nguyên căn cứ đã ghi.');
 
         $refreshed = $this->spa('POST', '/api/v1/invoices/'.$draft['id'].'/refresh', ['expected_revision' => $draft['revision']])
@@ -343,7 +343,7 @@ class FinalMeterPreviewApiTest extends TestCase
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/final-invoice', $this->input($contract))
             ->assertConflict();
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
-            'inspection_result' => 'damaged', 'expected_revision' => $contract->lifecycleRevision(),
+            'inspection_result' => 'damaged', 'inspection_note' => 'Hư hỏng kiểm thử.', 'expected_revision' => $contract->lifecycleRevision(),
         ])->assertOk();
         $contract = app(ContractService::class)->find($contract->id);
         $input = $this->input($contract);
@@ -426,7 +426,7 @@ class FinalMeterPreviewApiTest extends TestCase
         $contract = $this->contract();
         $this->login();
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
-            'inspection_result' => 'damaged', 'expected_revision' => $contract->lifecycleRevision(),
+            'inspection_result' => 'damaged', 'inspection_note' => 'Hư hỏng kiểm thử.', 'expected_revision' => $contract->lifecycleRevision(),
         ])->assertOk();
         $contract = app(ContractService::class)->find($contract->id);
         $input = $this->input($contract, ['damages' => [
@@ -560,7 +560,7 @@ class FinalMeterPreviewApiTest extends TestCase
         $contract = $this->contract();
         $this->login();
         $this->spa('POST', '/api/v1/contracts/'.$contract->id.'/inspection', [
-            'inspection_result' => 'damaged', 'expected_revision' => $contract->lifecycleRevision(),
+            'inspection_result' => 'damaged', 'inspection_note' => 'Hư hỏng kiểm thử.', 'expected_revision' => $contract->lifecycleRevision(),
         ])->assertOk();
         $contract = app(ContractService::class)->find($contract->id);
         $before = $contract->getAttributes();
