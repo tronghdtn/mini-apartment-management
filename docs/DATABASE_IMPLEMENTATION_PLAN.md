@@ -93,6 +93,7 @@ R1–R15 giữ như v4, sửa **R8** theo DB-D40:
 | R8 | Kích hoạt hợp đồng mới: chỉ sau khi hợp đồng cũ `terminated`. So chỉ số đầu với **chỉ số chốt gần nhất** của từng `(room, service)` metered: **thấp hơn** → 422; **cao hơn** → bắt buộc `meter_gap_reason` + Admin xác nhận, ghi `meter_gap_confirmed_by` = Admin trong cùng transaction kích hoạt (mốc `activated_at`); phần chênh không tính cho ai | 422 |
 | R16 | Thanh lý với `actual_end_date = start_date` bắt buộc có lý do (O10 — cột chưa chốt) | 422 |
 | R17 | Form cập nhật hợp đồng thông thường không được đổi `meter_gap_reason`, `meter_gap_confirmed_by` (không trong `#[Fillable]`, FormRequest không nhận) | — |
+| R18 | (DB-D97, 11/11/2026) Chỉ số `final` được ghi **cùng ngày** với `periodic` gần nhất của hợp đồng; chỉ chặn khi có mốc **sau** ngày bàn giao. Thứ tự trong ngày theo `id` (final tạo sau, là mốc cuối); không ghi thêm `periodic` sau khi đã có `final` (409). Hóa đơn tất toán gồm cả periodic chưa thu và đoạn chốt | 422 |
 
 ### 5.3 Schema
 

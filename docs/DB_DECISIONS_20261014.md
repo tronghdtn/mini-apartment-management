@@ -313,3 +313,7 @@ Chủ dự án duyệt đủ ba luồng theo nguyên tắc Q4/Q10 đã chốt v�
 ## DB-D96 — Thông tin liên hệ công khai (CONFIRMED 11/11/2026)
 
 Chủ dự án duyệt thêm `GET /api/v1/public/settings` không cần đăng nhập, chỉ trả `system.name`, `system.contact_phone`, `system.contact_email`; khóa `bank.*`, `invoice.*`, `contract.*` không bao giờ công khai (ngân hàng chỉ qua hướng dẫn thanh toán của hóa đơn, DB-D94). Giá trị trống trả `null`. Frontend bỏ hotline/email mặc định viết cứng: chưa cấu hình hoặc API lỗi thì ẩn mục liên hệ (trang Liên hệ hiện "Chưa cập nhật"). Không đổi bảng/cột/dữ liệu.
+
+## DB-D97 — Chỉ số chốt cùng ngày với chỉ số định kỳ (CONFIRMED 11/11/2026)
+
+Chủ dự án duyệt cho thanh lý trong ngày khi hợp đồng đã có chỉ số `periodic` ghi đúng ngày bàn giao (ví dụ cư dân gửi ảnh chỉ số sáng ngày trả phòng và Admin đã duyệt). `FinalMeterReadingPreviewService` chỉ chặn khi mốc periodic của hợp đồng **sau** ngày bàn giao (trước đây chặn cả cùng ngày). Thứ tự trong cùng ngày theo `id`, đúng tinh thần DB-D28 (quy trình + thời điểm, không chỉ DATE): `final` tạo sau là mốc cuối; `MeterReadingService` vẫn chặn ghi periodic sau khi đã có final (409). Chỉ số chốt không được nhỏ hơn periodic; hóa đơn tất toán tính cả đoạn periodic chưa thu và đoạn chốt. Không đổi bảng/cột/API. Quy tắc R18 ở DATABASE_IMPLEMENTATION_PLAN §5.2.
