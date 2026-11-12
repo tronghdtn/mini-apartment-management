@@ -1601,3 +1601,11 @@ Câu hỏi bảo vệ: (1) Vì sao bảng cuộn riêng? Để người dùng đ
 `frontend/src/hooks/useApiResource.ts` chờ đến microtask (việc chạy ngay sau đoạn JavaScript hiện tại) rồi kiểm tra tín hiệu hủy trước khi gửi GET. Khi React StrictMode gắn thử và dọn effect, lượt thử dừng trước khi gọi API. Bốn khối Dashboard dùng chung hook này để tải dữ liệu hoặc tải lại riêng. `frontend/src/features/auth/AuthProvider.tsx` áp dụng cùng cách kiểm tra khi khởi tạo phiên.
 
 Khi demo, mở Network rồi F5 ở `/admin` để đếm một GET xác thực và bảy GET dữ liệu. Bấm Tải lại chỉ số để xem riêng một GET `/api/v1/dashboard`. Mã 499 trong log Nginx nghĩa là phía trình duyệt đã đóng yêu cầu trước khi máy chủ trả xong.
+
+### 11.78. Tiến trình thanh lý và phản hồi thao tác sau demo (12/11/2026)
+
+- `frontend/src/pages/admin/AdminContractTerminatePage.tsx` — `FinalInvoiceForm` báo trạng thái từ phản hồi lập nháp/phát hành cho `HandoverProgress`. Khung Tiến trình dùng trạng thái vừa lưu trong trang, hoặc hóa đơn đã đọc khi vào lại trang.
+- `frontend/src/features/auth/AuthProvider.tsx` — khi cửa sổ lấy lại tiêu điểm, `refresh` kiểm tra phiên ở chế độ nền. `AbortController` (bộ điều khiển hủy yêu cầu) hủy GET `/api/v1/auth/me` cũ trước thao tác tài khoản để tránh phản hồi cũ thay cookie phiên.
+- `frontend/src/features/auth/ProfileEmailPanel.tsx` — `resend` hiện đang gửi cho đến khi API xác minh email phản hồi. `ResidentOverviewCards.tsx` lấy số hóa đơn và số tiền từ API tổng quan cư dân rồi trình bày ngắn gọn.
+
+Câu hỏi bảo vệ. Khi nào bước 2 và bước 3 hoàn tất? Vì sao cần hủy yêu cầu phiên cũ dù đã kiểm tra thứ tự phản hồi trong JavaScript? Giao diện xác định số hóa đơn còn nợ từ đâu?

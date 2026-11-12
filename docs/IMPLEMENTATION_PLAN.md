@@ -1587,3 +1587,24 @@ Xử lý mục f14-02 của checklist demo sau khi chủ dự án duyệt phươ
 Test: `Contracts/ContractInspectionApiTest` thêm ca damaged thiếu/null/khoảng trắng → 422, không lưu; no_damage để trống → 200; damaged có ghi chú, không ảnh → 200. Các fixture damaged cũ (`FinalMeterPreviewApiTest`, `InteractsWithContractSettlement`) bổ sung ghi chú. Full PHPUnit **1563 test / 16121 assertion PASS** (741 s), Pint 400 file PASS; frontend 182/182 test (chạy tuần tự từng file do `spawn UNKNOWN` trên Windows), build PASS, lint 0 lỗi/14 cảnh báo cũ. Code commit `8be6875`.
 
 Kiểm trên dev 8080 (Docker Desktop treo, đã khởi động lại; container demo tự build lại frontend): Admin mở bàn giao HD-2026-0001, chọn "Có hư hỏng", để trống ghi chú, bấm lưu → hiện thông báo dưới ô ghi chú, không gửi request; gọi trực tiếp POST `/api/v1/contracts/1/inspection` với ghi chú khoảng trắng → 422 cùng thông báo. Hợp đồng #1 vẫn active, `inspection_result`/`inspection_note` NULL, `updated_at` không đổi. Chưa thử lưu thành công trên dev để không ghi dữ liệu vào hợp đồng đang hiệu lực.
+
+### 12.84. Sửa bốn điểm giao diện sau demo (12/11/2026)
+
+- Thanh lý: khung Tiến trình dùng trạng thái hóa đơn từ phản hồi lập nháp và phát hành. Lập nháp hoàn tất bước 2. Phát hành thành công hoàn tất bước 3 và chuyển bước 4 sang cần thực hiện. F5 tiếp tục đọc hóa đơn đã lưu.
+- Đăng nhập: khi cửa sổ lấy lại tiêu điểm, kiểm tra phiên ở chế độ nền. Hủy GET phiên cũ trước thao tác tài khoản để phản hồi cũ không thay cookie phiên. Lần mở đầu vẫn có trạng thái kiểm tra phiên.
+- Email xác minh: nút hiện “Đang gửi…” và thông báo cho trình đọc màn hình. Sau phản hồi thành công hoặc lỗi, nút mở lại. Tốc độ gửi thư chưa được tối ưu trong lượt này.
+- Tổng quan cư dân: thẻ chỉ ghi số hóa đơn còn nợ. Số tiền và phạm vi tính công nợ giữ theo quy tắc hiện có.
+
+Frontend **182/182 test đạt**, build đạt, lint 0 lỗi (14 cảnh báo có sẵn). Bốn luồng đạt trên Chromium với phản hồi API kiểm thử. Thanh lý ở 1280/375 px qua xem trước, lỗi 409 và thử lại, phát hành hóa đơn 0 ₫ hoặc có tiền, F5. Email ở 375 px qua phản hồi chậm, gửi lặp, 202 và 503 rồi thử lại. Công nợ ở 375 px với nợ dương khi không còn hợp đồng và nợ 0. Đăng nhập gửi được khi GET phiên nền đang chờ, hủy GET đó và giữ phiên mới qua F5. Bản đối chứng bỏ thao tác hủy tái hiện phản hồi 401 đến muộn làm mất cookie phiên. Xem các ca hồi quy trong TEST_MATRIX.
+
+Chỉ thay đổi frontend và tài liệu. Chưa chạy lại trên Laravel/MySQL dev hoặc đo gửi thư qua Mailpit. Không ghi dữ liệu dev.
+
+### 12.85. Nghiệm thu bản demo mới trên Docker dev (12/11/2026)
+
+Khởi động lại riêng container frontend ở chế độ bản build. HTML trên cổng 8080 dùng đúng tệp vào của bản build mới. Health Laravel và Mailpit trả HTTP 200.
+
+- Bốn điểm §12.84 đạt trên Chrome với Laravel/MySQL dev. Đăng nhập vẫn gửi được khi giữ chờ yêu cầu kiểm tra phiên, hủy yêu cầu cũ và F5 giữ phiên. Công nợ ở 375 px khớp API: 1 hóa đơn, 6.955.000 ₫, không tràn ngang. Gửi email hiện “Đang gửi…”, trả 202 và có đúng một thư trong Mailpit nội bộ. Một lần đo yêu cầu gửi thư mất khoảng 13,5 giây. Thanh lý cập nhật bước 2 ngay sau lập nháp, bước 3–4 ngay sau phát hành và khôi phục đúng khi F5.
+- Lịch demo APT-202611-0010: Bảo vệ check-in và check-out qua giao diện lúc 19:43:59 giờ VN. API chặn check-out trước check-in và chặn lặp (409). F5 vẫn có hai mốc đã lưu, đúng tài khoản Bảo vệ, không còn nút check-in/check-out.
+- Hợp đồng QA riêng: lập và phát hành hóa đơn tất toán qua UI, gửi minh chứng 1.000 ₫ qua API cư dân. Bước 4 báo một khoản chờ, có liên kết sang đối soát và khóa nút thanh lý. Gọi API thanh lý với phiên bản đối soát mới nhận 409 đúng lý do. Hợp đồng vẫn hiệu lực, phòng vẫn đang thuê và hóa đơn vẫn ghi nhận đã thu 0 ₫.
+
+Bản sao trước khi chạy trong thư mục backup Git bỏ qua. Đã dọn tài khoản, phòng riêng, hợp đồng, hóa đơn, khoản chờ, hai chỉ số chốt, thông báo và ảnh do lượt QA tạo. Đối chiếu trước/sau: 29 bảng và lịch sử migration khớp, cấu trúc khớp khi bỏ qua bộ đếm ID. Chênh lệch dữ liệu chỉ ở lịch demo, phiên/cache và token ghi nhớ Admin được xoay khi đăng xuất. Không đổi mật khẩu. Giữ kết quả lịch demo và một thư thử trong Mailpit. `RUN_MIGRATIONS=false`. Ảnh phòng tùy chọn trong checklist chưa chạy lại. Chưa triển khai production.

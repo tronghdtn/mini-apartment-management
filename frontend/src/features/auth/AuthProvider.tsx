@@ -17,7 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const currentUser = useRef<AuthUser | null>(null)
   // Epoch thay đổi khi có thao tác Auth; request /me cũ không được xóa phiên mới.
   const revision = useRef(0)
-  const refreshSequence = useRef(0)
+  const activeRefresh = useRef<AbortController | null>(null)
   const pendingMutation = useRef<number | null>(null)
   const clear = useCallback((notice?: AccountNotice) => {
     revision.current++
@@ -27,35 +27,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     if (notice !== undefined) setAccountNotice(notice)
   }, [])
-  const invalidatePending = useCallback(() => { revision.current++ }, [])
-  const refresh = useCallback(async () => {
+  const invalidatePending = useCallback(() => {
+    // Hủy /me đang chạy để phản hồi cũ không ghi đè cookie phiên sau khi đăng nhập.
+    activeRefresh.current?.abort()
+    return ++revision.current
+  }, [])
+  const refresh = useCallback(async ({ background = false } = {}) => {
     if (pendingMutation.current !== null) return
+    activeRefresh.current?.abort()
+    const controller = new AbortController()
+    activeRefresh.current = controller
     const epoch = revision.current
-    const sequence = ++refreshSequence.current
-    // Revalidate nền giữ trang/form đang mở; chỉ bootstrap mới chặn toàn trang.
-    if (!currentUser.current) setStatus('loading')
-    setError(null)
+    if (!background) {
+      if (!currentUser.current) setStatus('loading')
+      setError(null)
+    }
     try {
-      const current = await api.getCurrentUser()
-      if (epoch !== revision.current || sequence !== refreshSequence.current) return
+      const current = await api.getCurrentUser(controller.signal)
+      if (controller.signal.aborted || epoch !== revision.current) return
       if (current.status !== 'active') { clear(); return }
       currentUser.current = current
       setUser(current)
       setStatus('authenticated')
+      setError(null)
     } catch (failure) {
-      if (epoch !== revision.current || sequence !== refreshSequence.current) return
+      if (controller.signal.aborted || epoch !== revision.current) return
       if (isAxiosError(failure) && [401, 403, 419].includes(failure.response?.status ?? 0)) clear()
       else {
         setError(authErrorMessage(failure))
         setStatus(currentUser.current ? 'authenticated' : 'error')
       }
+    } finally {
+      if (activeRefresh.current === controller) activeRefresh.current = null
     }
   }, [clear])
 
   useEffect(() => {
     let active = true
     void Promise.resolve().then(() => { if (active) return refresh() })
-    const onFocus = () => { void refresh() }
+    const onFocus = () => { void refresh({ background: true }) }
     window.addEventListener('focus', onFocus)
     return () => {
       active = false
@@ -66,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const authenticate = async <T,>(input: T, action: (value: T) => Promise<AuthUser>) => {
     setAccountNotice(null)
-    const epoch = ++revision.current
+    const epoch = invalidatePending()
     pendingMutation.current = epoch
     try {
       const current = await action(input)
@@ -88,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = (input: RegisterInput) => authenticate(input, api.register)
   const logout = async () => {
     setAccountNotice(null)
-    const epoch = ++revision.current
+    const epoch = invalidatePending()
     pendingMutation.current = epoch
     try { await api.logout(); clear() }
     catch (failure) {
@@ -104,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
   const changePassword = async (input: ChangePasswordInput) => {
     if (pendingMutation.current !== null) return false
-    const epoch = ++revision.current
+    const epoch = invalidatePending()
     pendingMutation.current = epoch
     try {
       await api.changePassword(input)

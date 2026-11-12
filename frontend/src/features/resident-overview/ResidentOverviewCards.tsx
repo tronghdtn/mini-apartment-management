@@ -49,7 +49,7 @@ export function ResidentDebtCard({ debt }: { debt: ResidentOverview['debt'] }) {
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><AlertCircle className="h-5 w-5" /></div>
         <div className="min-w-0">
           <h2 className="text-sm font-extrabold text-slate-900">Cần thanh toán</h2>
-          <p className="mt-0.5 text-xs text-slate-500">{debt.outstanding_invoice_count} hóa đơn còn nợ, gồm cả hợp đồng đã thanh lý</p>
+          <p className="mt-0.5 text-xs text-slate-500">{debt.outstanding_invoice_count} hóa đơn còn nợ</p>
         </div>
       </div>
       <span className="min-w-0 break-all font-mono text-base font-black text-amber-700 sm:text-lg">{formatVND(BigInt(debt.outstanding_amount))}</span>

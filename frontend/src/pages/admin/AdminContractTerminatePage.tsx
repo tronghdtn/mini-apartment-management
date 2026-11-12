@@ -13,7 +13,7 @@ import { contractInspectionSchema, type ContractInspectionInput } from '@/featur
 import { contractLabel, contractStatusLabels, contractStatusTones, depositStatusText, earlyTerminationFeeLabels, type Contract } from '@/features/contracts/types'
 import { ContractSettlementPanel } from '@/features/contracts/ContractSettlementPanel'
 import { getLatestFinalInvoice, invoiceAction } from '@/features/invoices/api'
-import type { Invoice } from '@/features/invoices/types'
+import type { Invoice, InvoiceStatus } from '@/features/invoices/types'
 import { useAuth } from '@/features/auth/useAuth'
 import { apiConflictMessage, apiErrorMessage, applyApiErrors } from '@/lib/apiErrors'
 import { businessToday, formatDate, formatDateTime, formatVND } from '@/lib/format'
@@ -26,14 +26,14 @@ const stepStyles: Record<StepState, { label: string; dot: string }> = {
 }
 
 /** Tiến trình chỉ đọc từ dữ liệu đã lưu (kiểm kê, hóa đơn tất toán, trạng thái hợp đồng); Laravel quyết định điều kiện thật. */
-function HandoverProgress({ contract, finalInvoice }: { contract: Contract; finalInvoice?: Invoice | null }) {
+function HandoverProgress({ contract, invoiceStatus }: { contract: Contract; invoiceStatus?: InvoiceStatus }) {
   const terminated = contract.status === 'terminated'
-  const issued = !!finalInvoice && ['issued', 'partially_paid', 'paid'].includes(finalInvoice.status)
+  const issued = invoiceStatus === 'issued' || invoiceStatus === 'partially_paid' || invoiceStatus === 'paid'
   const steps: { title: string; state: StepState; note?: string }[] = [
     { title: 'Kiểm tra tài sản', state: terminated || contract.inspection_result ? 'done' : 'current' },
-    { title: 'Ngày bàn giao và chỉ số chốt', state: terminated || finalInvoice ? 'done' : 'current', note: finalInvoice || terminated ? undefined : 'Xem trước, chưa ghi' },
-    { title: 'Hóa đơn tất toán', state: terminated || issued ? 'done' : finalInvoice ? 'current' : 'pending',
-      note: finalInvoice?.status === 'draft' ? 'Bản nháp, chưa phát hành' : finalInvoice?.status === 'cancelled' ? 'Đã hủy, cần lập lại' : undefined },
+    { title: 'Ngày bàn giao và chỉ số chốt', state: terminated || invoiceStatus ? 'done' : 'current', note: invoiceStatus || terminated ? undefined : 'Xem trước, chưa ghi' },
+    { title: 'Hóa đơn tất toán', state: terminated || issued ? 'done' : invoiceStatus ? 'current' : 'pending',
+      note: invoiceStatus === 'draft' ? 'Bản nháp, chưa phát hành' : invoiceStatus === 'cancelled' ? 'Đã hủy, cần lập lại' : undefined },
     { title: 'Đối soát cọc và trả phòng', state: terminated ? 'done' : issued ? 'current' : 'pending' },
   ]
   return <ol aria-label="Tiến trình bàn giao" className="space-y-3">{steps.map((step, index) => <li key={step.title} className="flex items-start gap-3">
@@ -42,7 +42,7 @@ function HandoverProgress({ contract, finalInvoice }: { contract: Contract; fina
   </li>)}</ol>
 }
 
-function ContractSummary({ contract, finalInvoice }: { contract: Contract; finalInvoice?: Invoice | null }) {
+function ContractSummary({ contract, invoiceStatus }: { contract: Contract; invoiceStatus?: InvoiceStatus }) {
   const terms = contract.early_termination_fee_type
   return <aside className="space-y-4 lg:sticky lg:top-4">
     <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
@@ -64,7 +64,7 @@ function ContractSummary({ contract, finalInvoice }: { contract: Contract; final
       {!!contract.early_termination_waiver_conditions?.length && <ul className="list-disc space-y-1 pl-5 text-xs">{contract.early_termination_waiver_conditions.map(item => <li key={item.code} className="break-words">Điều kiện miễn: {item.description}</li>)}</ul>}
       <p className="text-xs text-amber-800">Số phí thực tế do hệ thống tính khi xem trước theo ngày bàn giao; trang này không tự tính.</p>
     </section>
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Tiến trình</h2><HandoverProgress contract={contract} finalInvoice={finalInvoice} /></section>
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3"><h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Tiến trình</h2><HandoverProgress contract={contract} invoiceStatus={invoiceStatus} /></section>
   </aside>
 }
 
@@ -72,22 +72,29 @@ export function AdminContractTerminatePage() {
   const { contractId } = useParams<{ contractId: string }>()
   const { refresh } = useAuth()
   const [retry, setRetry] = useState(0)
-  const [result, setResult] = useState<{ id: string; contract?: Contract; finalInvoice?: Invoice | null; error?: string }>()
+  const [result, setResult] = useState<{
+    id: string
+    contract?: Contract
+    finalInvoice?: Invoice | null
+    savedInvoiceStatus?: InvoiceStatus
+    error?: string
+  }>()
+  const resultId = `${contractId}:${retry}`
   useEffect(() => {
     const abort = new AbortController()
     getContract(contractId ?? '', abort.signal).then(async contract => {
       // Dev may not yet have the approved pending schema. Keep the existing controlled errors there.
       const finalInvoice = contract.actual_end_date ? await getLatestFinalInvoice(contract.id, abort.signal) : null
-      if (!abort.signal.aborted) setResult({ id: `${contractId}:${retry}`, contract, finalInvoice })
+      if (!abort.signal.aborted) setResult({ id: resultId, contract, finalInvoice })
     }).catch(failure => {
       if (!abort.signal.aborted) {
-        setResult({ id: `${contractId}:${retry}`, error: apiErrorMessage(failure) })
+        setResult({ id: resultId, error: apiErrorMessage(failure) })
         if (isAxiosError(failure) && [401, 403].includes(failure.response?.status ?? 0)) void refresh()
       }
     })
     return () => abort.abort()
-  }, [contractId, retry, refresh])
-  const current = result?.id === `${contractId}:${retry}` ? result : undefined
+  }, [contractId, resultId, refresh])
+  const current = result?.id === resultId ? result : undefined
   const contract = current?.contract
   return <div className="space-y-6">
     <header className="space-y-3 border-b border-slate-200 pb-5">
@@ -113,15 +120,20 @@ export function AdminContractTerminatePage() {
             contractId={contract.id} onTerminated={() => setRetry(value => value + 1)} onAuthFailure={() => void refresh()} />
             : <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Đối soát cọc và trả phòng mở sau khi hóa đơn tất toán được phát hành.</p>}</> : <>
             <InspectionForm key={contract.id} contract={contract}
-              onAuthFailure={() => void refresh()} onSaved={saved => setResult({ id: `${contractId}:${retry}`, contract: saved })} />
-            <ClosureForm key={`${contract.id}:${contract.lifecycle_revision}`} contract={contract} onAuthFailure={() => void refresh()} onReload={() => setRetry(value => value + 1)} /></>}
+              onAuthFailure={() => void refresh()}
+              onSaved={saved => setResult(previous => previous?.id === resultId ? { ...previous, contract: saved } : previous)} />
+            <ClosureForm key={`${contract.id}:${contract.lifecycle_revision}`} contract={contract} onAuthFailure={() => void refresh()}
+              onReload={() => setRetry(value => value + 1)}
+              onInvoiceSaved={status => setResult(previous => previous?.id === resultId ? { ...previous, savedInvoiceStatus: status } : previous)} /></>}
         </div>
-        <div className="order-1 lg:order-2"><ContractSummary contract={contract} finalInvoice={current.finalInvoice} /></div>
+        <div className="order-1 lg:order-2"><ContractSummary contract={contract} invoiceStatus={current.finalInvoice?.status ?? current.savedInvoiceStatus} /></div>
       </div>}
   </div>
 }
 
-function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract; onAuthFailure: () => void; onReload: () => void }) {
+function ClosureForm({ contract, onAuthFailure, onReload, onInvoiceSaved }: {
+  contract: Contract; onAuthFailure: () => void; onReload: () => void; onInvoiceSaved: (status: InvoiceStatus) => void
+}) {
   const [busy, setBusy] = useState(false)
   const flight = useRef(false)
   const [result, setResult] = useState<{ key: string; revision: string; data: FinalMeterPreview }>()
@@ -175,13 +187,15 @@ function ClosureForm({ contract, onAuthFailure, onReload }: { contract: Contract
       <p className="font-bold text-teal-950">Tổng điện nước chốt: {formatVND(preview.meter_amount)}</p>
       <p className="text-sm text-slate-700">Bản xem trước chỉ đọc; chưa ghi chỉ số cuối, lập hóa đơn hoặc thanh lý. Khi lập nháp, hệ thống kiểm tra lại chuỗi chỉ số và nguồn tiền.</p>{preview.actual_end_date > businessToday() && <p role="note" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">Ngày bàn giao {formatDate(preview.actual_end_date)} còn ở tương lai: chỉ xem trước được. Hóa đơn tất toán lập được từ ngày bàn giao trở đi.</p>}</section>}
     {preview && (contract.inspection_result
-      ? <FinalInvoiceForm key={result?.key} contract={contract} closure={finalMeterPreviewSchema.parse(values)} preview={preview} onAuthFailure={onAuthFailure} onReload={onReload} />
+      ? <FinalInvoiceForm key={result?.key} contract={contract} closure={finalMeterPreviewSchema.parse(values)} preview={preview}
+        onAuthFailure={onAuthFailure} onReload={onReload} onInvoiceSaved={onInvoiceSaved} />
       : <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">Hãy lưu kết quả kiểm tra tài sản ở bước 1 trước khi lập hóa đơn tất toán.</p>)}
   </>
 }
 
-function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload }: {
+function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload, onInvoiceSaved }: {
   contract: Contract; closure: FinalMeterPreviewInput; preview: FinalMeterPreview; onAuthFailure: () => void; onReload: () => void
+  onInvoiceSaved: (status: InvoiceStatus) => void
 }) {
   const [invoice, setInvoice] = useState<FinalInvoiceDraft>()
   const [busy, setBusy] = useState(false)
@@ -203,6 +217,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
     try {
       const created = await createFinalInvoiceDraft(contract.id, closure, input, contract.lifecycle_revision ?? '')
       setInvoice(created)
+      onInvoiceSaved(created.status)
       setMessage('Đã tạo bản nháp hóa đơn tất toán. Chưa phát hành và chưa đối soát tiền cọc.')
     } catch (failure) {
       const fields = ['damages', 'waiver_code', 'waiver_note', 'waiver_evidence',
@@ -236,6 +251,7 @@ function FinalInvoiceForm({ contract, closure, preview, onAuthFailure, onReload 
       setInvoice({ ...invoice, status: issued.status, total_amount: issued.total_amount, paid_amount: issued.paid_amount,
         contract_closure_note: issued.contract_closure_note,
         revision: issued.revision, items: issued.items?.map(item => ({ ...item, evidence_urls: item.evidence_urls ?? [] })) })
+      onInvoiceSaved(issued.status)
       setConfirmIssue(false)
       setMessage(issued.status === 'paid'
         ? 'Hóa đơn 0đ đã tất toán; không tạo giao dịch thu tiền.'

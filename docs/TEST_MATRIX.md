@@ -649,3 +649,23 @@ Chưa kiểm trong lượt này: email (đã kiểm riêng §12.66), mất mạn
 | E2E-04-PRINT | Browser Admin test, 18082, khổ 375 px | Hóa đơn: trước sửa chiều rộng vùng xem/nội dung là 367/394 px, sau sửa là 367/367 px; bảng cuộn trong khung 286 px với nội dung 354 px, đủ ba dòng và tổng 3.778.475 ₫. Biên nhận có mã và số tiền, không tràn ngang (375/375 px). Chưa mở được hộp thoại in để lưu PDF. |
 | E2E-04-PDF | Dev 8080, Chrome headless `Page.printToPDF`, tài khoản demo Admin + Cư dân 1 | 7 tệp PDF A4, mỗi tệp 1 trang: hóa đơn INV-202611-0001 (quá hạn, 6 dòng, tổng 6.955.000 ₫, còn 6.955.000 ₫), INV-202610-0001 (đã thanh toán, có khối chỉ số 150→280 kWh, 20→32 m3, còn 0 ₫), biên nhận RCP-202610-0001 (6.955.000 ₫, chuyển khoản, ô ký), phiếu hợp đồng HD-2026-0001 bản Admin (có liên hệ) và bản Cư dân (có địa chỉ, người ở cùng, không có liên hệ). Tiếng Việt đúng dấu, không menu/nút, bảng không cắt: PASS. Góp ý giao diện: bảng dịch vụ phiếu hợp đồng xuống dòng chữ "Theo chỉ số"/"1.00 phòng". Quan sát dữ liệu demo: INV-202611-0001 có dòng điện/nước 130 kWh/12 m3 trùng tiêu thụ kỳ 10 đã thu ở INV-202610-0001 và không gắn chỉ số (dữ liệu chèn từ `DemoDataSeeder`, không qua Service lập hóa đơn). |
 | E2E-04-OFFLINE | Dev 8080, Chrome headless offline emulation, tài khoản demo 5 vai trò, 1280 px và 375 px | Admin: menu → Hóa đơn chưa tải mã → trang lỗi toàn màn hình, "Tải lại trang" khi có mạng → đúng 3 hóa đơn; đổi tab Đã phát hành khi mất mạng → "Không thể kết nối máy chủ", Tải lại → dữ liệu; "Đánh dấu tất cả đã đọc" khi mất mạng → báo lỗi, vẫn 5 chưa đọc; F5 sau đó giữ phiên. KTV: Tải lại danh sách việc → báo lỗi + Thử lại; chuyển Thông báo → trang lỗi, Tải lại → 2 thông báo. Bảo vệ: Tải lại lịch hẹn → báo lỗi, Tải lại → bình thường. Cư dân: chuyển Hóa đơn → trang lỗi, Tải lại → bình thường; gửi yêu cầu sửa chữa → báo lỗi, giữ tiêu đề/mô tả, số yêu cầu 3 → 3. Khách: Tìm phòng → báo lỗi + Thử lại, có mạng lại bấm Thử lại tải 35 phòng, ô lựa chọn tòa/tiện nghi cần bấm "Tải lại lựa chọn" riêng; Lưu họ tên → báo lỗi, giữ tên đã sửa, tên trên máy chủ không đổi. Nginx chỉ ghi POST login/logout; dữ liệu dev trước/sau khớp: PASS. |
+
+### Hồi quy bốn điểm giao diện sau demo (12/11/2026)
+
+| Mức | Luồng | Ca kiểm và kết quả mong đợi |
+| --- | --- | --- |
+| P1 | Admin thanh lý | Xem trước chưa đổi trạng thái lưu. Lập nháp thành công đánh dấu bước 2 đã xong và bước 3 còn phải phát hành. Phát hành thành công (hóa đơn có tiền hoặc 0 ₫) đánh dấu bước 3 đã xong và mở bước 4 trên khung Tiến trình. Nếu yêu cầu lỗi, tiến trình giữ trạng thái trước đó. F5 lấy trạng thái đã lưu qua API. |
+| P1 | Khách đăng nhập | Lần tải đầu vẫn kiểm tra phiên. Sau khi biết phiên là khách, giữ nút Đăng nhập khả dụng khi cửa sổ lấy lại tiêu điểm và `/auth/me` còn chờ. Bấm Đăng nhập hủy yêu cầu cũ. Phản hồi cũ đến muộn không thay thế phiên mới. |
+| P2 | Hồ sơ gửi email xác minh | Gửi chậm phải có nhãn “Đang gửi…” và khóa gửi lặp. Thành công hoặc lỗi hiện thông báo tương ứng và mở lại nút. |
+| P2 | Tổng quan cư dân | Trường hợp có nợ hiển thị đúng số hóa đơn và số tiền. Cư dân không còn hợp đồng vẫn thấy số nợ do máy chủ trả về. Trường hợp nợ 0 hiển thị trạng thái tương ứng. |
+
+Kết quả trên Docker dev 8080, Chrome ngày 12/11/2026:
+
+| Luồng | Kết quả |
+| --- | --- |
+| Admin thanh lý | PASS. Xem trước giữ nguyên tiến trình lưu. Lập nháp và phát hành cập nhật ngay từng bước, F5 khôi phục đúng trạng thái. Hợp đồng QA riêng. |
+| Khách đăng nhập | PASS. Trì hoãn GET phiên lúc cửa sổ lấy lại tiêu điểm, nút vẫn gửi đăng nhập thành công, GET cũ bị hủy, F5 giữ phiên. |
+| Hồ sơ gửi email xác minh | PASS. Nút hiện “Đang gửi…”, nhận 202, mở lại và Mailpit có đúng một thư. Một lần đo gửi thư khoảng 13,5 giây. |
+| Tổng quan cư dân | PASS ở 375 px. Hiện 1 hóa đơn còn nợ và 6.955.000 ₫ khớp API, không tràn ngang. |
+| Bảo vệ check-in/check-out | PASS. Lịch APT-202611-0010 chặn sai thứ tự và thao tác lặp (409), lưu hai thao tác hợp lệ và hiển thị lại sau F5. |
+| Chặn thanh lý khi có khoản chờ | PASS. UI khóa xác nhận và dẫn sang đối soát. API trả 409. Hợp đồng còn hiệu lực, phòng đang thuê, số tiền đã thu giữ 0 ₫. Dữ liệu QA đã dọn. |

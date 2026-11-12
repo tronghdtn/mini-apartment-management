@@ -15,6 +15,7 @@ const inputClass = 'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text
 export function ProfileEmailPanel({ user, busy, onBusyChange }: { user: AuthUser; busy: boolean; onBusyChange: (busy: boolean) => void }) {
   const flight = useRef(false)
   const [notice, setNotice] = useState<{ ok: boolean; message: string }>()
+  const [sendingVerification, setSendingVerification] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const form = useForm<ChangeEmailInput>({ resolver: zodResolver(changeEmailSchema), defaultValues: { email: '', current_password: '' } })
   async function guarded(action: () => Promise<void>) {
@@ -23,7 +24,14 @@ export function ProfileEmailPanel({ user, busy, onBusyChange }: { user: AuthUser
     try { await action() } finally { flight.current = false; onBusyChange(false) }
   }
   const resend = () => guarded(async () => {
-    try { setNotice({ ok: true, message: await sendVerificationEmail() }) } catch (error) { setNotice({ ok: false, message: emailErrorMessage(error) }) }
+    setSendingVerification(true)
+    try {
+      setNotice({ ok: true, message: await sendVerificationEmail() })
+    } catch (error) {
+      setNotice({ ok: false, message: emailErrorMessage(error) })
+    } finally {
+      setSendingVerification(false)
+    }
   })
   const change = (input: ChangeEmailInput) => guarded(async () => {
     try {
@@ -42,7 +50,10 @@ export function ProfileEmailPanel({ user, busy, onBusyChange }: { user: AuthUser
     </div>
     {user.email && !user.email_verified && <div className="space-y-2">
       <p className="text-xs text-slate-500">Xác minh email để có thể tự khôi phục mật khẩu khi quên.</p>
-      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void resend()}>Gửi email xác minh</Button>
+      <Button type="button" size="sm" variant="outline" disabled={busy} isLoading={sendingVerification} onClick={() => void resend()}>
+        {sendingVerification ? 'Đang gửi…' : 'Gửi email xác minh'}
+      </Button>
+      <span role="status" className="sr-only">{sendingVerification ? 'Đang gửi email xác minh…' : ''}</span>
     </div>}
     {notice && <p role={notice.ok ? 'status' : 'alert'} className={`rounded-xl p-3 text-sm ${notice.ok ? 'bg-teal-50 text-teal-800' : 'bg-rose-50 text-rose-700'}`}>{notice.message}</p>}
     <form noValidate onSubmit={event => { void form.handleSubmit(change)(event) }} className="space-y-3 border-t border-slate-100 pt-4">
