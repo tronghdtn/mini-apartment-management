@@ -125,17 +125,16 @@ Trạng thái: **Chưa làm / Đang làm / Bị chặn / Đã code / Đã kiểm
 
 | Thư mục | Nội dung |
 | --- | --- |
-| `src/app/` | `App.tsx` (bọc `AuthProvider` + mock `AppProvider` + `RouterProvider`), `router.tsx` — khai báo toàn bộ route. Layout được chọn theo **tiền tố URL** (`/` → `PublicLayout`, `/admin` → `AdminLayout`), không theo vai trò. |
+| `src/app/` | `App.tsx` bọc `RouterProvider` trong `AuthProvider`. `router.tsx` khai báo route và layout theo tiền tố URL (`/` → `PublicLayout`, `/admin` → `AdminLayout`). |
 | `src/components/layouts/` | `PublicLayout` (+ `PublicNavbar`, `PublicFooter`), `AdminLayout` — đang dùng. `ResidentLayout`, `StaffLayout` (technician/guard, DB-D10) — có sẵn nhưng **chưa gắn route**. |
 | `src/components/ui/` | Component giao diện dùng chung, không chứa nghiệp vụ (`Badge`, `Button`, `Modal`, `Tabs`, `Toast`, `Lightbox`, `StatCard`). |
 | `src/features/<feature>/` | Một module nghiệp vụ: `api.ts`, `types.ts`, `schemas.ts` (Zod), component riêng. Feature không import lẫn nhau; phần dùng chung đưa lên `components/ui`, `hooks`, `lib`, `types`. Hiện có `rooms/` (component), `auth/` (API/types/schema, AuthProvider/useAuth, guard, AccountActions), `system/` (mẫu gọi API thật `/health`). |
-| `src/mocks/` | **Dữ liệu giả tạm thời** (`data.ts`, `types.ts`, `AppContext.tsx` = "backend giả" trong bộ nhớ, `RoleSwitcher.tsx` = công cụ demo chỉ còn trong layout chưa gắn route). Danh tính Auth đã tách khỏi mock; luồng Admin/public đang chạy không có đổi vai trò demo. Không phải nghiệp vụ chính thức; xem `src/mocks/README.md`. |
 | `src/pages/<area>/` | Trang theo khu vực `public/`, `admin/` (sau này `resident/`, `staff/`), cùng `NotFoundPage`, `RouteErrorPage`; ghép component từ `features/`. Lời gọi API, type và schema đặt trong feature, không viết trong page. |
 | `src/hooks/`, `src/lib/`, `src/types/` | Hook, tiện ích (`lib/http.ts` — client API duy nhất; `lib/format.ts` — định dạng tiền/ngày, giờ VN), kiểu dùng chung (`types/api.ts`). |
 
 - Import qua alias `@/` (→ `src/`).
 - Gọi API **chỉ** qua `http` trong `src/lib/http.ts` (đã cấu hình `withCredentials` + XSRF cho Sanctum); gọi `fetchCsrfCookie()` trước khi đăng nhập.
-- **Ranh giới dữ liệu giả:** chỉ `src/mocks/` được chứa dữ liệu giả; không thêm mock mới vào page/feature. Khi một màn hình chuyển sang API thật, page lấy dữ liệu qua `features/<feature>/api.ts` và bỏ mọi import `@/mocks` ở màn hình đó. Chỗ React đang tự tính tiền trong mock gắn nhãn `[MOCK-TIỀN]` — **không** dùng làm nguồn nghiệp vụ; số tiền thật luôn lấy từ Backend.
+- **Dữ liệu nghiệp vụ:** trang lấy dữ liệu qua `features/<feature>/api.ts`. Tiền và quyền do Backend xác định. Dữ liệu giả chỉ dùng trong kiểm thử hoặc bản mẫu tách khỏi frontend chính thức.
 - Form: React Hook Form + Zod (`zodResolver`) — màn hình Antigravity hiện dùng `useState`, chuyển sang RHF + Zod khi nối API. Biểu đồ: Recharts. State: `useState`/Context. Icon: `lucide-react`.
 - Styling: giữ phong cách Antigravity (font Plus Jakarta Sans/Space Grotesk, tông `sky`/`teal`, token `brand-*` trong `src/index.css`); Tailwind utility. Responsive, ưu tiên mobile; bảng dữ liệu phải nằm trong khung `overflow-x-auto`.
 

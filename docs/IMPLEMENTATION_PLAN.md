@@ -1608,3 +1608,9 @@ Khởi động lại riêng container frontend ở chế độ bản build. HTML
 - Hợp đồng QA riêng: lập và phát hành hóa đơn tất toán qua UI, gửi minh chứng 1.000 ₫ qua API cư dân. Bước 4 báo một khoản chờ, có liên kết sang đối soát và khóa nút thanh lý. Gọi API thanh lý với phiên bản đối soát mới nhận 409 đúng lý do. Hợp đồng vẫn hiệu lực, phòng vẫn đang thuê và hóa đơn vẫn ghi nhận đã thu 0 ₫.
 
 Bản sao trước khi chạy trong thư mục backup Git bỏ qua. Đã dọn tài khoản, phòng riêng, hợp đồng, hóa đơn, khoản chờ, hai chỉ số chốt, thông báo và ảnh do lượt QA tạo. Đối chiếu trước/sau: 29 bảng và lịch sử migration khớp, cấu trúc khớp khi bỏ qua bộ đếm ID. Chênh lệch dữ liệu chỉ ở lịch demo, phiên/cache và token ghi nhớ Admin được xoay khi đăng xuất. Không đổi mật khẩu. Giữ kết quả lịch demo và một thư thử trong Mailpit. `RUN_MIGRATIONS=false`. Ảnh phòng tùy chọn trong checklist chưa chạy lại. Chưa triển khai production.
+
+### 12.86. Bỏ mã giả lập frontend cũ (12/11/2026)
+
+Theo xác nhận của chủ dự án, xóa form đặt lịch cũ và 5 tệp trong `frontend/src/mocks/`. Các trang công khai tiếp tục dùng `AppointmentBookingForm` và API Laravel. Cập nhật hướng dẫn frontend trong AGENTS.md. Hai thư mục giao diện mẫu, seeder demo và các bản sao lưu giữ nguyên.
+
+Frontend 182/182 test đạt, build đạt, lint 0 lỗi (11 cảnh báo có sẵn). Chromium trên dev 8080 ở 375 px tải đúng bản build mới, đọc danh sách phòng từ API thật và hiện form đặt lịch. Gửi form rỗng hiện lỗi ở ô nhập, 0 POST đặt lịch, 0 lỗi JavaScript, không tràn ngang. Chưa gửi một lịch hợp lệ mới trong lượt dọn.
